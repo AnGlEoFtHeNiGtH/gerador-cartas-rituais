@@ -82,8 +82,17 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
       try {
         const parsed = JSON.parse(event.target?.result as string);
         if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].name) {
-          onImportDeck(parsed as Ritual[]);
-          alert(`Grimório importado com sucesso! ${parsed.length} rituais carregados.`);
+          // Normalize legacy PE fields if found
+          const normalized: Ritual[] = parsed.map((item) => ({
+            ...item,
+            basePd: item.basePd || item.basePe || '1 PD',
+            modifications: (item.modifications || []).map((m: { cost?: string }) => ({
+              ...m,
+              cost: (m.cost || '+2 PD').replace(/PE/g, 'PD'),
+            })),
+          }));
+          onImportDeck(normalized);
+          alert(`Grimório importado com sucesso! ${normalized.length} rituais carregados.`);
         } else {
           alert('Arquivo JSON inválido. Certifique-se de que é um backup do Grimório.');
         }
@@ -231,6 +240,8 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                       }
                     : ELEMENT_CONFIGS[r.element];
                 const isSelected = r.id === currentRitualId;
+                const displayPd =
+                  r.basePd || (r as unknown as { basePe?: string }).basePe || '1 PD';
 
                 return (
                   <div
@@ -249,7 +260,13 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                       {/* Top row */}
                       <div className="flex items-center justify-between mb-1.5">
                         <div className="flex items-center gap-1.5">
-                          <OccultSigil element={r.element} size={18} color={cfg.primaryColor} />
+                          <OccultSigil
+                            element={r.element}
+                            symbolPreset={r.symbolPreset}
+                            customIconUrl={r.customElementIcon}
+                            size={18}
+                            color={cfg.primaryColor}
+                          />
                           <span
                             className="text-[11px] font-mono uppercase tracking-wider font-semibold"
                             style={{ color: cfg.primaryColor }}
@@ -275,8 +292,8 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
 
                     {/* Footer bar & Action buttons */}
                     <div className="mt-3 pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[11px]">
-                      <span className="font-mono text-zinc-500">
-                        {r.execution} • {r.basePe}
+                      <span className="font-mono text-zinc-400 font-medium">
+                        {r.execution} • <span className="text-red-300">{displayPd}</span>
                       </span>
 
                       <div

@@ -2,17 +2,44 @@ export type ElementId = 'sangue' | 'morte' | 'energia' | 'conhecimento' | 'medo'
 
 export type CircleTier = 1 | 2 | 3 | 4;
 
+export type SigilSymbolPreset =
+  | 'default'
+  | 'skull'
+  | 'eye'
+  | 'spiral'
+  | 'biohazard'
+  | 'flame'
+  | 'lightning'
+  | 'pentagram'
+  | 'hourglass'
+  | 'rift'
+  | 'dagger'
+  | 'moon'
+  | 'ouroboros';
+
 export interface Modification {
   id: string;
   name: string; // e.g., "Discente", "Verdadeiro", "Especial"
-  cost: string; // e.g., "+2 PE", "+5 PE"
-  requirement?: string; // e.g., "Requer 3º círculo", "Requer Afinidade"
+  cost: string; // e.g., "+2 PD", "+5 PD"
+  requirement?: string; // e.g., "Requer 2º Círculo", "Requer Afinidade"
   text: string;
 }
 
 export type CornerStyle = 'chamfer' | 'sharp' | 'rounded';
 export type BorderStyle = 'double-silver' | 'runic' | 'gold-accent' | 'pure-minimal';
 export type BgTone = 'black' | 'charcoal' | 'parchment';
+
+export interface RitualArtwork {
+  url: string; // Base64 data URL or web image URL
+  mode: 'background' | 'illustration' | 'back-cover'; // 'background' = ambient watermark, 'illustration' = framed artwork box, 'back-cover' = back cover art
+  opacity: number; // 0.1 to 1.0
+  scale: number; // 0.5 to 2.0
+  fit: 'cover' | 'contain';
+  positionY: number; // 0 to 100%
+  showOnFront: boolean;
+  showOnBack: boolean;
+  blendMode: 'normal' | 'luminosity' | 'overlay' | 'screen';
+}
 
 export interface CardThemeOptions {
   cornerStyle: CornerStyle;
@@ -31,17 +58,20 @@ export interface Ritual {
   element: ElementId;
   customElementName?: string;
   customElementColor?: string;
+  symbolPreset?: SigilSymbolPreset;
+  customElementIcon?: string; // Base64 data URL or SVG/PNG link
   circle: CircleTier;
   execution: string;
   range: string;
   target: string;
   duration: string;
-  basePe: string;
+  basePd: string; // e.g., "1 PD", "3 PD", "6 PD", "10 PD" (substituição total de PE por PD)
   resistance?: string;
   description: string;
   modifications: Modification[];
   flavorText?: string;
   theme: CardThemeOptions;
+  artwork?: RitualArtwork;
   createdAt: number;
   updatedAt: number;
 }

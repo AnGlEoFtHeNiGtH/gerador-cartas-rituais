@@ -16,7 +16,6 @@ import {
   Volume2,
   VolumeX,
   Plus,
-  Save,
   Check,
   ZoomIn,
   ZoomOut,
@@ -24,17 +23,25 @@ import {
   Sparkles,
 } from 'lucide-react';
 
-const STORAGE_KEY = 'grimorio_paranormal_rituals_v2';
+const STORAGE_KEY = 'grimorio_paranormal_rituals_v3';
 
 export default function App() {
-  // Load saved rituals or initial presets
+  // Load saved rituals or initial presets, normalizing any legacy PE to PD
   const [rituals, setRituals] = useState<Ritual[]>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('grimorio_paranormal_rituals_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          // Normalize legacy PE fields if found
+          return parsed.map((item) => ({
+            ...item,
+            basePd: item.basePd || item.basePe || '1 PD',
+            modifications: (item.modifications || []).map((m: { cost?: string }) => ({
+              ...m,
+              cost: (m.cost || '+2 PD').replace(/PE/g, 'PD'),
+            })),
+          }));
         }
       }
     } catch {
@@ -82,26 +89,27 @@ export default function App() {
     setRituals((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
   };
 
-  // Create new blank ritual
+  // Create new blank ritual (Totalmente em PD)
   const handleCreateNewRitual = () => {
     const newRitual: Ritual = {
       id: `ritual-${Date.now()}`,
       name: 'Novo Ritual',
       element: 'sangue',
+      symbolPreset: 'default',
       circle: 1,
       execution: 'Padrão',
       range: 'Toque',
       target: '1 criatura',
       duration: 'Instantânea',
-      basePe: '1 PE',
+      basePd: '1 PD',
       resistance: 'Nenhuma',
       description:
-        'Descreva o efeito do ritual paranormal aqui. Você pode destacar termos usando **negrito** ou rolagens como 2d6.',
+        'Descreva o efeito do ritual paranormal aqui. Você pode destacar termos usando **negrito**, rolagens como 2d6 ou custos em +2 PD.',
       modifications: [
         {
           id: `mod-${Date.now()}-1`,
           name: 'Discente',
-          cost: '+2 PE',
+          cost: '+2 PD',
           requirement: 'Requer 2º Círculo',
           text: 'Muda o efeito base aumentando a potência ou o alcance.',
         },
@@ -242,19 +250,24 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#0b0b0f] text-zinc-100 flex flex-col font-sans selection:bg-red-950 selection:text-red-200">
       {/* ======================================================== */}
-      {/* TOP BAR CONTRACT: Zone 1 (Wordmark) — Zone 2 (Nav links/Controls) — Zone 3 (Primary Action) */}
+      {/* TOP BAR CONTRACT: Zone 1 (Wordmark) — Zone 2 (Nav links) — Zone 3 (Primary Action) */}
       {/* ======================================================== */}
       <header className="flex items-center justify-between gap-8 px-6 py-3.5 border-b border-zinc-800/80 bg-[#0d0d12]/95 backdrop-blur-md sticky top-0 z-40">
         {/* Zone 1: Single text element wordmark */}
         <div className="flex items-center gap-2.5 whitespace-nowrap shrink-0">
           <div className="w-8 h-8 rounded-lg bg-red-950/80 border border-red-800/60 flex items-center justify-center text-red-400 shadow-xs">
-            <OccultSigil element={currentRitual.element} size={20} />
+            <OccultSigil
+              element={currentRitual.element}
+              symbolPreset={currentRitual.symbolPreset}
+              customIconUrl={currentRitual.customElementIcon}
+              size={20}
+            />
           </div>
           <span className="font-cinzel text-base font-bold tracking-wider text-white">
             Grimório Paranormal
           </span>
           <span className="hidden sm:inline-block text-[11px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">
-            Card Generator
+            PD Edition
           </span>
         </div>
 
@@ -336,7 +349,7 @@ export default function App() {
       {/* ======================================================== */}
       <main className="flex-1 max-w-[1700px] w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT COLUMN: Comprehensive Live Editor Panel */}
-        <section className="lg:col-span-6 xl:col-span-5 h-[calc(100vh-120px)] min-h-[620px] sticky top-20">
+        <section className="lg:col-span-6 xl:col-span-5 h-[calc(100vh-120px)] min-h-[640px] sticky top-20">
           <EditorPanel
             ritual={currentRitual}
             onChange={handleRitualChange}

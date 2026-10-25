@@ -2,7 +2,7 @@ import React from 'react';
 import { Ritual, ELEMENT_CONFIGS, ElementConfig } from '../types';
 import { OccultSigil, GrandOccultSeal } from './OccultSigil';
 import { formatRitualText } from '../utils/textFormatter';
-import { Clock, Compass, Target, Hourglass, Zap, ShieldAlert, Sparkles } from 'lucide-react';
+import { Compass, Target, Hourglass, Zap, ShieldAlert, Sparkles } from 'lucide-react';
 
 interface RitualCardProps {
   ritual: Ritual;
@@ -43,6 +43,9 @@ export const RitualCard: React.FC<RitualCardProps> = ({
   };
 
   const currentSide = isFlipped ? (viewSide === 'front' ? 'back' : 'front') : viewSide;
+  // Fallback to legacy basePe if basePd is not set
+  const basePdValue =
+    ritual.basePd || (ritual as unknown as { basePe?: string }).basePe || '1 PD';
 
   // Background styling based on theme
   const getBgClass = () => {
@@ -96,6 +99,14 @@ export const RitualCard: React.FC<RitualCardProps> = ({
     }
   };
 
+  const hasArtwork = Boolean(ritual.artwork?.url);
+  const showArtworkOnFront = hasArtwork && (ritual.artwork?.showOnFront ?? true);
+  const showArtworkOnBack =
+    hasArtwork &&
+    (ritual.artwork?.showOnBack || ritual.artwork?.mode === 'back-cover');
+  const isIllustrationMode = showArtworkOnFront && ritual.artwork?.mode === 'illustration';
+  const isBackgroundArtMode = showArtworkOnFront && ritual.artwork?.mode === 'background';
+
   // Card dimensions: 63mm x 88mm ratio = 1 : 1.3968.
   // Base desktop preview: 420px x 586px
   return (
@@ -117,22 +128,22 @@ export const RitualCard: React.FC<RitualCardProps> = ({
         }}
       >
         {/* Decorative Corner Ornaments (Corner Crosshairs) */}
-        <div className="absolute top-2 left-2 text-zinc-400 opacity-60 text-[9px] font-mono leading-none pointer-events-none">
+        <div className="absolute top-2 left-2 text-zinc-400 opacity-60 text-[9px] font-mono leading-none pointer-events-none z-20">
           ┼
         </div>
-        <div className="absolute top-2 right-2 text-zinc-400 opacity-60 text-[9px] font-mono leading-none pointer-events-none">
+        <div className="absolute top-2 right-2 text-zinc-400 opacity-60 text-[9px] font-mono leading-none pointer-events-none z-20">
           ┼
         </div>
-        <div className="absolute bottom-2 left-2 text-zinc-400 opacity-60 text-[9px] font-mono leading-none pointer-events-none">
+        <div className="absolute bottom-2 left-2 text-zinc-400 opacity-60 text-[9px] font-mono leading-none pointer-events-none z-20">
           ┼
         </div>
-        <div className="absolute bottom-2 right-2 text-zinc-400 opacity-60 text-[9px] font-mono leading-none pointer-events-none">
+        <div className="absolute bottom-2 right-2 text-zinc-400 opacity-60 text-[9px] font-mono leading-none pointer-events-none z-20">
           ┼
         </div>
 
         {/* Inner Hairline Double Border Box */}
         <div
-          className={`w-full h-full p-3.5 flex flex-col justify-between relative border border-zinc-400/40 ${getInnerCornerClass()} bg-black/40`}
+          className={`w-full h-full p-3.5 flex flex-col justify-between relative border border-zinc-400/40 ${getInnerCornerClass()} bg-black/40 overflow-hidden`}
           style={{
             borderColor:
               ritual.theme.borderStyle === 'gold-accent'
@@ -140,17 +151,48 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                 : 'rgba(212, 212, 216, 0.35)',
           }}
         >
-          {/* Subtle Element Watermark in the background */}
-          <div
-            className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden transition-opacity"
-            style={{ opacity: ritual.theme.watermarkOpacity }}
-          >
-            {ritual.theme.backSigilStyle === 'grand-seal' ? (
-              <GrandOccultSeal size={320} color={elementConfig.primaryColor} />
-            ) : (
-              <OccultSigil element={ritual.element} size={280} color={elementConfig.primaryColor} />
-            )}
-          </div>
+          {/* Subtle Element Watermark in the background (if not overridden by background artwork) */}
+          {(!isBackgroundArtMode || (ritual.artwork?.opacity ?? 0) < 0.3) && (
+            <div
+              className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden transition-opacity z-0"
+              style={{ opacity: ritual.theme.watermarkOpacity }}
+            >
+              {ritual.theme.backSigilStyle === 'grand-seal' ? (
+                <GrandOccultSeal size={320} color={elementConfig.primaryColor} />
+              ) : (
+                <OccultSigil
+                  element={ritual.element}
+                  symbolPreset={ritual.symbolPreset}
+                  customIconUrl={ritual.customElementIcon}
+                  size={280}
+                  color={elementConfig.primaryColor}
+                />
+              )}
+            </div>
+          )}
+
+          {/* Background Custom Artwork Layer (Front or Back) */}
+          {currentSide === 'front' && isBackgroundArtMode && ritual.artwork && (
+            <div
+              className="absolute inset-0 pointer-events-none overflow-hidden z-0"
+              style={{
+                opacity: ritual.artwork.opacity ?? 0.3,
+                mixBlendMode: ritual.artwork.blendMode || 'normal',
+              }}
+            >
+              <img
+                src={ritual.artwork.url}
+                alt=""
+                className="w-full h-full transition-transform"
+                style={{
+                  objectFit: ritual.artwork.fit || 'cover',
+                  objectPosition: `50% ${ritual.artwork.positionY ?? 50}%`,
+                  transform: `scale(${ritual.artwork.scale ?? 1})`,
+                }}
+              />
+              <div className="absolute inset-0 bg-black/55 backdrop-blur-[0.5px]" />
+            </div>
+          )}
 
           {/* ======================================================== */}
           {/* FRONT VIEW */}
@@ -158,12 +200,14 @@ export const RitualCard: React.FC<RitualCardProps> = ({
           {currentSide === 'front' ? (
             <div className="relative z-10 flex flex-col h-full justify-between">
               {/* TOP HEADER */}
-              <div className="border-b border-zinc-700/60 pb-2.5">
+              <div className="border-b border-zinc-700/60 pb-2.5 shrink-0">
                 <div className="flex items-center justify-between gap-2">
-                  {/* Left: Element Sigil */}
+                  {/* Left: Element Sigil / Custom Icon */}
                   <div className="shrink-0 flex items-center justify-center w-10 h-10 rounded-full border border-zinc-700 bg-black/80 shadow-inner">
                     <OccultSigil
                       element={ritual.element}
+                      symbolPreset={ritual.symbolPreset}
+                      customIconUrl={ritual.customElementIcon}
                       size={28}
                       color={elementConfig.primaryColor}
                       glow={ritual.theme.accentGlow}
@@ -212,7 +256,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                   </div>
                 </div>
 
-                {/* ATTRIBUTES / CASTING COST ROW */}
+                {/* ATTRIBUTES / CASTING COST ROW (SUBSTITUIÇÃO DE PE POR PD) */}
                 <div className="mt-2.5 pt-2 border-t border-zinc-800/80 grid grid-cols-5 gap-1 text-center bg-black/60 rounded px-1.5 py-1.5 border border-zinc-800">
                   {/* Execução */}
                   <div className="flex flex-col items-center">
@@ -220,7 +264,10 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       <Zap className="w-2.5 h-2.5 text-zinc-400" />
                       Exec
                     </span>
-                    <span className="text-[10px] font-semibold text-zinc-100 truncate w-full mt-0.5" title={ritual.execution}>
+                    <span
+                      className="text-[10px] font-semibold text-zinc-100 truncate w-full mt-0.5"
+                      title={ritual.execution}
+                    >
                       {ritual.execution || 'Padrão'}
                     </span>
                   </div>
@@ -231,7 +278,10 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       <Compass className="w-2.5 h-2.5 text-zinc-400" />
                       Alc
                     </span>
-                    <span className="text-[10px] font-semibold text-zinc-100 truncate w-full mt-0.5" title={ritual.range}>
+                    <span
+                      className="text-[10px] font-semibold text-zinc-100 truncate w-full mt-0.5"
+                      title={ritual.range}
+                    >
                       {ritual.range || 'Toque'}
                     </span>
                   </div>
@@ -242,7 +292,10 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       <Target className="w-2.5 h-2.5 text-zinc-400" />
                       Alvo
                     </span>
-                    <span className="text-[10px] font-semibold text-zinc-100 truncate w-full mt-0.5" title={ritual.target}>
+                    <span
+                      className="text-[10px] font-semibold text-zinc-100 truncate w-full mt-0.5"
+                      title={ritual.target}
+                    >
                       {ritual.target || '1 criatura'}
                     </span>
                   </div>
@@ -253,12 +306,15 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       <Hourglass className="w-2.5 h-2.5 text-zinc-400" />
                       Dur
                     </span>
-                    <span className="text-[10px] font-semibold text-zinc-100 truncate w-full mt-0.5" title={ritual.duration}>
+                    <span
+                      className="text-[10px] font-semibold text-zinc-100 truncate w-full mt-0.5"
+                      title={ritual.duration}
+                    >
                       {ritual.duration || 'Instantânea'}
                     </span>
                   </div>
 
-                  {/* Custo PE Base */}
+                  {/* Custo PD Base (Rigorosamente PD) */}
                   <div className="flex flex-col items-center border-l border-zinc-800/80 pl-1">
                     <span
                       className="flex items-center gap-0.5 text-[8.5px] font-mono uppercase tracking-wider font-bold"
@@ -270,9 +326,9 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                     <span
                       className="text-[10px] font-bold font-mono truncate w-full mt-0.5"
                       style={{ color: elementConfig.primaryColor }}
-                      title={ritual.basePe}
+                      title={basePdValue}
                     >
-                      {ritual.basePe || '1 PE'}
+                      {basePdValue}
                     </span>
                   </div>
                 </div>
@@ -291,15 +347,51 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                 )}
               </div>
 
+              {/* DEDICATED ARTWORK ILLUSTRATION FRAME (IF ILLUSTRATION MODE) */}
+              {isIllustrationMode && ritual.artwork && (
+                <div className="relative w-full h-32 my-1.5 rounded-lg overflow-hidden border border-zinc-700/80 bg-black/80 shrink-0 shadow-inner">
+                  <img
+                    src={ritual.artwork.url}
+                    alt={ritual.name}
+                    className="w-full h-full transition-transform"
+                    style={{
+                      objectFit: ritual.artwork.fit || 'cover',
+                      objectPosition: `50% ${ritual.artwork.positionY ?? 50}%`,
+                      opacity: ritual.artwork.opacity ?? 0.95,
+                      transform: `scale(${ritual.artwork.scale ?? 1})`,
+                      mixBlendMode: ritual.artwork.blendMode || 'normal',
+                    }}
+                  />
+                  {/* Subtle vignette gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
+                  <div className="absolute top-1 left-1 text-[8px] text-zinc-400 opacity-60 font-mono pointer-events-none">
+                    ┼
+                  </div>
+                  <div className="absolute top-1 right-1 text-[8px] text-zinc-400 opacity-60 font-mono pointer-events-none">
+                    ┼
+                  </div>
+                  <div className="absolute bottom-1 left-1 text-[8px] text-zinc-400 opacity-60 font-mono pointer-events-none">
+                    ┼
+                  </div>
+                  <div className="absolute bottom-1 right-1 text-[8px] text-zinc-400 opacity-60 font-mono pointer-events-none">
+                    ┼
+                  </div>
+                </div>
+              )}
+
               {/* CARD MAIN BODY */}
-              <div className="flex-1 my-2 overflow-hidden flex flex-col justify-start">
-                <div className="text-[11px] text-zinc-200 leading-snug overflow-y-auto pr-1">
+              <div className="flex-1 my-1.5 overflow-hidden flex flex-col justify-start">
+                <div
+                  className={`text-[11px] text-zinc-200 leading-snug overflow-y-auto pr-1 ${
+                    isIllustrationMode ? 'max-h-[120px]' : ''
+                  }`}
+                >
                   {formatRitualText(ritual.description, elementConfig.primaryColor)}
                 </div>
 
-                {/* MODIFICATIONS (DISCENTE / VERDADEIRO) */}
+                {/* MODIFICATIONS (DISCENTE / VERDADEIRO EM PD) */}
                 {ritual.modifications && ritual.modifications.length > 0 && (
-                  <div className="mt-2 space-y-1.5 pt-2 border-t border-zinc-800/90">
+                  <div className="mt-1.5 space-y-1.5 pt-1.5 border-t border-zinc-800/90">
                     {ritual.modifications.map((mod) => (
                       <div
                         key={mod.id}
@@ -339,7 +431,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
               </div>
 
               {/* CARD FOOTER */}
-              <div className="pt-2 border-t border-zinc-800/70">
+              <div className="pt-2 border-t border-zinc-800/70 shrink-0">
                 {ritual.theme.showFlavorText && ritual.flavorText && (
                   <p className="text-[9.5px] italic text-zinc-400 text-center font-serif leading-tight px-2 mb-1.5 line-clamp-2">
                     &ldquo;{ritual.flavorText}&rdquo;
@@ -363,9 +455,32 @@ export const RitualCard: React.FC<RitualCardProps> = ({
             /* ======================================================== */
             /* BACK VIEW (VERSO) */
             /* ======================================================== */
-            <div className="relative z-10 flex flex-col h-full items-center justify-between text-center p-3">
+            <div className="relative z-10 flex flex-col h-full items-center justify-between text-center p-3 overflow-hidden">
+              {/* Back Artwork Layer if enabled */}
+              {showArtworkOnBack && ritual.artwork && (
+                <div
+                  className="absolute inset-0 pointer-events-none overflow-hidden z-0"
+                  style={{
+                    opacity: ritual.artwork.opacity ?? 0.45,
+                    mixBlendMode: ritual.artwork.blendMode || 'normal',
+                  }}
+                >
+                  <img
+                    src={ritual.artwork.url}
+                    alt=""
+                    className="w-full h-full"
+                    style={{
+                      objectFit: ritual.artwork.fit || 'cover',
+                      objectPosition: `50% ${ritual.artwork.positionY ?? 50}%`,
+                      transform: `scale(${ritual.artwork.scale ?? 1})`,
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-black/50" />
+                </div>
+              )}
+
               {/* Back Top Seal / Occult Inscription */}
-              <div className="w-full flex items-center justify-between border-b border-zinc-800/70 pb-2">
+              <div className="w-full flex items-center justify-between border-b border-zinc-800/70 pb-2 relative z-10">
                 <span className="text-[9px] font-mono tracking-widest uppercase text-zinc-400">
                   SIGILLUM PARANORMALIS
                 </span>
@@ -378,11 +493,13 @@ export const RitualCard: React.FC<RitualCardProps> = ({
               </div>
 
               {/* Large Center Sigil & Inscriptions */}
-              <div className="my-auto flex flex-col items-center justify-center relative">
+              <div className="my-auto flex flex-col items-center justify-center relative z-10">
                 {ritual.theme.backSigilStyle === 'element' ? (
                   <div className="relative">
                     <OccultSigil
                       element={ritual.element}
+                      symbolPreset={ritual.symbolPreset}
+                      customIconUrl={ritual.customElementIcon}
                       size={200}
                       color={elementConfig.primaryColor}
                       glow={ritual.theme.accentGlow}
@@ -408,7 +525,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                 {/* Occult Center Inscription */}
                 <div className="mt-4 max-w-[280px]">
                   <p
-                    className="font-cinzel text-[11px] tracking-widest text-zinc-300 uppercase leading-relaxed font-semibold"
+                    className="font-cinzel text-[11px] tracking-widest text-zinc-300 uppercase leading-relaxed font-semibold drop-shadow"
                     style={{
                       textShadow: ritual.theme.accentGlow
                         ? `0 0 8px ${elementConfig.glowColor}`
@@ -422,7 +539,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
               </div>
 
               {/* Back Bottom Inscription */}
-              <div className="w-full pt-2 border-t border-zinc-800/70 flex items-center justify-between text-[8px] font-mono tracking-widest text-zinc-400 uppercase">
+              <div className="w-full pt-2 border-t border-zinc-800/70 flex items-center justify-between text-[8px] font-mono tracking-widest text-zinc-400 uppercase relative z-10">
                 <span>ESTUDOS OCULTISTAS</span>
                 <span className="text-zinc-400">✦ ✦ ✦</span>
                 <span>MEMBRANA CORROMPIDA</span>

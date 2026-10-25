@@ -5,7 +5,7 @@ import React from 'react';
  * - **bold**
  * - *italic*
  * - Dice formulas like 1d6, 3d8+5, 15d8
- * - Specific RPG terms like DT, PE, PV, RD
+ * - Specific RPG terms like DT, PD, PE, PV, RD
  */
 export function formatRitualText(text: string, accentColor?: string): React.ReactNode {
   if (!text) return null;
@@ -18,13 +18,14 @@ export function formatRitualText(text: string, accentColor?: string): React.Reac
       {lines.map((line, lineIndex) => {
         if (!line.trim()) return <div key={lineIndex} className="h-1" />;
 
-        // Tokenize formatting: **bold**, *italic*, dice formulas [xdy+z]
+        // Tokenize formatting: **bold**, *italic*, dice formulas [xdy+z], RPG tokens (DT, PD, PV, etc.)
         const tokens: React.ReactNode[] = [];
         let remaining = line;
         let tokenKey = 0;
 
-        // Regular expression for bold, italic, dice notation
-        const regex = /(\*\*([^*]+)\*\*|\*([^*]+)\*|(\b\d+d\d+(?:\s*[+-]\s*\d+)?\b)|(\b(?:DT|PE|PV|RD|Defesa|Sanidade)\b))/g;
+        // Regular expression for bold, italic, dice notation and RPG tokens including PD
+        const regex =
+          /(\*\*([^*]+)\*\*|\*([^*]+)\*|(\b\d+d\d+(?:\s*[+-]\s*\d+)?\b)|(\b(?:DT|PD|PE|PV|RD|Defesa|Sanidade)\b))/g;
         let lastIndex = 0;
         let match;
 
@@ -63,7 +64,7 @@ export function formatRitualText(text: string, accentColor?: string): React.Reac
               </span>
             );
           } else if (match[5]) {
-            // RPG Stat token (DT, PE, PV, etc.)
+            // RPG Stat token (DT, PD, PE, PV, etc.)
             tokens.push(
               <span
                 key={tokenKey++}

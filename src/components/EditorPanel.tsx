@@ -7,8 +7,9 @@ import {
   BorderStyle,
   BgTone,
   ELEMENT_CONFIGS,
+  SigilSymbolPreset,
 } from '../types';
-import { OccultSigil } from './OccultSigil';
+import { OccultSigil, SIGIL_PRESETS } from './OccultSigil';
 import { soundEngine } from '../utils/audio';
 import {
   Plus,
@@ -16,13 +17,16 @@ import {
   ChevronUp,
   ChevronDown,
   Sparkles,
-  Layers,
   Palette,
   FileText,
-  Sliders,
   Bold,
   Italic,
   Dices,
+  Image as ImageIcon,
+  Upload,
+  X,
+  Eye,
+  Sliders,
 } from 'lucide-react';
 
 interface EditorPanelProps {
@@ -32,13 +36,52 @@ interface EditorPanelProps {
   setActiveView: (view: 'front' | 'back') => void;
 }
 
+// Compress uploaded image onto client canvas to prevent exceeding localStorage quota
+const processUploadedImage = (file: File, maxWidth = 850): Promise<string> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(e.target?.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        const format = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        const compressed = canvas.toDataURL(format, 0.85);
+        resolve(compressed);
+      };
+      img.onerror = () => resolve(e.target?.result as string);
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 export const EditorPanel: React.FC<EditorPanelProps> = ({
   ritual,
   onChange,
   activeView,
   setActiveView,
 }) => {
-  const [activeTab, setActiveTab] = useState<'content' | 'mods' | 'style'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'mods' | 'art' | 'style'>('content');
+  const [imageInputUrl, setImageInputUrl] = useState('');
+  const [iconInputUrl, setIconInputUrl] = useState('');
+
+  // Fallback for basePd if older data exists
+  const currentBasePd =
+    ritual.basePd || (ritual as unknown as { basePe?: string }).basePe || '1 PD';
 
   // Helper updater
   const update = (partial: Partial<Ritual>) => {
@@ -60,7 +103,27 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     });
   };
 
-  // Add Modification
+  const updateArtwork = (partialArt: Partial<NonNullable<typeof ritual.artwork>>) => {
+    const current = ritual.artwork || {
+      url: '',
+      mode: 'illustration',
+      opacity: 0.9,
+      scale: 1,
+      fit: 'cover',
+      positionY: 50,
+      showOnFront: true,
+      showOnBack: false,
+      blendMode: 'normal',
+    };
+    update({
+      artwork: {
+        ...current,
+        ...partialArt,
+      },
+    });
+  };
+
+  // Add Modification (Substituição de PE por PD)
   const handleAddModification = () => {
     const isFirst = ritual.modifications.length === 0;
     const isSecond = ritual.modifications.length === 1;
@@ -68,9 +131,9 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     const newMod = {
       id: `mod-${Date.now()}`,
       name: isFirst ? 'Discente' : isSecond ? 'Verdadeiro' : 'Aprimoramento',
-      cost: isFirst ? '+2 PE' : isSecond ? '+5 PE' : '+3 PE',
+      cost: isFirst ? '+2 PD' : isSecond ? '+5 PD' : '+3 PD',
       requirement: isFirst ? 'Requer 2º Círculo' : isSecond ? 'Requer 3º Círculo' : '',
-      text: 'Descreva aqui a alteração ou ampliação do efeito ao pagar os Pontos de Esforço adicionais.',
+      text: 'Descreva aqui a alteração ou ampliação do efeito ao pagar os Pontos de Destruição (PD) adicionais.',
     };
 
     update({
@@ -110,7 +173,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   };
 
   // Insert formatting tag into description textarea
-  const insertFormatTag = (tagType: 'bold' | 'italic' | 'dice' | 'dt') => {
+  const insertFormatTag = (tagType: 'bold' | 'italic' | 'dice' | 'pd' | 'dt') => {
     const textarea = document.getElementById('ritual-desc-textarea') as HTMLTextAreaElement | null;
     if (!textarea) return;
 
@@ -129,6 +192,9 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
       case 'dice':
         insertion = selected ? `${selected}` : '3d6';
         break;
+      case 'pd':
+        insertion = '+2 PD';
+        break;
       case 'dt':
         insertion = 'DT';
         break;
@@ -144,15 +210,51 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     }, 50);
   };
 
+  // Handle image upload from computer
+  const handleArtworkFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const base64 = await processUploadedImage(file, 900);
+      updateArtwork({
+        url: base64,
+        mode: ritual.artwork?.mode || 'illustration',
+        showOnFront: true,
+      });
+      soundEngine.playSigilChime(580);
+    } catch {
+      alert('Erro ao carregar a imagem selecionada.');
+    }
+    e.target.value = '';
+  };
+
+  // Handle custom element symbol upload
+  const handleSymbolIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const base64 = await processUploadedImage(file, 200);
+      update({
+        customElementIcon: base64,
+      });
+      soundEngine.playSigilChime(620);
+    } catch {
+      alert('Erro ao carregar o ícone selecionado.');
+    }
+    e.target.value = '';
+  };
+
   return (
     <div className="flex flex-col h-full bg-[#121217] border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
       {/* Editor Header: Tabs & View Switcher */}
       <div className="flex items-center justify-between border-b border-zinc-800/80 px-4 py-3 bg-[#0d0d12]">
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-1 bg-[#1a1a22] p-1 rounded-lg border border-zinc-800">
+        <div className="flex items-center gap-1 bg-[#1a1a22] p-1 rounded-lg border border-zinc-800 overflow-x-auto">
           <button
             onClick={() => setActiveTab('content')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
               activeTab === 'content'
                 ? 'bg-zinc-800 text-white shadow-sm font-semibold'
                 : 'text-zinc-400 hover:text-zinc-200'
@@ -164,14 +266,14 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 
           <button
             onClick={() => setActiveTab('mods')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
               activeTab === 'mods'
                 ? 'bg-zinc-800 text-white shadow-sm font-semibold'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Aprimoramentos</span>
+            <span>Aprimoramentos (PD)</span>
             {ritual.modifications.length > 0 && (
               <span className="text-[10px] bg-red-950/80 text-red-300 px-1.5 py-0.2 rounded-full border border-red-800/40">
                 {ritual.modifications.length}
@@ -180,8 +282,23 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('art')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+              activeTab === 'art'
+                ? 'bg-zinc-800 text-white shadow-sm font-semibold'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <ImageIcon className="w-3.5 h-3.5" />
+            <span>Arte do Ritual</span>
+            {ritual.artwork?.url && (
+              <span className="w-2 h-2 rounded-full bg-red-500" />
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveTab('style')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
               activeTab === 'style'
                 ? 'bg-zinc-800 text-white shadow-sm font-semibold'
                 : 'text-zinc-400 hover:text-zinc-200'
@@ -193,7 +310,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         </div>
 
         {/* View Face Switch (Frente / Verso) */}
-        <div className="flex items-center gap-1 bg-[#1a1a22] p-1 rounded-lg border border-zinc-800">
+        <div className="flex items-center gap-1 bg-[#1a1a22] p-1 rounded-lg border border-zinc-800 shrink-0 ml-2">
           <button
             onClick={() => {
               setActiveView('front');
@@ -226,7 +343,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
       {/* Editor Content Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
         {/* ======================================================== */}
-        {/* TAB 1: CONTENT (DADOS PRINCIPAIS & CUSTOS) */}
+        {/* TAB 1: CONTENT (DADOS PRINCIPAIS & CUSTOS EM PD) */}
         {/* ======================================================== */}
         {activeTab === 'content' && (
           <div className="space-y-4">
@@ -270,7 +387,13 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                               : 'bg-[#181820] border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
                           }`}
                         >
-                          <OccultSigil element={elem} size={16} color={cfg.primaryColor} />
+                          <OccultSigil
+                            element={elem}
+                            symbolPreset={ritual.symbolPreset}
+                            customIconUrl={ritual.customElementIcon}
+                            size={16}
+                            color={cfg.primaryColor}
+                          />
                           <span className="truncate">{cfg.name}</span>
                         </button>
                       );
@@ -334,10 +457,106 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
               </div>
             </div>
 
-            {/* Atributos / Barra de Custos */}
+            {/* Símbolo do Elemento Personalizável */}
+            <div className="p-3 bg-[#181820] border border-zinc-800 rounded-xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-mono uppercase tracking-wider text-zinc-300 block">
+                    Símbolo do Elemento
+                  </span>
+                  <span className="text-[11px] text-zinc-500 block">
+                    Escolha um ícone temático ou envie um símbolo próprio (PNG/SVG)
+                  </span>
+                </div>
+                {ritual.customElementIcon && (
+                  <button
+                    type="button"
+                    onClick={() => update({ customElementIcon: undefined })}
+                    className="text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1"
+                  >
+                    <X className="w-3 h-3" />
+                    <span>Remover Ícone Próprio</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Presets Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-36 overflow-y-auto pr-1">
+                {SIGIL_PRESETS.map((preset) => {
+                  const isSelected =
+                    !ritual.customElementIcon &&
+                    (ritual.symbolPreset || 'default') === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => {
+                        update({
+                          symbolPreset: preset.id,
+                          customElementIcon: undefined,
+                        });
+                        soundEngine.playSigilChime(500);
+                      }}
+                      className={`flex items-center gap-1.5 p-1.5 rounded-lg border text-left text-xs transition-all ${
+                        isSelected
+                          ? 'bg-zinc-800 border-zinc-400 text-white font-semibold'
+                          : 'bg-black/50 border-zinc-800/80 text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      <OccultSigil
+                        element={ritual.element}
+                        symbolPreset={preset.id}
+                        size={20}
+                        color={isSelected ? '#ffffff' : undefined}
+                      />
+                      <span className="text-[11px] truncate">{preset.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Upload Custom Icon / Symbol */}
+              <div className="pt-2 border-t border-zinc-800 flex flex-wrap items-center gap-2">
+                <label className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 rounded-lg text-xs cursor-pointer border border-zinc-700/80 transition-colors">
+                  <Upload className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Upload Símbolo (PNG/SVG)</span>
+                  <input
+                    type="file"
+                    accept="image/*,.svg"
+                    onChange={handleSymbolIconUpload}
+                    className="hidden"
+                  />
+                </label>
+
+                {/* Or enter icon URL */}
+                <div className="flex-1 min-w-[180px] flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={iconInputUrl}
+                    onChange={(e) => setIconInputUrl(e.target.value)}
+                    placeholder="Ou cole URL do ícone..."
+                    className="w-full bg-black/60 border border-zinc-800 rounded px-2.5 py-1 text-xs text-white placeholder-zinc-600"
+                  />
+                  {iconInputUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        update({ customElementIcon: iconInputUrl });
+                        setIconInputUrl('');
+                      }}
+                      className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs text-white rounded"
+                    >
+                      Aplicar
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Atributos / Barra de Custos (SUBSTITUIÇÃO RIGOROSA DE PE POR PD) */}
             <div className="space-y-2 pt-2 border-t border-zinc-800/80">
               <span className="text-xs font-mono uppercase tracking-wider text-zinc-400 block">
-                Barra de Atributos & Conjuração
+                Barra de Atributos & Conjuração (Custos em PD)
               </span>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
@@ -389,15 +608,17 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                   />
                 </div>
 
-                {/* Custo Base PE */}
+                {/* Custo Base PD (Totalmente PD) */}
                 <div>
-                  <label className="block text-[11px] text-zinc-400 mb-0.5">Custo Base PE</label>
+                  <label className="block text-[11px] text-red-300 font-semibold mb-0.5">
+                    Custo Base PD
+                  </label>
                   <input
                     type="text"
-                    value={ritual.basePe}
-                    onChange={(e) => update({ basePe: e.target.value })}
-                    placeholder="1 PE, 3 PE, 6 PE..."
-                    className="w-full bg-[#181820] border border-zinc-700/80 rounded px-2.5 py-1.5 text-xs text-white font-mono font-semibold"
+                    value={currentBasePd}
+                    onChange={(e) => update({ basePd: e.target.value })}
+                    placeholder="1 PD, 3 PD, 6 PD..."
+                    className="w-full bg-[#181820] border border-red-900/60 rounded px-2.5 py-1.5 text-xs text-red-200 font-mono font-bold focus:border-red-500"
                   />
                 </div>
 
@@ -450,6 +671,14 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                   </button>
                   <button
                     type="button"
+                    onClick={() => insertFormatTag('pd')}
+                    title="Adicionar tag de PD"
+                    className="px-1.5 py-0.5 rounded text-[10px] font-mono text-red-300 font-bold hover:text-white hover:bg-zinc-800"
+                  >
+                    +PD
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => insertFormatTag('dt')}
                     title="Adicionar tag de DT"
                     className="px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-400 hover:text-white hover:bg-zinc-800"
@@ -468,7 +697,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                 className="w-full bg-[#181820] border border-zinc-700/80 rounded-lg p-3 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-hidden focus:border-red-500 focus:ring-1 focus:ring-red-500 leading-relaxed font-sans"
               />
               <span className="text-[10px] text-zinc-400 block">
-                Dica: Você pode usar <strong className="text-zinc-300">**negrito**</strong>, <em className="text-zinc-300">*itálico*</em> ou notação de dados como <span className="font-mono text-zinc-300">2d6</span> diretamente.
+                Dica: Destaque rolagens de dados como <span className="font-mono text-zinc-300">2d6</span>, custos adicionais em <span className="font-mono text-red-300">+2 PD</span> ou termos como <strong className="text-zinc-300">**negrito**</strong>.
               </span>
             </div>
 
@@ -489,17 +718,17 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         )}
 
         {/* ======================================================== */}
-        {/* TAB 2: MODIFICATIONS (DISCENTE / VERDADEIRO) */}
+        {/* TAB 2: MODIFICATIONS (DISCENTE / VERDADEIRO EM PD) */}
         {/* ======================================================== */}
         {activeTab === 'mods' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xs font-mono uppercase tracking-wider text-zinc-300">
-                  Aprimoramentos de Custo em PE
+                  Aprimoramentos de Custo em PD
                 </h3>
                 <p className="text-[11px] text-zinc-400">
-                  Configure as variações Discente, Verdadeiro ou Especiais deste ritual.
+                  Configure as variações Discente (+PD), Verdadeiro (+PD) ou Especiais deste ritual.
                 </p>
               </div>
 
@@ -509,7 +738,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/80 hover:bg-red-900 border border-red-700/60 rounded-lg text-xs font-medium text-red-200 transition-all shadow-xs"
               >
                 <Plus className="w-3.5 h-3.5" />
-                <span>Adicionar Modificação</span>
+                <span>Adicionar Modificação (PD)</span>
               </button>
             </div>
 
@@ -521,7 +750,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                   Nenhum aprimoramento adicionado ainda.
                 </p>
                 <p className="text-[11px] text-zinc-400 mt-1">
-                  Adicione variações como Discente (+2 PE) ou Verdadeiro (+5 PE).
+                  Adicione variações como Discente (+2 PD) ou Verdadeiro (+5 PD).
                 </p>
                 <button
                   type="button"
@@ -538,7 +767,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                     key={mod.id}
                     className="p-3 bg-[#181820] border border-zinc-800 rounded-lg space-y-2.5 relative group"
                   >
-                    {/* Header controls: Name, Cost, Reorder, Delete */}
+                    {/* Header controls: Name, Cost (PD), Reorder, Delete */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
                         {/* Name (e.g. Discente) */}
@@ -552,15 +781,15 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                           className="bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs text-white font-bold w-28"
                         />
 
-                        {/* Cost (e.g. +2 PE) */}
+                        {/* Cost in PD (e.g. +2 PD) */}
                         <input
                           type="text"
                           value={mod.cost}
                           onChange={(e) =>
                             handleUpdateModification(mod.id, 'cost', e.target.value)
                           }
-                          placeholder="+2 PE"
-                          className="bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs text-red-300 font-mono font-bold w-20"
+                          placeholder="+2 PD"
+                          className="bg-black/60 border border-red-900/80 rounded px-2 py-1 text-xs text-red-300 font-mono font-bold w-20"
                         />
 
                         {/* Requirement (e.g. Requer 2º Círculo) */}
@@ -613,7 +842,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                       onChange={(e) =>
                         handleUpdateModification(mod.id, 'text', e.target.value)
                       }
-                      placeholder="Descreva o efeito ampliado ao pagar este custo..."
+                      placeholder="Descreva o efeito ampliado ao pagar este custo em PD..."
                       className="w-full bg-black/60 border border-zinc-800 rounded p-2 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-hidden focus:border-red-500 leading-snug"
                     />
                   </div>
@@ -624,7 +853,310 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         )}
 
         {/* ======================================================== */}
-        {/* TAB 3: STYLE & AESTHETICS (BORDAS, CANTOS, VERSO) */}
+        {/* TAB 3: ART & IMAGE MANAGEMENT (UPLOAD DE IMAGEM PRÉ-EXISTENTE) */}
+        {/* ======================================================== */}
+        {activeTab === 'art' && (
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-xs font-mono uppercase tracking-wider text-zinc-300">
+                Arte & Ilustração do Ritual
+              </h3>
+              <p className="text-[11px] text-zinc-400">
+                Faça upload de uma imagem do seu computador ou cole a URL de uma arte para compor a carta.
+              </p>
+            </div>
+
+            {/* Current Artwork Card Preview / Upload controls */}
+            {ritual.artwork?.url ? (
+              <div className="p-3 bg-[#181820] border border-zinc-800 rounded-xl space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-20 rounded-lg overflow-hidden border border-zinc-700 bg-black shrink-0 relative">
+                    <img
+                      src={ritual.artwork.url}
+                      alt="Arte do ritual"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <span className="text-xs font-semibold text-white block">
+                      Imagem Carregada
+                    </span>
+                    <span className="text-[11px] text-zinc-400 block mt-0.5">
+                      Modo atual: <strong className="text-zinc-200 capitalize">{ritual.artwork.mode}</strong>
+                    </span>
+
+                    <div className="flex items-center gap-2 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => update({ artwork: undefined })}
+                        className="px-2.5 py-1 bg-red-950/80 hover:bg-red-900 border border-red-800 text-red-200 rounded text-xs flex items-center gap-1 transition-colors"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>Remover Imagem</span>
+                      </button>
+
+                      <label className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs cursor-pointer transition-colors">
+                        <span>Trocar Arquivo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleArtworkFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Artwork Position, Mode & Style Controls */}
+                <div className="pt-3 border-t border-zinc-800/80 space-y-3">
+                  {/* Mode Selector */}
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wider text-zinc-400 mb-1.5">
+                      Modo de Enquadramento
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        {
+                          id: 'illustration',
+                          label: 'Quadro de Destaque',
+                          desc: 'Moldura estilizada acima do texto',
+                        },
+                        {
+                          id: 'background',
+                          label: 'Arte de Fundo',
+                          desc: 'Marca d\'água sob o texto',
+                        },
+                        {
+                          id: 'back-cover',
+                          label: 'Capa no Verso',
+                          desc: 'Destaque no verso da carta',
+                        },
+                      ].map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() =>
+                            updateArtwork({
+                              mode: m.id as 'illustration' | 'background' | 'back-cover',
+                              showOnFront: m.id !== 'back-cover',
+                              showOnBack: m.id === 'back-cover' || (ritual.artwork?.showOnBack ?? false),
+                            })
+                          }
+                          className={`p-2 rounded-lg border text-left transition-all ${
+                            ritual.artwork?.mode === m.id
+                              ? 'bg-zinc-800 border-zinc-400 text-white font-semibold'
+                              : 'bg-black/50 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                          }`}
+                        >
+                          <span className="text-xs block font-medium">{m.label}</span>
+                          <span className="text-[10px] text-zinc-500 block mt-0.5">{m.desc}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Front / Back Display Checkboxes */}
+                  <div className="flex flex-wrap gap-4 pt-1">
+                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={ritual.artwork.showOnFront ?? true}
+                        onChange={(e) =>
+                          updateArtwork({ showOnFront: e.target.checked })
+                        }
+                        className="w-4 h-4 accent-red-600 rounded"
+                      />
+                      <span>Exibir na Frente da Carta</span>
+                    </label>
+
+                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={ritual.artwork.showOnBack ?? false}
+                        onChange={(e) =>
+                          updateArtwork({ showOnBack: e.target.checked })
+                        }
+                        className="w-4 h-4 accent-red-600 rounded"
+                      />
+                      <span>Exibir no Verso da Carta</span>
+                    </label>
+                  </div>
+
+                  {/* Sliders: Opacity, Zoom, Position Y */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                    {/* Opacity */}
+                    <div>
+                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                        <span>Opacidade</span>
+                        <span className="font-mono text-zinc-300">
+                          {Math.round((ritual.artwork.opacity ?? 0.9) * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.1"
+                        max="1"
+                        step="0.05"
+                        value={ritual.artwork.opacity ?? 0.9}
+                        onChange={(e) =>
+                          updateArtwork({ opacity: parseFloat(e.target.value) })
+                        }
+                        className="w-full accent-red-500"
+                      />
+                    </div>
+
+                    {/* Zoom / Scale */}
+                    <div>
+                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                        <span>Zoom / Escala</span>
+                        <span className="font-mono text-zinc-300">
+                          {Math.round((ritual.artwork.scale ?? 1) * 100)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.6"
+                        max="1.8"
+                        step="0.05"
+                        value={ritual.artwork.scale ?? 1}
+                        onChange={(e) =>
+                          updateArtwork({ scale: parseFloat(e.target.value) })
+                        }
+                        className="w-full accent-red-500"
+                      />
+                    </div>
+
+                    {/* Vertical Alignment (Y) */}
+                    <div>
+                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                        <span>Posição Vertical</span>
+                        <span className="font-mono text-zinc-300">
+                          {Math.round(ritual.artwork.positionY ?? 50)}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={ritual.artwork.positionY ?? 50}
+                        onChange={(e) =>
+                          updateArtwork({ positionY: parseInt(e.target.value) })
+                        }
+                        className="w-full accent-red-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Fit & Blend Mode */}
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">
+                        Ajuste de Proporção
+                      </label>
+                      <select
+                        value={ritual.artwork.fit || 'cover'}
+                        onChange={(e) =>
+                          updateArtwork({
+                            fit: e.target.value as 'cover' | 'contain',
+                          })
+                        }
+                        className="w-full bg-[#141419] border border-zinc-700 rounded px-2.5 py-1 text-xs text-white"
+                      >
+                        <option value="cover">Preencher (Cover)</option>
+                        <option value="contain">Conter / Ver Inteira (Contain)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] text-zinc-400 mb-1">
+                        Modo de Mesclagem
+                      </label>
+                      <select
+                        value={ritual.artwork.blendMode || 'normal'}
+                        onChange={(e) =>
+                          updateArtwork({
+                            blendMode: e.target.value as
+                              | 'normal'
+                              | 'luminosity'
+                              | 'overlay'
+                              | 'screen',
+                          })
+                        }
+                        className="w-full bg-[#141419] border border-zinc-700 rounded px-2.5 py-1 text-xs text-white"
+                      >
+                        <option value="normal">Normal</option>
+                        <option value="luminosity">Luminosidade (Monocromático)</option>
+                        <option value="overlay">Sobreposição (Overlay)</option>
+                        <option value="screen">Clarear (Screen)</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* No artwork uploaded yet: Dropzone / Upload area */
+              <div className="p-8 border-2 border-dashed border-zinc-700/80 rounded-2xl bg-black/40 text-center space-y-4">
+                <div className="w-12 h-12 rounded-full bg-red-950/60 border border-red-800/40 flex items-center justify-center mx-auto text-red-400">
+                  <ImageIcon className="w-6 h-6" />
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-semibold text-white">
+                    Adicionar Imagem Pré-existente ao Ritual
+                  </h4>
+                  <p className="text-xs text-zinc-400 mt-1 max-w-md mx-auto">
+                    Envie a arte de um monstro, símbolo ou cena paranormal do seu computador (PNG, JPG, WebP) ou insira o link web.
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <label className="flex items-center gap-2 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-lg shadow-red-950/40 transition-colors">
+                    <Upload className="w-4 h-4" />
+                    <span>Fazer Upload do Arquivo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleArtworkFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 max-w-sm mx-auto pt-2">
+                  <input
+                    type="text"
+                    value={imageInputUrl}
+                    onChange={(e) => setImageInputUrl(e.target.value)}
+                    placeholder="Ou cole a URL da imagem..."
+                    className="flex-1 bg-[#181820] border border-zinc-700 rounded px-3 py-1.5 text-xs text-white placeholder-zinc-500"
+                  />
+                  {imageInputUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateArtwork({
+                          url: imageInputUrl,
+                          mode: 'illustration',
+                          showOnFront: true,
+                        });
+                        setImageInputUrl('');
+                      }}
+                      className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs text-white rounded font-medium"
+                    >
+                      Carregar
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* TAB 4: STYLE & AESTHETICS (BORDAS, CANTOS, VERSO) */}
         {/* ======================================================== */}
         {activeTab === 'style' && (
           <div className="space-y-4">

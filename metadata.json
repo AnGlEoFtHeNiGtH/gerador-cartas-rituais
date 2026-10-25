@@ -1,0 +1,6 @@
+{
+  "name": "Grimório Paranormal - Cartas de Rituais",
+  "description": "Editor profissional e gerador de cartas de rituais no estilo terror investigativo e Ordem Paranormal, com exportação de cartas em alta definição e gerenciador de deck.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

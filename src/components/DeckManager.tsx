@@ -1,0 +1,381 @@
+import React, { useState } from 'react';
+import { Ritual, ElementId, ELEMENT_CONFIGS } from '../types';
+import { OccultSigil } from './OccultSigil';
+import {
+  Search,
+  Plus,
+  Copy,
+  Trash2,
+  Download,
+  Upload,
+  BookOpen,
+  X,
+  Check,
+  RefreshCw,
+} from 'lucide-react';
+
+interface DeckManagerProps {
+  rituals: Ritual[];
+  currentRitualId: string;
+  onSelectRitual: (ritual: Ritual) => void;
+  onCreateNewRitual: () => void;
+  onDuplicateRitual: (ritual: Ritual) => void;
+  onDeleteRitual: (id: string) => void;
+  onResetToDefaults: () => void;
+  onImportDeck: (imported: Ritual[]) => void;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const DeckManager: React.FC<DeckManagerProps> = ({
+  rituals,
+  currentRitualId,
+  onSelectRitual,
+  onCreateNewRitual,
+  onDuplicateRitual,
+  onDeleteRitual,
+  onResetToDefaults,
+  onImportDeck,
+  isOpen,
+  onClose,
+}) => {
+  const [search, setSearch] = useState('');
+  const [elementFilter, setElementFilter] = useState<ElementId | 'all'>('all');
+  const [circleFilter, setCircleFilter] = useState<number | 'all'>('all');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  // Filter rituals
+  const filteredRituals = rituals.filter((r) => {
+    const matchesSearch =
+      r.name.toLowerCase().includes(search.toLowerCase()) ||
+      r.description.toLowerCase().includes(search.toLowerCase());
+    const matchesElement = elementFilter === 'all' || r.element === elementFilter;
+    const matchesCircle = circleFilter === 'all' || r.circle === circleFilter;
+    return matchesSearch && matchesElement && matchesCircle;
+  });
+
+  // Export Deck to JSON
+  const handleExportDeckJson = () => {
+    const dataStr =
+      'data:text/json;charset=utf-8,' +
+      encodeURIComponent(JSON.stringify(rituals, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute('href', dataStr);
+    downloadAnchor.setAttribute(
+      'download',
+      `grimorio-paranormal-deck-${new Date().toISOString().slice(0, 10)}.json`
+    );
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  // Import Deck from JSON
+  const handleImportJsonFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].name) {
+          onImportDeck(parsed as Ritual[]);
+          alert(`Grimório importado com sucesso! ${parsed.length} rituais carregados.`);
+        } else {
+          alert('Arquivo JSON inválido. Certifique-se de que é um backup do Grimório.');
+        }
+      } catch {
+        alert('Erro ao ler arquivo JSON.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
+      <div className="relative w-full max-w-4xl max-h-[85vh] bg-[#101015] border border-zinc-800 rounded-2xl flex flex-col shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-[#0d0d11]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-red-950/60 border border-red-800/50 flex items-center justify-center text-red-400">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="font-cinzel text-base font-bold text-white tracking-wide">
+                Grimório de Rituais (Deck)
+              </h2>
+              <p className="text-xs text-zinc-400">
+                Gerencie todos os seus rituais salvos ({rituals.length} no grimório)
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onCreateNewRitual}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold shadow-xs transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Novo Ritual</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Search & Filter Toolbar */}
+        <div className="p-4 border-b border-zinc-800/80 bg-[#14141a] flex flex-wrap items-center justify-between gap-3">
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nome ou efeito do ritual..."
+              className="w-full bg-[#1b1b24] border border-zinc-700/80 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-hidden focus:border-red-500"
+            />
+          </div>
+
+          {/* Element Filter */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setElementFilter('all')}
+              className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                elementFilter === 'all'
+                  ? 'bg-zinc-700 text-white font-semibold'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              Todos
+            </button>
+            {(['sangue', 'morte', 'energia', 'conhecimento', 'medo'] as ElementId[]).map(
+              (elem) => {
+                const cfg = ELEMENT_CONFIGS[elem];
+                const isSelected = elementFilter === elem;
+                return (
+                  <button
+                    key={elem}
+                    onClick={() => setElementFilter(elem)}
+                    className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                      isSelected
+                        ? 'bg-zinc-800 border border-zinc-600 text-white font-semibold'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    <OccultSigil element={elem} size={13} color={cfg.primaryColor} />
+                    <span className="hidden sm:inline">{cfg.name}</span>
+                  </button>
+                );
+              }
+            )}
+          </div>
+
+          {/* Circle Filter */}
+          <div className="flex items-center gap-1 bg-[#1b1b24] p-0.5 rounded border border-zinc-800 text-xs">
+            <span className="px-1.5 text-[10px] text-zinc-500 uppercase font-mono">Grau:</span>
+            {[
+              { val: 'all', label: 'Todos' },
+              { val: 1, label: '1º' },
+              { val: 2, label: '2º' },
+              { val: 3, label: '3º' },
+              { val: 4, label: '4º' },
+            ].map((c) => (
+              <button
+                key={c.val}
+                onClick={() => setCircleFilter(c.val as number | 'all')}
+                className={`px-2 py-0.5 rounded font-mono ${
+                  circleFilter === c.val
+                    ? 'bg-zinc-700 text-white font-bold'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Rituals Grid */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {filteredRituals.length === 0 ? (
+            <div className="text-center py-12 text-zinc-500">
+              <p className="text-sm">Nenhum ritual encontrado com esses filtros.</p>
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setElementFilter('all');
+                  setCircleFilter('all');
+                }}
+                className="mt-2 text-xs text-red-400 hover:underline"
+              >
+                Limpar filtros
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredRituals.map((r) => {
+                const cfg =
+                  r.element === 'custom'
+                    ? {
+                        name: r.customElementName || 'Custom',
+                        primaryColor: r.customElementColor || '#10b981',
+                      }
+                    : ELEMENT_CONFIGS[r.element];
+                const isSelected = r.id === currentRitualId;
+
+                return (
+                  <div
+                    key={r.id}
+                    onClick={() => {
+                      onSelectRitual(r);
+                      onClose();
+                    }}
+                    className={`relative p-3.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between group ${
+                      isSelected
+                        ? 'bg-[#1c1c24] border-red-500/80 shadow-lg shadow-red-950/30 ring-1 ring-red-500/50'
+                        : 'bg-[#15151c] border-zinc-800 hover:border-zinc-700 hover:bg-[#181822]'
+                    }`}
+                  >
+                    <div>
+                      {/* Top row */}
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <OccultSigil element={r.element} size={18} color={cfg.primaryColor} />
+                          <span
+                            className="text-[11px] font-mono uppercase tracking-wider font-semibold"
+                            style={{ color: cfg.primaryColor }}
+                          >
+                            {cfg.name}
+                          </span>
+                        </div>
+                        <span className="text-xs font-mono font-bold text-zinc-400 bg-black/50 px-1.5 py-0.5 rounded border border-zinc-800">
+                          {r.circle}º Círculo
+                        </span>
+                      </div>
+
+                      {/* Ritual Name */}
+                      <h4 className="font-cinzel text-sm font-bold text-white group-hover:text-red-300 transition-colors">
+                        {r.name}
+                      </h4>
+
+                      {/* Attributes preview */}
+                      <p className="text-[11px] text-zinc-400 line-clamp-2 mt-1 leading-snug">
+                        {r.description.replace(/\*\*/g, '').replace(/\*/g, '')}
+                      </p>
+                    </div>
+
+                    {/* Footer bar & Action buttons */}
+                    <div className="mt-3 pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[11px]">
+                      <span className="font-mono text-zinc-500">
+                        {r.execution} • {r.basePe}
+                      </span>
+
+                      <div
+                        className="flex items-center gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {/* Duplicate */}
+                        <button
+                          type="button"
+                          onClick={() => onDuplicateRitual(r)}
+                          title="Duplicar este ritual"
+                          className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Delete confirmation */}
+                        {confirmDeleteId === r.id ? (
+                          <div className="flex items-center gap-1 bg-red-950/80 border border-red-800 px-1.5 py-0.5 rounded">
+                            <span className="text-[9px] text-red-200">Excluir?</span>
+                            <button
+                              onClick={() => {
+                                onDeleteRitual(r.id);
+                                setConfirmDeleteId(null);
+                              }}
+                              className="text-red-300 hover:text-white font-bold"
+                            >
+                              <Check className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="text-zinc-400 hover:text-white"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setConfirmDeleteId(r.id)}
+                            title="Excluir ritual"
+                            className="p-1 rounded text-zinc-400 hover:text-red-400 hover:bg-zinc-800"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom Bar: Import, Export, Reset defaults */}
+        <div className="px-6 py-3 border-t border-zinc-800 bg-[#0d0d11] flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            {/* Export Deck */}
+            <button
+              onClick={handleExportDeckJson}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Exportar Deck (.json)</span>
+            </button>
+
+            {/* Import Deck */}
+            <label className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg cursor-pointer transition-colors">
+              <Upload className="w-3.5 h-3.5" />
+              <span>Importar Deck</span>
+              <input
+                type="file"
+                accept=".json"
+                onChange={handleImportJsonFile}
+                className="hidden"
+              />
+            </label>
+          </div>
+
+          <div>
+            <button
+              onClick={() => {
+                if (
+                  confirm(
+                    'Deseja restaurar os rituais padrão? Seus rituais existentes serão mesclados com os presets clássicos.'
+                  )
+                ) {
+                  onResetToDefaults();
+                }
+              }}
+              className="flex items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors text-[11px]"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Restaurar Rituais Originais</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

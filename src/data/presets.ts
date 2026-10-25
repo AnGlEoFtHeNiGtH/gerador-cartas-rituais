@@ -33,6 +33,7 @@ export const PRESET_RITUALS: Ritual[] = [
     ],
     flavorText: 'O metal sedento estremece e pulsa como uma artéria aberta.',
     theme: {
+      cardMode: 'dark',
       cornerStyle: 'chamfer',
       borderStyle: 'double-silver',
       bgTone: 'black',
@@ -77,6 +78,7 @@ export const PRESET_RITUALS: Ritual[] = [
     ],
     flavorText: 'Cinzas do passado que pesam nos passos dos vivos.',
     theme: {
+      cardMode: 'dark',
       cornerStyle: 'chamfer',
       borderStyle: 'double-silver',
       bgTone: 'black',
@@ -121,6 +123,7 @@ export const PRESET_RITUALS: Ritual[] = [
     ],
     flavorText: 'A carne se rasga e se cose com ferocidade desumana.',
     theme: {
+      cardMode: 'dark',
       cornerStyle: 'chamfer',
       borderStyle: 'double-silver',
       bgTone: 'black',
@@ -165,6 +168,7 @@ export const PRESET_RITUALS: Ritual[] = [
     ],
     flavorText: 'O caos não pede licença; ele simplesmente acontece.',
     theme: {
+      cardMode: 'dark',
       cornerStyle: 'chamfer',
       borderStyle: 'double-silver',
       bgTone: 'black',
@@ -209,6 +213,7 @@ export const PRESET_RITUALS: Ritual[] = [
     ],
     flavorText: 'Saber demais é o primeiro passo para o abismo.',
     theme: {
+      cardMode: 'dark',
       cornerStyle: 'chamfer',
       borderStyle: 'gold-accent',
       bgTone: 'black',
@@ -246,6 +251,7 @@ export const PRESET_RITUALS: Ritual[] = [
     ],
     flavorText: 'O ar cheira a cinzas de coisas que nunca existiram.',
     theme: {
+      cardMode: 'dark',
       cornerStyle: 'chamfer',
       borderStyle: 'runic',
       bgTone: 'black',
@@ -283,6 +289,7 @@ export const PRESET_RITUALS: Ritual[] = [
     ],
     flavorText: 'O Medo não tem contraparte. Ele apenas é.',
     theme: {
+      cardMode: 'dark',
       cornerStyle: 'chamfer',
       borderStyle: 'double-silver',
       bgTone: 'black',

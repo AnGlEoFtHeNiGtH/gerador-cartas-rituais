@@ -6,8 +6,9 @@ import {
   CornerStyle,
   BorderStyle,
   BgTone,
+  CardMode,
+  CustomIconFilter,
   ELEMENT_CONFIGS,
-  SigilSymbolPreset,
 } from '../types';
 import { OccultSigil, SIGIL_PRESETS } from './OccultSigil';
 import { soundEngine } from '../utils/audio';
@@ -25,8 +26,10 @@ import {
   Image as ImageIcon,
   Upload,
   X,
-  Eye,
-  Sliders,
+  Sun,
+  Moon,
+  Wand2,
+  Feather,
 } from 'lucide-react';
 
 interface EditorPanelProps {
@@ -34,6 +37,8 @@ interface EditorPanelProps {
   onChange: (updated: Ritual) => void;
   activeView: 'front' | 'back';
   setActiveView: (view: 'front' | 'back') => void;
+  appMode?: 'dark' | 'light';
+  onOpenLightPrint?: () => void;
 }
 
 // Compress uploaded image onto client canvas to prevent exceeding localStorage quota
@@ -74,10 +79,14 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   onChange,
   activeView,
   setActiveView,
+  appMode = 'dark',
+  onOpenLightPrint,
 }) => {
   const [activeTab, setActiveTab] = useState<'content' | 'mods' | 'art' | 'style'>('content');
   const [imageInputUrl, setImageInputUrl] = useState('');
   const [iconInputUrl, setIconInputUrl] = useState('');
+
+  const isLightApp = appMode === 'light';
 
   // Fallback for basePd if older data exists
   const currentBasePd =
@@ -123,7 +132,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     });
   };
 
-  // Add Modification (Substituição de PE por PD)
+  // Add Modification (Custos em PD)
   const handleAddModification = () => {
     const isFirst = ritual.modifications.length === 0;
     const isSecond = ritual.modifications.length === 1;
@@ -133,7 +142,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
       name: isFirst ? 'Discente' : isSecond ? 'Verdadeiro' : 'Aprimoramento',
       cost: isFirst ? '+2 PD' : isSecond ? '+5 PD' : '+3 PD',
       requirement: isFirst ? 'Requer 2º Círculo' : isSecond ? 'Requer 3º Círculo' : '',
-      text: 'Descreva aqui a alteração ou ampliação do efeito ao pagar os Pontos de Destruição (PD) adicionais.',
+      text: 'Descreva a alteração ou ampliação do efeito ao pagar os Pontos de Destruição (PD) adicionais.',
     };
 
     update({
@@ -229,16 +238,20 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     e.target.value = '';
   };
 
-  // Handle custom element symbol upload
+  // Handle universal custom element symbol upload (accepts any image format)
   const handleSymbolIconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     try {
-      const base64 = await processUploadedImage(file, 200);
+      const base64 = await processUploadedImage(file, 300);
       update({
         customElementIcon: base64,
       });
+      // Set default auto filter
+      if (!ritual.theme.customIconFilter) {
+        updateTheme({ customIconFilter: 'auto' });
+      }
       soundEngine.playSigilChime(620);
     } catch {
       alert('Erro ao carregar o ícone selecionado.');
@@ -247,16 +260,38 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#121217] border border-zinc-800 rounded-xl overflow-hidden shadow-2xl">
+    <div
+      className={`flex flex-col h-full rounded-2xl overflow-hidden shadow-2xl transition-colors border ${
+        isLightApp
+          ? 'bg-white border-slate-200 text-slate-800'
+          : 'bg-[#121217] border-zinc-800 text-zinc-100'
+      }`}
+    >
       {/* Editor Header: Tabs & View Switcher */}
-      <div className="flex items-center justify-between border-b border-zinc-800/80 px-4 py-3 bg-[#0d0d12]">
+      <div
+        className={`flex items-center justify-between border-b px-4 py-3 shrink-0 ${
+          isLightApp
+            ? 'bg-slate-50 border-slate-200'
+            : 'bg-[#0d0d12] border-zinc-800/80'
+        }`}
+      >
         {/* Navigation Tabs */}
-        <div className="flex items-center gap-1 bg-[#1a1a22] p-1 rounded-lg border border-zinc-800 overflow-x-auto">
+        <div
+          className={`flex items-center gap-1 p-1 rounded-xl border overflow-x-auto ${
+            isLightApp
+              ? 'bg-slate-200/60 border-slate-300'
+              : 'bg-[#1a1a22] border-zinc-800'
+          }`}
+        >
           <button
             onClick={() => setActiveTab('content')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
               activeTab === 'content'
-                ? 'bg-zinc-800 text-white shadow-sm font-semibold'
+                ? isLightApp
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'bg-zinc-800 text-white shadow-xs'
+                : isLightApp
+                ? 'text-slate-600 hover:text-slate-900'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -266,16 +301,20 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 
           <button
             onClick={() => setActiveTab('mods')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
               activeTab === 'mods'
-                ? 'bg-zinc-800 text-white shadow-sm font-semibold'
+                ? isLightApp
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'bg-zinc-800 text-white shadow-xs'
+                : isLightApp
+                ? 'text-slate-600 hover:text-slate-900'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>Aprimoramentos (PD)</span>
             {ritual.modifications.length > 0 && (
-              <span className="text-[10px] bg-red-950/80 text-red-300 px-1.5 py-0.2 rounded-full border border-red-800/40">
+              <span className="text-[10px] bg-red-800/80 text-red-200 px-1.5 py-0.2 rounded-full font-bold">
                 {ritual.modifications.length}
               </span>
             )}
@@ -283,42 +322,58 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 
           <button
             onClick={() => setActiveTab('art')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
               activeTab === 'art'
-                ? 'bg-zinc-800 text-white shadow-sm font-semibold'
+                ? isLightApp
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'bg-zinc-800 text-white shadow-xs'
+                : isLightApp
+                ? 'text-slate-600 hover:text-slate-900'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <ImageIcon className="w-3.5 h-3.5" />
-            <span>Arte do Ritual</span>
-            {ritual.artwork?.url && (
-              <span className="w-2 h-2 rounded-full bg-red-500" />
-            )}
+            <span>Arte</span>
+            {ritual.artwork?.url && <span className="w-2 h-2 rounded-full bg-red-500" />}
           </button>
 
           <button
             onClick={() => setActiveTab('style')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all whitespace-nowrap ${
               activeTab === 'style'
-                ? 'bg-zinc-800 text-white shadow-sm font-semibold'
+                ? isLightApp
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'bg-zinc-800 text-white shadow-xs'
+                : isLightApp
+                ? 'text-slate-600 hover:text-slate-900'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <Palette className="w-3.5 h-3.5" />
-            <span>Estilo & Borda</span>
+            <span>Tema & Visual</span>
           </button>
         </div>
 
         {/* View Face Switch (Frente / Verso) */}
-        <div className="flex items-center gap-1 bg-[#1a1a22] p-1 rounded-lg border border-zinc-800 shrink-0 ml-2">
+        <div
+          className={`flex items-center gap-1 p-1 rounded-xl border shrink-0 ml-2 ${
+            isLightApp
+              ? 'bg-slate-200/60 border-slate-300'
+              : 'bg-[#1a1a22] border-zinc-800'
+          }`}
+        >
           <button
             onClick={() => {
               setActiveView('front');
               soundEngine.playCardFlip();
             }}
-            className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
               activeView === 'front'
-                ? 'bg-zinc-700 text-white shadow-xs font-semibold'
+                ? isLightApp
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'bg-zinc-700 text-white shadow-xs'
+                : isLightApp
+                ? 'text-slate-600 hover:text-slate-900'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -329,9 +384,13 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
               setActiveView('back');
               soundEngine.playCardFlip();
             }}
-            className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
               activeView === 'back'
-                ? 'bg-zinc-700 text-white shadow-xs font-semibold'
+                ? isLightApp
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'bg-zinc-700 text-white shadow-xs'
+                : isLightApp
+                ? 'text-slate-600 hover:text-slate-900'
                 : 'text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -347,17 +406,25 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         {/* ======================================================== */}
         {activeTab === 'content' && (
           <div className="space-y-4">
-            {/* Nome do Ritual */}
+            {/* Nome do Ritual (Westsac font) */}
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-zinc-400 mb-1">
-                Nome do Ritual
+              <label
+                className={`block text-xs font-mono uppercase tracking-wider mb-1 font-semibold ${
+                  isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                }`}
+              >
+                Nome do Ritual (Fonte Westsac)
               </label>
               <input
                 type="text"
                 value={ritual.name}
                 onChange={(e) => update({ name: e.target.value })}
                 placeholder="Ex: Amaldiçoar Arma, Ectoplasma..."
-                className="w-full bg-[#181820] border border-zinc-700/80 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-hidden focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all font-cinzel font-semibold"
+                className={`w-full rounded-xl px-3.5 py-2 text-base font-title font-bold tracking-wide focus:outline-hidden focus:ring-2 focus:ring-red-500 transition-all border ${
+                  isLightApp
+                    ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
+                    : 'bg-[#181820] border-zinc-700/80 text-white placeholder-zinc-500'
+                }`}
               />
             </div>
 
@@ -365,7 +432,11 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Element Selector */}
               <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-zinc-400 mb-1.5">
+                <label
+                  className={`block text-xs font-mono uppercase tracking-wider mb-1.5 font-semibold ${
+                    isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                  }`}
+                >
                   Elemento
                 </label>
                 <div className="grid grid-cols-3 gap-1.5">
@@ -383,7 +454,11 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                           }}
                           className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-xs transition-all ${
                             isSelected
-                              ? 'bg-zinc-800 border-zinc-400 text-white shadow-xs font-semibold'
+                              ? isLightApp
+                                ? 'bg-slate-900 border-slate-900 text-white font-bold shadow-xs'
+                                : 'bg-zinc-800 border-zinc-400 text-white shadow-xs font-semibold'
+                              : isLightApp
+                              ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
                               : 'bg-[#181820] border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
                           }`}
                         >
@@ -391,6 +466,9 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                             element={elem}
                             symbolPreset={ritual.symbolPreset}
                             customIconUrl={ritual.customElementIcon}
+                            customIconFilter={ritual.theme.customIconFilter}
+                            customIconInvert={ritual.theme.customIconInvert}
+                            cardMode={ritual.theme.cardMode}
                             size={16}
                             color={cfg.primaryColor}
                           />
@@ -403,27 +481,31 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 
                 {/* Custom Element options if selected */}
                 {ritual.element === 'custom' && (
-                  <div className="mt-2.5 p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 space-y-2">
+                  <div
+                    className={`mt-2.5 p-2.5 rounded-xl border space-y-2 ${
+                      isLightApp ? 'bg-slate-50 border-slate-300' : 'bg-zinc-900 border-zinc-800'
+                    }`}
+                  >
                     <div>
-                      <span className="text-[11px] text-zinc-400 block mb-1">Nome do Elemento</span>
+                      <span className="text-[11px] font-medium block mb-1">Nome do Elemento</span>
                       <input
                         type="text"
                         value={ritual.customElementName || ''}
                         onChange={(e) => update({ customElementName: e.target.value })}
                         placeholder="Ex: Tenebra, Vácuo, Luz..."
-                        className="w-full bg-[#141419] border border-zinc-700 rounded px-2 py-1 text-xs text-white"
+                        className="w-full bg-transparent border border-zinc-400/50 rounded-lg px-2 py-1 text-xs"
                       />
                     </div>
                     <div>
-                      <span className="text-[11px] text-zinc-400 block mb-1">Cor do Elemento</span>
+                      <span className="text-[11px] font-medium block mb-1">Cor do Elemento</span>
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
                           value={ritual.customElementColor || '#10b981'}
                           onChange={(e) => update({ customElementColor: e.target.value })}
-                          className="w-8 h-8 rounded border border-zinc-700 cursor-pointer bg-transparent"
+                          className="w-8 h-8 rounded border border-zinc-500 cursor-pointer bg-transparent"
                         />
-                        <span className="text-xs font-mono text-zinc-300">
+                        <span className="text-xs font-mono font-bold">
                           {ritual.customElementColor || '#10b981'}
                         </span>
                       </div>
@@ -434,7 +516,11 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 
               {/* Círculo do Ritual */}
               <div>
-                <label className="block text-xs font-mono uppercase tracking-wider text-zinc-400 mb-1.5">
+                <label
+                  className={`block text-xs font-mono uppercase tracking-wider mb-1.5 font-semibold ${
+                    isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                  }`}
+                >
                   Círculo / Grau
                 </label>
                 <div className="grid grid-cols-4 gap-1.5">
@@ -443,39 +529,47 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                       key={tier}
                       type="button"
                       onClick={() => update({ circle: tier })}
-                      className={`flex flex-col items-center justify-center py-2 rounded-lg border text-xs font-cinzel transition-all ${
+                      className={`flex flex-col items-center justify-center py-2 rounded-xl border text-xs font-title transition-all ${
                         ritual.circle === tier
-                          ? 'bg-zinc-800 border-zinc-400 text-white shadow-xs font-bold'
+                          ? isLightApp
+                            ? 'bg-slate-900 border-slate-900 text-white font-bold shadow-xs'
+                            : 'bg-zinc-800 border-zinc-400 text-white shadow-xs font-bold'
+                          : isLightApp
+                          ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
                           : 'bg-[#181820] border-zinc-800 text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
                       <span className="text-sm font-bold">{tier}º</span>
-                      <span className="text-[9px] font-mono text-zinc-500 uppercase">Círculo</span>
+                      <span className="text-[9px] font-mono uppercase opacity-75">Círculo</span>
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Símbolo do Elemento Personalizável */}
-            <div className="p-3 bg-[#181820] border border-zinc-800 rounded-xl space-y-3">
+            {/* Símbolo do Elemento Universal (Pre-configurados ou Qualquer Imagem) */}
+            <div
+              className={`p-3.5 rounded-xl border space-y-3 ${
+                isLightApp ? 'bg-slate-50 border-slate-200' : 'bg-[#181820] border-zinc-800'
+              }`}
+            >
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-mono uppercase tracking-wider text-zinc-300 block">
+                  <span className="text-xs font-mono uppercase tracking-wider font-bold block">
                     Símbolo do Elemento
                   </span>
-                  <span className="text-[11px] text-zinc-500 block">
-                    Escolha um ícone temático ou envie um símbolo próprio (PNG/SVG)
+                  <span className="text-[11px] opacity-75 block">
+                    Escolha um símbolo temático ou envie qualquer imagem própria
                   </span>
                 </div>
                 {ritual.customElementIcon && (
                   <button
                     type="button"
                     onClick={() => update({ customElementIcon: undefined })}
-                    className="text-[11px] text-red-400 hover:text-red-300 flex items-center gap-1"
+                    className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1 font-semibold"
                   >
-                    <X className="w-3 h-3" />
-                    <span>Remover Ícone Próprio</span>
+                    <X className="w-3.5 h-3.5" />
+                    <span>Restaurar Padrão</span>
                   </button>
                 )}
               </div>
@@ -499,15 +593,20 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                       }}
                       className={`flex items-center gap-1.5 p-1.5 rounded-lg border text-left text-xs transition-all ${
                         isSelected
-                          ? 'bg-zinc-800 border-zinc-400 text-white font-semibold'
+                          ? isLightApp
+                            ? 'bg-slate-900 border-slate-900 text-white font-bold'
+                            : 'bg-zinc-800 border-zinc-400 text-white font-semibold'
+                          : isLightApp
+                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
                           : 'bg-black/50 border-zinc-800/80 text-zinc-400 hover:text-zinc-200'
                       }`}
                     >
                       <OccultSigil
                         element={ritual.element}
                         symbolPreset={preset.id}
+                        cardMode={ritual.theme.cardMode}
                         size={20}
-                        color={isSelected ? '#ffffff' : undefined}
+                        color={isSelected ? undefined : undefined}
                       />
                       <span className="text-[11px] truncate">{preset.name}</span>
                     </button>
@@ -515,102 +614,188 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                 })}
               </div>
 
-              {/* Upload Custom Icon / Symbol */}
-              <div className="pt-2 border-t border-zinc-800 flex flex-wrap items-center gap-2">
-                <label className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 rounded-lg text-xs cursor-pointer border border-zinc-700/80 transition-colors">
-                  <Upload className="w-3.5 h-3.5 text-zinc-400" />
-                  <span>Upload Símbolo (PNG/SVG)</span>
-                  <input
-                    type="file"
-                    accept="image/*,.svg"
-                    onChange={handleSymbolIconUpload}
-                    className="hidden"
-                  />
-                </label>
+              {/* Universal Image Upload & Treatment for Custom Icons */}
+              <div
+                className={`pt-2.5 border-t space-y-2 ${
+                  isLightApp ? 'border-slate-200' : 'border-zinc-800'
+                }`}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <label className="flex items-center gap-1.5 px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs transition-colors">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Upload de Qualquer Imagem (PNG/JPG/SVG)</span>
+                    <input
+                      type="file"
+                      accept="image/*,.svg"
+                      onChange={handleSymbolIconUpload}
+                      className="hidden"
+                    />
+                  </label>
 
-                {/* Or enter icon URL */}
-                <div className="flex-1 min-w-[180px] flex items-center gap-1">
-                  <input
-                    type="text"
-                    value={iconInputUrl}
-                    onChange={(e) => setIconInputUrl(e.target.value)}
-                    placeholder="Ou cole URL do ícone..."
-                    className="w-full bg-black/60 border border-zinc-800 rounded px-2.5 py-1 text-xs text-white placeholder-zinc-600"
-                  />
-                  {iconInputUrl && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        update({ customElementIcon: iconInputUrl });
-                        setIconInputUrl('');
-                      }}
-                      className="px-2 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs text-white rounded"
-                    >
-                      Aplicar
-                    </button>
-                  )}
+                  {/* Icon URL */}
+                  <div className="flex-1 min-w-[170px] flex items-center gap-1">
+                    <input
+                      type="text"
+                      value={iconInputUrl}
+                      onChange={(e) => setIconInputUrl(e.target.value)}
+                      placeholder="Ou cole URL da imagem..."
+                      className={`w-full rounded-lg px-2.5 py-1 text-xs border ${
+                        isLightApp
+                          ? 'bg-white border-slate-300 text-slate-900'
+                          : 'bg-black/60 border-zinc-800 text-white'
+                      }`}
+                    />
+                    {iconInputUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          update({ customElementIcon: iconInputUrl });
+                          setIconInputUrl('');
+                        }}
+                        className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs text-white rounded font-medium"
+                      >
+                        Aplicar
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {/* Treatment Controls for Uploaded Custom Icon */}
+                {ritual.customElementIcon && (
+                  <div
+                    className={`p-2.5 rounded-lg border space-y-2 mt-2 ${
+                      isLightApp ? 'bg-white border-slate-300' : 'bg-black/50 border-zinc-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-mono uppercase tracking-wider font-semibold">
+                        Tratamento Visual da Imagem
+                      </span>
+                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={ritual.theme.customIconInvert ?? false}
+                          onChange={(e) =>
+                            updateTheme({ customIconInvert: e.target.checked })
+                          }
+                          className="w-3.5 h-3.5 rounded accent-red-600"
+                        />
+                        <span>Inverter Cores</span>
+                      </label>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                      {[
+                        { id: 'auto', label: 'Auto (Remover Fundo)' },
+                        { id: 'silhouette', label: 'Silhueta do Elemento' },
+                        { id: 'monochrome', label: 'Monocromático' },
+                        { id: 'original', label: 'Original' },
+                      ].map((fil) => (
+                        <button
+                          key={fil.id}
+                          type="button"
+                          onClick={() =>
+                            updateTheme({ customIconFilter: fil.id as CustomIconFilter })
+                          }
+                          className={`px-2 py-1 rounded text-xs transition-all font-medium border ${
+                            (ritual.theme.customIconFilter || 'auto') === fil.id
+                              ? 'bg-red-700 border-red-700 text-white font-bold'
+                              : isLightApp
+                              ? 'bg-slate-100 border-slate-200 text-slate-700'
+                              : 'bg-zinc-800 border-zinc-700 text-zinc-300'
+                          }`}
+                        >
+                          {fil.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Atributos / Barra de Custos (SUBSTITUIÇÃO RIGOROSA DE PE POR PD) */}
-            <div className="space-y-2 pt-2 border-t border-zinc-800/80">
-              <span className="text-xs font-mono uppercase tracking-wider text-zinc-400 block">
+            {/* Atributos / Barra de Custos */}
+            <div
+              className={`space-y-2 pt-2 border-t ${
+                isLightApp ? 'border-slate-200' : 'border-zinc-800/80'
+              }`}
+            >
+              <span
+                className={`text-xs font-mono uppercase tracking-wider font-semibold block ${
+                  isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                }`}
+              >
                 Barra de Atributos & Conjuração (Custos em PD)
               </span>
 
               <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
                 {/* Execução */}
                 <div>
-                  <label className="block text-[11px] text-zinc-400 mb-0.5">Execução</label>
+                  <label className="block text-[11px] font-semibold opacity-75 mb-0.5">Execução</label>
                   <input
                     type="text"
                     value={ritual.execution}
                     onChange={(e) => update({ execution: e.target.value })}
                     placeholder="Padrão, Completa, Reação..."
-                    className="w-full bg-[#181820] border border-zinc-700/80 rounded px-2.5 py-1.5 text-xs text-white"
+                    className={`w-full rounded-lg px-2.5 py-1.5 text-xs font-medium border ${
+                      isLightApp
+                        ? 'bg-slate-50 border-slate-300 text-slate-900'
+                        : 'bg-[#181820] border-zinc-700/80 text-white'
+                    }`}
                   />
                 </div>
 
                 {/* Alcance */}
                 <div>
-                  <label className="block text-[11px] text-zinc-400 mb-0.5">Alcance</label>
+                  <label className="block text-[11px] font-semibold opacity-75 mb-0.5">Alcance</label>
                   <input
                     type="text"
                     value={ritual.range}
                     onChange={(e) => update({ range: e.target.value })}
                     placeholder="Toque, Curto (9m)..."
-                    className="w-full bg-[#181820] border border-zinc-700/80 rounded px-2.5 py-1.5 text-xs text-white"
+                    className={`w-full rounded-lg px-2.5 py-1.5 text-xs font-medium border ${
+                      isLightApp
+                        ? 'bg-slate-50 border-slate-300 text-slate-900'
+                        : 'bg-[#181820] border-zinc-700/80 text-white'
+                    }`}
                   />
                 </div>
 
                 {/* Alvo / Área */}
                 <div>
-                  <label className="block text-[11px] text-zinc-400 mb-0.5">Alvo / Área</label>
+                  <label className="block text-[11px] font-semibold opacity-75 mb-0.5">Alvo / Área</label>
                   <input
                     type="text"
                     value={ritual.target}
                     onChange={(e) => update({ target: e.target.value })}
                     placeholder="1 criatura, 1 objeto..."
-                    className="w-full bg-[#181820] border border-zinc-700/80 rounded px-2.5 py-1.5 text-xs text-white"
+                    className={`w-full rounded-lg px-2.5 py-1.5 text-xs font-medium border ${
+                      isLightApp
+                        ? 'bg-slate-50 border-slate-300 text-slate-900'
+                        : 'bg-[#181820] border-zinc-700/80 text-white'
+                    }`}
                   />
                 </div>
 
                 {/* Duração */}
                 <div>
-                  <label className="block text-[11px] text-zinc-400 mb-0.5">Duração</label>
+                  <label className="block text-[11px] font-semibold opacity-75 mb-0.5">Duração</label>
                   <input
                     type="text"
                     value={ritual.duration}
                     onChange={(e) => update({ duration: e.target.value })}
                     placeholder="Cena, Instantânea..."
-                    className="w-full bg-[#181820] border border-zinc-700/80 rounded px-2.5 py-1.5 text-xs text-white"
+                    className={`w-full rounded-lg px-2.5 py-1.5 text-xs font-medium border ${
+                      isLightApp
+                        ? 'bg-slate-50 border-slate-300 text-slate-900'
+                        : 'bg-[#181820] border-zinc-700/80 text-white'
+                    }`}
                   />
                 </div>
 
-                {/* Custo Base PD (Totalmente PD) */}
+                {/* Custo Base PD */}
                 <div>
-                  <label className="block text-[11px] text-red-300 font-semibold mb-0.5">
+                  <label className="block text-[11px] text-red-600 font-bold mb-0.5">
                     Custo Base PD
                   </label>
                   <input
@@ -618,62 +803,82 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                     value={currentBasePd}
                     onChange={(e) => update({ basePd: e.target.value })}
                     placeholder="1 PD, 3 PD, 6 PD..."
-                    className="w-full bg-[#181820] border border-red-900/60 rounded px-2.5 py-1.5 text-xs text-red-200 font-mono font-bold focus:border-red-500"
+                    className={`w-full rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold border ${
+                      isLightApp
+                        ? 'bg-red-50 border-red-300 text-red-800'
+                        : 'bg-[#181820] border-red-900/60 text-red-200'
+                    }`}
                   />
                 </div>
 
                 {/* Resistência */}
                 <div>
-                  <label className="block text-[11px] text-zinc-400 mb-0.5">Resistência</label>
+                  <label className="block text-[11px] font-semibold opacity-75 mb-0.5">Resistência</label>
                   <input
                     type="text"
                     value={ritual.resistance || ''}
                     onChange={(e) => update({ resistance: e.target.value })}
                     placeholder="Nenhuma, Vontade anula..."
-                    className="w-full bg-[#181820] border border-zinc-700/80 rounded px-2.5 py-1.5 text-xs text-white"
+                    className={`w-full rounded-lg px-2.5 py-1.5 text-xs font-medium border ${
+                      isLightApp
+                        ? 'bg-slate-50 border-slate-300 text-slate-900'
+                        : 'bg-[#181820] border-zinc-700/80 text-white'
+                    }`}
                   />
                 </div>
               </div>
             </div>
 
             {/* Descrição Principal com Formatação Rápida */}
-            <div className="space-y-1.5 pt-2 border-t border-zinc-800/80">
+            <div
+              className={`space-y-1.5 pt-2 border-t ${
+                isLightApp ? 'border-slate-200' : 'border-zinc-800/80'
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <label className="text-xs font-mono uppercase tracking-wider text-zinc-400">
+                <label
+                  className={`text-xs font-mono uppercase tracking-wider font-semibold ${
+                    isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                  }`}
+                >
                   Descrição do Efeito Principal
                 </label>
 
                 {/* Formatting Quick Tools */}
-                <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded border border-zinc-800">
+                <div
+                  className={`flex items-center gap-1 p-0.5 rounded-lg border ${
+                    isLightApp ? 'bg-slate-100 border-slate-300' : 'bg-black/40 border-zinc-800'
+                  }`}
+                >
                   <button
                     type="button"
                     onClick={() => insertFormatTag('bold')}
                     title="Negrito (**texto**)"
-                    className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs"
+                    className="p-1 rounded hover:bg-zinc-700/50 text-xs"
                   >
-                    <Bold className="w-3 h-3" />
+                    <Bold className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
                     onClick={() => insertFormatTag('italic')}
                     title="Itálico (*texto*)"
-                    className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs"
+                    className="p-1 rounded hover:bg-zinc-700/50 text-xs"
                   >
-                    <Italic className="w-3 h-3" />
+                    <Italic className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
                     onClick={() => insertFormatTag('dice')}
-                    title="Adicionar rolagem de dado (ex: 3d6)"
-                    className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs flex items-center gap-0.5"
+                    title="Adicionar rolagem de dado"
+                    className="p-1 rounded hover:bg-zinc-700/50 text-xs flex items-center gap-0.5"
                   >
-                    <Dices className="w-3 h-3" />
+                    <Dices className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"
                     onClick={() => insertFormatTag('pd')}
                     title="Adicionar tag de PD"
-                    className="px-1.5 py-0.5 rounded text-[10px] font-mono text-red-300 font-bold hover:text-white hover:bg-zinc-800"
+                    className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold text-red-500 hover:bg-zinc-700/50"
                   >
                     +PD
                   </button>
@@ -681,7 +886,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                     type="button"
                     onClick={() => insertFormatTag('dt')}
                     title="Adicionar tag de DT"
-                    className="px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-400 hover:text-white hover:bg-zinc-800"
+                    className="px-1.5 py-0.5 rounded text-[10px] font-mono hover:bg-zinc-700/50"
                   >
                     DT
                   </button>
@@ -694,16 +899,25 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                 value={ritual.description}
                 onChange={(e) => update({ description: e.target.value })}
                 placeholder="Descreva o efeito básico do ritual em detalhes..."
-                className="w-full bg-[#181820] border border-zinc-700/80 rounded-lg p-3 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-hidden focus:border-red-500 focus:ring-1 focus:ring-red-500 leading-relaxed font-sans"
+                className={`w-full rounded-xl p-3 text-[13px] font-body leading-relaxed border focus:outline-hidden focus:ring-2 focus:ring-red-500 ${
+                  isLightApp
+                    ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
+                    : 'bg-[#181820] border-zinc-700/80 text-zinc-100 placeholder-zinc-500'
+                }`}
               />
-              <span className="text-[10px] text-zinc-400 block">
-                Dica: Destaque rolagens de dados como <span className="font-mono text-zinc-300">2d6</span>, custos adicionais em <span className="font-mono text-red-300">+2 PD</span> ou termos como <strong className="text-zinc-300">**negrito**</strong>.
-              </span>
             </div>
 
-            {/* Texto de Ambientação / Citação (Flavor Text) */}
-            <div className="pt-2 border-t border-zinc-800/80">
-              <label className="block text-xs font-mono uppercase tracking-wider text-zinc-400 mb-1">
+            {/* Texto de Ambientação (Flavor Text) */}
+            <div
+              className={`pt-2 border-t ${
+                isLightApp ? 'border-slate-200' : 'border-zinc-800/80'
+              }`}
+            >
+              <label
+                className={`block text-xs font-mono uppercase tracking-wider mb-1 font-semibold ${
+                  isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                }`}
+              >
                 Frase de Ambientação (Flavor Text - Opcional)
               </label>
               <input
@@ -711,7 +925,11 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                 value={ritual.flavorText || ''}
                 onChange={(e) => update({ flavorText: e.target.value })}
                 placeholder="Ex: O metal sedento estremece e pulsa como uma artéria aberta..."
-                className="w-full bg-[#181820] border border-zinc-700/80 rounded-lg px-3 py-2 text-xs text-zinc-300 italic placeholder-zinc-600"
+                className={`w-full rounded-xl px-3 py-2 text-xs italic border ${
+                  isLightApp
+                    ? 'bg-slate-50 border-slate-300 text-slate-900'
+                    : 'bg-[#181820] border-zinc-700/80 text-zinc-300'
+                }`}
               />
             </div>
           </div>
@@ -724,18 +942,18 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xs font-mono uppercase tracking-wider text-zinc-300">
+                <h3 className="text-xs font-mono uppercase tracking-wider font-bold">
                   Aprimoramentos de Custo em PD
                 </h3>
-                <p className="text-[11px] text-zinc-400">
-                  Configure as variações Discente (+PD), Verdadeiro (+PD) ou Especiais deste ritual.
+                <p className="text-[11px] opacity-75">
+                  Configure as variações Discente (+PD), Verdadeiro (+PD) ou Especiais.
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={handleAddModification}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-950/80 hover:bg-red-900 border border-red-700/60 rounded-lg text-xs font-medium text-red-200 transition-all shadow-xs"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-semibold shadow-xs transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Adicionar Modificação (PD)</span>
@@ -744,20 +962,19 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 
             {/* List of modifications */}
             {ritual.modifications.length === 0 ? (
-              <div className="p-8 text-center border border-dashed border-zinc-800 rounded-xl bg-zinc-900/30">
-                <Sparkles className="w-8 h-8 text-zinc-600 mx-auto mb-2" />
-                <p className="text-xs text-zinc-400">
-                  Nenhum aprimoramento adicionado ainda.
-                </p>
-                <p className="text-[11px] text-zinc-400 mt-1">
-                  Adicione variações como Discente (+2 PD) ou Verdadeiro (+5 PD).
-                </p>
+              <div
+                className={`p-8 text-center border-2 border-dashed rounded-2xl ${
+                  isLightApp ? 'border-slate-300 bg-slate-50' : 'border-zinc-800 bg-zinc-900/30'
+                }`}
+              >
+                <Sparkles className="w-8 h-8 opacity-40 mx-auto mb-2" />
+                <p className="text-xs font-semibold">Nenhum aprimoramento adicionado.</p>
                 <button
                   type="button"
                   onClick={handleAddModification}
-                  className="mt-3 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded text-xs text-white transition-colors"
+                  className="mt-3 px-3 py-1.5 bg-red-700 hover:bg-red-600 rounded-lg text-xs text-white font-semibold"
                 >
-                  Adicionar Primeiro Aprimoramento
+                  Adicionar Discente (+2 PD)
                 </button>
               </div>
             ) : (
@@ -765,23 +982,25 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                 {ritual.modifications.map((mod, index) => (
                   <div
                     key={mod.id}
-                    className="p-3 bg-[#181820] border border-zinc-800 rounded-lg space-y-2.5 relative group"
+                    className={`p-3.5 rounded-xl border space-y-2.5 relative group ${
+                      isLightApp ? 'bg-slate-50 border-slate-300' : 'bg-[#181820] border-zinc-800'
+                    }`}
                   >
-                    {/* Header controls: Name, Cost (PD), Reorder, Delete */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 flex-1">
-                        {/* Name (e.g. Discente) */}
                         <input
                           type="text"
                           value={mod.name}
                           onChange={(e) =>
                             handleUpdateModification(mod.id, 'name', e.target.value)
                           }
-                          placeholder="Discente, Verdadeiro..."
-                          className="bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs text-white font-bold w-28"
+                          placeholder="Discente..."
+                          className={`rounded-lg px-2 py-1 text-xs font-bold w-28 border ${
+                            isLightApp
+                              ? 'bg-white border-slate-300 text-slate-900'
+                              : 'bg-black/60 border-zinc-700 text-white'
+                          }`}
                         />
-
-                        {/* Cost in PD (e.g. +2 PD) */}
                         <input
                           type="text"
                           value={mod.cost}
@@ -789,10 +1008,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                             handleUpdateModification(mod.id, 'cost', e.target.value)
                           }
                           placeholder="+2 PD"
-                          className="bg-black/60 border border-red-900/80 rounded px-2 py-1 text-xs text-red-300 font-mono font-bold w-20"
+                          className={`rounded-lg px-2 py-1 text-xs font-mono font-bold w-20 border ${
+                            isLightApp
+                              ? 'bg-red-50 border-red-300 text-red-800'
+                              : 'bg-black/60 border-red-900/80 text-red-300'
+                          }`}
                         />
-
-                        {/* Requirement (e.g. Requer 2º Círculo) */}
                         <input
                           type="text"
                           value={mod.requirement || ''}
@@ -800,18 +1021,20 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                             handleUpdateModification(mod.id, 'requirement', e.target.value)
                           }
                           placeholder="Requisito (ex: Requer 2º Círculo)"
-                          className="bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs text-zinc-300 flex-1 placeholder-zinc-600"
+                          className={`rounded-lg px-2 py-1 text-xs flex-1 border ${
+                            isLightApp
+                              ? 'bg-white border-slate-300 text-slate-900'
+                              : 'bg-black/60 border-zinc-700 text-zinc-300'
+                          }`}
                         />
                       </div>
 
-                      {/* Reorder and Delete Actions */}
                       <div className="flex items-center gap-0.5">
                         <button
                           type="button"
                           onClick={() => handleMoveModification(index, 'up')}
                           disabled={index === 0}
-                          title="Mover para cima"
-                          className="p-1 rounded text-zinc-400 hover:text-white disabled:opacity-30"
+                          className="p-1 rounded opacity-70 hover:opacity-100 disabled:opacity-20"
                         >
                           <ChevronUp className="w-3.5 h-3.5" />
                         </button>
@@ -819,23 +1042,20 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                           type="button"
                           onClick={() => handleMoveModification(index, 'down')}
                           disabled={index === ritual.modifications.length - 1}
-                          title="Mover para baixo"
-                          className="p-1 rounded text-zinc-400 hover:text-white disabled:opacity-30"
+                          className="p-1 rounded opacity-70 hover:opacity-100 disabled:opacity-20"
                         >
                           <ChevronDown className="w-3.5 h-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => handleRemoveModification(mod.id)}
-                          title="Excluir modificação"
-                          className="p-1 rounded text-zinc-400 hover:text-red-400 ml-1"
+                          className="p-1 rounded text-red-500 hover:text-red-600 ml-1"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
 
-                    {/* Effect Text */}
                     <textarea
                       rows={2}
                       value={mod.text}
@@ -843,7 +1063,11 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                         handleUpdateModification(mod.id, 'text', e.target.value)
                       }
                       placeholder="Descreva o efeito ampliado ao pagar este custo em PD..."
-                      className="w-full bg-black/60 border border-zinc-800 rounded p-2 text-xs text-zinc-200 placeholder-zinc-600 focus:outline-hidden focus:border-red-500 leading-snug"
+                      className={`w-full rounded-lg p-2 text-xs font-body border leading-snug ${
+                        isLightApp
+                          ? 'bg-white border-slate-300 text-slate-900'
+                          : 'bg-black/60 border-zinc-800 text-zinc-200'
+                      }`}
                     />
                   </div>
                 ))}
@@ -853,24 +1077,27 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         )}
 
         {/* ======================================================== */}
-        {/* TAB 3: ART & IMAGE MANAGEMENT (UPLOAD DE IMAGEM PRÉ-EXISTENTE) */}
+        {/* TAB 3: ART & IMAGE MANAGEMENT */}
         {/* ======================================================== */}
         {activeTab === 'art' && (
           <div className="space-y-4">
             <div>
-              <h3 className="text-xs font-mono uppercase tracking-wider text-zinc-300">
+              <h3 className="text-xs font-mono uppercase tracking-wider font-bold">
                 Arte & Ilustração do Ritual
               </h3>
-              <p className="text-[11px] text-zinc-400">
-                Faça upload de uma imagem do seu computador ou cole a URL de uma arte para compor a carta.
+              <p className="text-[11px] opacity-75">
+                Faça upload de uma arte do seu computador ou cole um link web.
               </p>
             </div>
 
-            {/* Current Artwork Card Preview / Upload controls */}
             {ritual.artwork?.url ? (
-              <div className="p-3 bg-[#181820] border border-zinc-800 rounded-xl space-y-3">
+              <div
+                className={`p-3.5 rounded-xl border space-y-3 ${
+                  isLightApp ? 'bg-slate-50 border-slate-300' : 'bg-[#181820] border-zinc-800'
+                }`}
+              >
                 <div className="flex items-center gap-3">
-                  <div className="w-20 h-20 rounded-lg overflow-hidden border border-zinc-700 bg-black shrink-0 relative">
+                  <div className="w-20 h-20 rounded-xl overflow-hidden border border-zinc-500 bg-black shrink-0 relative">
                     <img
                       src={ritual.artwork.url}
                       alt="Arte do ritual"
@@ -879,24 +1106,28 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                   </div>
 
                   <div className="flex-1">
-                    <span className="text-xs font-semibold text-white block">
-                      Imagem Carregada
-                    </span>
-                    <span className="text-[11px] text-zinc-400 block mt-0.5">
-                      Modo atual: <strong className="text-zinc-200 capitalize">{ritual.artwork.mode}</strong>
+                    <span className="text-xs font-bold block">Imagem Carregada</span>
+                    <span className="text-[11px] opacity-75 block mt-0.5">
+                      Modo atual: <strong className="capitalize">{ritual.artwork.mode}</strong>
                     </span>
 
                     <div className="flex items-center gap-2 mt-2">
                       <button
                         type="button"
                         onClick={() => update({ artwork: undefined })}
-                        className="px-2.5 py-1 bg-red-950/80 hover:bg-red-900 border border-red-800 text-red-200 rounded text-xs flex items-center gap-1 transition-colors"
+                        className="px-2.5 py-1 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors"
                       >
                         <Trash2 className="w-3 h-3" />
                         <span>Remover Imagem</span>
                       </button>
 
-                      <label className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs cursor-pointer transition-colors">
+                      <label
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer border ${
+                          isLightApp
+                            ? 'bg-white border-slate-300 text-slate-800 hover:bg-slate-100'
+                            : 'bg-zinc-800 border-zinc-700 text-zinc-200 hover:bg-zinc-700'
+                        }`}
+                      >
                         <span>Trocar Arquivo</span>
                         <input
                           type="file"
@@ -909,11 +1140,14 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                   </div>
                 </div>
 
-                {/* Artwork Position, Mode & Style Controls */}
-                <div className="pt-3 border-t border-zinc-800/80 space-y-3">
-                  {/* Mode Selector */}
+                {/* Artwork Position & Mode Controls */}
+                <div
+                  className={`pt-3 border-t space-y-3 ${
+                    isLightApp ? 'border-slate-200' : 'border-zinc-800/80'
+                  }`}
+                >
                   <div>
-                    <label className="block text-xs font-mono uppercase tracking-wider text-zinc-400 mb-1.5">
+                    <label className="block text-xs font-mono uppercase tracking-wider mb-1.5 font-semibold">
                       Modo de Enquadramento
                     </label>
                     <div className="grid grid-cols-3 gap-2">
@@ -921,17 +1155,17 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                         {
                           id: 'illustration',
                           label: 'Quadro de Destaque',
-                          desc: 'Moldura estilizada acima do texto',
+                          desc: 'Moldura acima do texto',
                         },
                         {
                           id: 'background',
                           label: 'Arte de Fundo',
-                          desc: 'Marca d\'água sob o texto',
+                          desc: 'Marca d\'água sob texto',
                         },
                         {
                           id: 'back-cover',
                           label: 'Capa no Verso',
-                          desc: 'Destaque no verso da carta',
+                          desc: 'Destaque no verso',
                         },
                       ].map((m) => (
                         <button
@@ -944,22 +1178,25 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                               showOnBack: m.id === 'back-cover' || (ritual.artwork?.showOnBack ?? false),
                             })
                           }
-                          className={`p-2 rounded-lg border text-left transition-all ${
+                          className={`p-2 rounded-xl border text-left transition-all ${
                             ritual.artwork?.mode === m.id
-                              ? 'bg-zinc-800 border-zinc-400 text-white font-semibold'
+                              ? isLightApp
+                                ? 'bg-slate-900 border-slate-900 text-white font-bold'
+                                : 'bg-zinc-800 border-zinc-400 text-white font-bold'
+                              : isLightApp
+                              ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
                               : 'bg-black/50 border-zinc-800 text-zinc-400 hover:text-zinc-200'
                           }`}
                         >
-                          <span className="text-xs block font-medium">{m.label}</span>
-                          <span className="text-[10px] text-zinc-500 block mt-0.5">{m.desc}</span>
+                          <span className="text-xs block font-bold">{m.label}</span>
+                          <span className="text-[10px] opacity-75 block mt-0.5">{m.desc}</span>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Front / Back Display Checkboxes */}
                   <div className="flex flex-wrap gap-4 pt-1">
-                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
                       <input
                         type="checkbox"
                         checked={ritual.artwork.showOnFront ?? true}
@@ -971,7 +1208,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                       <span>Exibir na Frente da Carta</span>
                     </label>
 
-                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer">
+                    <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
                       <input
                         type="checkbox"
                         checked={ritual.artwork.showOnBack ?? false}
@@ -984,13 +1221,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                     </label>
                   </div>
 
-                  {/* Sliders: Opacity, Zoom, Position Y */}
+                  {/* Sliders */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-                    {/* Opacity */}
                     <div>
-                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                      <div className="flex justify-between text-[11px] mb-1 font-semibold">
                         <span>Opacidade</span>
-                        <span className="font-mono text-zinc-300">
+                        <span className="font-mono">
                           {Math.round((ritual.artwork.opacity ?? 0.9) * 100)}%
                         </span>
                       </div>
@@ -1003,15 +1239,14 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                         onChange={(e) =>
                           updateArtwork({ opacity: parseFloat(e.target.value) })
                         }
-                        className="w-full accent-red-500"
+                        className="w-full accent-red-600"
                       />
                     </div>
 
-                    {/* Zoom / Scale */}
                     <div>
-                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                      <div className="flex justify-between text-[11px] mb-1 font-semibold">
                         <span>Zoom / Escala</span>
-                        <span className="font-mono text-zinc-300">
+                        <span className="font-mono">
                           {Math.round((ritual.artwork.scale ?? 1) * 100)}%
                         </span>
                       </div>
@@ -1024,15 +1259,14 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                         onChange={(e) =>
                           updateArtwork({ scale: parseFloat(e.target.value) })
                         }
-                        className="w-full accent-red-500"
+                        className="w-full accent-red-600"
                       />
                     </div>
 
-                    {/* Vertical Alignment (Y) */}
                     <div>
-                      <div className="flex justify-between text-[11px] text-zinc-400 mb-1">
+                      <div className="flex justify-between text-[11px] mb-1 font-semibold">
                         <span>Posição Vertical</span>
-                        <span className="font-mono text-zinc-300">
+                        <span className="font-mono">
                           {Math.round(ritual.artwork.positionY ?? 50)}%
                         </span>
                       </div>
@@ -1045,75 +1279,29 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                         onChange={(e) =>
                           updateArtwork({ positionY: parseInt(e.target.value) })
                         }
-                        className="w-full accent-red-500"
+                        className="w-full accent-red-600"
                       />
-                    </div>
-                  </div>
-
-                  {/* Fit & Blend Mode */}
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <label className="block text-[11px] text-zinc-400 mb-1">
-                        Ajuste de Proporção
-                      </label>
-                      <select
-                        value={ritual.artwork.fit || 'cover'}
-                        onChange={(e) =>
-                          updateArtwork({
-                            fit: e.target.value as 'cover' | 'contain',
-                          })
-                        }
-                        className="w-full bg-[#141419] border border-zinc-700 rounded px-2.5 py-1 text-xs text-white"
-                      >
-                        <option value="cover">Preencher (Cover)</option>
-                        <option value="contain">Conter / Ver Inteira (Contain)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] text-zinc-400 mb-1">
-                        Modo de Mesclagem
-                      </label>
-                      <select
-                        value={ritual.artwork.blendMode || 'normal'}
-                        onChange={(e) =>
-                          updateArtwork({
-                            blendMode: e.target.value as
-                              | 'normal'
-                              | 'luminosity'
-                              | 'overlay'
-                              | 'screen',
-                          })
-                        }
-                        className="w-full bg-[#141419] border border-zinc-700 rounded px-2.5 py-1 text-xs text-white"
-                      >
-                        <option value="normal">Normal</option>
-                        <option value="luminosity">Luminosidade (Monocromático)</option>
-                        <option value="overlay">Sobreposição (Overlay)</option>
-                        <option value="screen">Clarear (Screen)</option>
-                      </select>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              /* No artwork uploaded yet: Dropzone / Upload area */
-              <div className="p-8 border-2 border-dashed border-zinc-700/80 rounded-2xl bg-black/40 text-center space-y-4">
+              <div
+                className={`p-8 border-2 border-dashed rounded-2xl text-center space-y-4 ${
+                  isLightApp ? 'border-slate-300 bg-slate-50' : 'border-zinc-700/80 bg-black/40'
+                }`}
+              >
                 <div className="w-12 h-12 rounded-full bg-red-950/60 border border-red-800/40 flex items-center justify-center mx-auto text-red-400">
                   <ImageIcon className="w-6 h-6" />
                 </div>
-
                 <div>
-                  <h4 className="text-sm font-semibold text-white">
-                    Adicionar Imagem Pré-existente ao Ritual
-                  </h4>
-                  <p className="text-xs text-zinc-400 mt-1 max-w-md mx-auto">
-                    Envie a arte de um monstro, símbolo ou cena paranormal do seu computador (PNG, JPG, WebP) ou insira o link web.
+                  <h4 className="text-sm font-bold">Adicionar Imagem Pré-existente ao Ritual</h4>
+                  <p className="text-xs opacity-75 mt-1 max-w-md mx-auto">
+                    Envie a arte de uma criatura ou cena do seu computador (PNG, JPG, WebP) ou insira um link.
                   </p>
                 </div>
-
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                  <label className="flex items-center gap-2 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-lg shadow-red-950/40 transition-colors">
+                  <label className="flex items-center gap-2 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded-xl text-xs font-semibold cursor-pointer shadow-md transition-colors">
                     <Upload className="w-4 h-4" />
                     <span>Fazer Upload do Arquivo</span>
                     <input
@@ -1124,14 +1312,17 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                     />
                   </label>
                 </div>
-
                 <div className="flex items-center justify-center gap-2 max-w-sm mx-auto pt-2">
                   <input
                     type="text"
                     value={imageInputUrl}
                     onChange={(e) => setImageInputUrl(e.target.value)}
                     placeholder="Ou cole a URL da imagem..."
-                    className="flex-1 bg-[#181820] border border-zinc-700 rounded px-3 py-1.5 text-xs text-white placeholder-zinc-500"
+                    className={`flex-1 rounded-lg px-3 py-1.5 text-xs border ${
+                      isLightApp
+                        ? 'bg-white border-slate-300 text-slate-900'
+                        : 'bg-[#181820] border-zinc-700 text-white'
+                    }`}
                   />
                   {imageInputUrl && (
                     <button
@@ -1144,7 +1335,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                         });
                         setImageInputUrl('');
                       }}
-                      className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs text-white rounded font-medium"
+                      className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-xs text-white rounded-lg font-medium"
                     >
                       Carregar
                     </button>
@@ -1156,33 +1347,127 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
         )}
 
         {/* ======================================================== */}
-        {/* TAB 4: STYLE & AESTHETICS (BORDAS, CANTOS, VERSO) */}
+        {/* TAB 4: STYLE, LIGHT MODE & AESTHETICS */}
         {/* ======================================================== */}
         {activeTab === 'style' && (
           <div className="space-y-4">
+            {/* TEMA DA CARTA: MODO CLARO VS MODO ESCURO */}
+            <div
+              className={`p-3.5 rounded-xl border space-y-2.5 ${
+                isLightApp ? 'bg-slate-50 border-slate-300' : 'bg-[#181820] border-zinc-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-mono uppercase tracking-wider font-bold block">
+                    Tema Visual da Carta
+                  </span>
+                  <span className="text-[11px] opacity-75 block">
+                    Alterne entre a estética sombria clássica e o modo claro de alto contraste
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateTheme({
+                      cardMode: 'dark',
+                      bgTone: ritual.theme.bgTone === 'light-pure' || ritual.theme.bgTone === 'light-parchment' ? 'black' : ritual.theme.bgTone,
+                    })
+                  }
+                  className={`flex items-center gap-2 p-3 rounded-xl border text-left transition-all ${
+                    ritual.theme.cardMode !== 'light'
+                      ? 'bg-zinc-900 border-zinc-400 text-white font-bold ring-1 ring-zinc-400'
+                      : isLightApp
+                      ? 'bg-white border-slate-200 text-slate-700'
+                      : 'bg-black/50 border-zinc-800 text-zinc-400'
+                  }`}
+                >
+                  <Moon className="w-4 h-4 text-zinc-300" />
+                  <div>
+                    <span className="text-xs block">Modo Escuro (Paranormal)</span>
+                    <span className="text-[10px] opacity-75 block">Fundo preto e bordas prateadas</span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateTheme({
+                      cardMode: 'light',
+                      bgTone: 'light-pure',
+                    })
+                  }
+                  className={`flex items-center gap-2 p-3 rounded-xl border text-left transition-all ${
+                    ritual.theme.cardMode === 'light'
+                      ? 'bg-white border-slate-900 text-slate-900 font-bold ring-1 ring-slate-900'
+                      : isLightApp
+                      ? 'bg-white border-slate-200 text-slate-700'
+                      : 'bg-black/50 border-zinc-800 text-zinc-400'
+                  }`}
+                >
+                  <Sun className="w-4 h-4 text-amber-500" />
+                  <div>
+                    <span className="text-xs block">Modo Claro (Alquimia)</span>
+                    <span className="text-[10px] opacity-75 block">Fundo claro e bordas escuras</span>
+                  </div>
+                </button>
+              </div>
+
+              {onOpenLightPrint && (
+                <div
+                  className={`pt-2.5 mt-2 border-t flex flex-wrap items-center justify-between gap-2 ${
+                    isLightApp ? 'border-slate-200' : 'border-zinc-800'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-zinc-400">
+                    <Feather className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                    <span>Deseja economizar tinta preta para imprimir em sulfite?</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onOpenLightPrint}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-500 text-white shadow-xs transition-colors shrink-0"
+                  >
+                    <span>Ver Impressão Leve</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Formato dos Cantos */}
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-zinc-400 mb-1.5">
+              <label
+                className={`block text-xs font-mono uppercase tracking-wider mb-1.5 font-semibold ${
+                  isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                }`}
+              >
                 Corte dos Cantos da Carta
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { id: 'chamfer', label: 'Chanfrado Ocultista', sub: 'Corte 45º clássico' },
-                  { id: 'sharp', label: 'Reto Clássico', sub: 'Cantos afiados 90º' },
+                  { id: 'sharp', label: 'Reto Clássico', sub: 'Cantos retos 90º' },
                   { id: 'rounded', label: 'Arredondado', sub: 'Padrão card game' },
                 ].map((opt) => (
                   <button
                     key={opt.id}
                     type="button"
                     onClick={() => updateTheme({ cornerStyle: opt.id as CornerStyle })}
-                    className={`p-2.5 rounded-lg border text-left transition-all ${
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
                       ritual.theme.cornerStyle === opt.id
-                        ? 'bg-zinc-800 border-zinc-400 text-white shadow-xs font-semibold'
-                        : 'bg-[#181820] border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                        ? isLightApp
+                          ? 'bg-slate-900 border-slate-900 text-white font-bold'
+                          : 'bg-zinc-800 border-zinc-400 text-white font-bold'
+                        : isLightApp
+                        ? 'bg-white border-slate-200 text-slate-700'
+                        : 'bg-[#181820] border-zinc-800 text-zinc-400'
                     }`}
                   >
-                    <span className="text-xs font-medium block">{opt.label}</span>
-                    <span className="text-[10px] text-zinc-500 block mt-0.5">{opt.sub}</span>
+                    <span className="text-xs font-bold block">{opt.label}</span>
+                    <span className="text-[10px] opacity-75 block mt-0.5">{opt.sub}</span>
                   </button>
                 ))}
               </div>
@@ -1190,28 +1475,36 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 
             {/* Estilo da Borda */}
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-zinc-400 mb-1.5">
+              <label
+                className={`block text-xs font-mono uppercase tracking-wider mb-1.5 font-semibold ${
+                  isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                }`}
+              >
                 Estilo da Borda Dupla
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'double-silver', label: 'Dupla Prata Clássica', desc: 'Borda prateada envelhecida' },
-                  { id: 'runic', label: 'Ocultista Rúnica', desc: 'Brilho prateado com runas' },
-                  { id: 'gold-accent', label: 'Dourada de Conhecimento', desc: 'Aura dourada sutil' },
-                  { id: 'pure-minimal', label: 'Minimalista Sombria', desc: 'Bordas finas discretas' },
+                  { id: 'double-silver', label: 'Dupla Clássica', desc: 'Borda dupla fina' },
+                  { id: 'runic', label: 'Ocultista Marcada', desc: 'Contornos nítidos' },
+                  { id: 'gold-accent', label: 'Dourada Alquímica', desc: 'Dourado de Conhecimento' },
+                  { id: 'pure-minimal', label: 'Minimalista Fina', desc: 'Traço sutil e discreto' },
                 ].map((opt) => (
                   <button
                     key={opt.id}
                     type="button"
                     onClick={() => updateTheme({ borderStyle: opt.id as BorderStyle })}
-                    className={`p-2.5 rounded-lg border text-left transition-all ${
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
                       ritual.theme.borderStyle === opt.id
-                        ? 'bg-zinc-800 border-zinc-400 text-white shadow-xs font-semibold'
-                        : 'bg-[#181820] border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                        ? isLightApp
+                          ? 'bg-slate-900 border-slate-900 text-white font-bold'
+                          : 'bg-zinc-800 border-zinc-400 text-white font-bold'
+                        : isLightApp
+                        ? 'bg-white border-slate-200 text-slate-700'
+                        : 'bg-[#181820] border-zinc-800 text-zinc-400'
                     }`}
                   >
-                    <span className="text-xs font-medium block">{opt.label}</span>
-                    <span className="text-[10px] text-zinc-500 block mt-0.5">{opt.desc}</span>
+                    <span className="text-xs font-bold block">{opt.label}</span>
+                    <span className="text-[10px] opacity-75 block mt-0.5">{opt.desc}</span>
                   </button>
                 ))}
               </div>
@@ -1219,39 +1512,66 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 
             {/* Tom de Fundo da Carta */}
             <div>
-              <label className="block text-xs font-mono uppercase tracking-wider text-zinc-400 mb-1.5">
-                Tom de Fundo
+              <label
+                className={`block text-xs font-mono uppercase tracking-wider mb-1.5 font-semibold ${
+                  isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                }`}
+              >
+                Textura do Fundo da Carta
               </label>
               <div className="grid grid-cols-3 gap-2">
-                {[
-                  { id: 'black', label: 'Preto Absoluto', sub: '#000000 puro' },
-                  { id: 'charcoal', label: 'Cinza Chumbo', sub: '#0d0d12 profundo' },
-                  { id: 'parchment', label: 'Grimório Escuro', sub: 'Textura de trama' },
-                ].map((opt) => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => updateTheme({ bgTone: opt.id as BgTone })}
-                    className={`p-2.5 rounded-lg border text-left transition-all ${
-                      ritual.theme.bgTone === opt.id
-                        ? 'bg-zinc-800 border-zinc-400 text-white shadow-xs font-semibold'
-                        : 'bg-[#181820] border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                    }`}
-                  >
-                    <span className="text-xs font-medium block">{opt.label}</span>
-                    <span className="text-[10px] text-zinc-500 block mt-0.5">{opt.sub}</span>
-                  </button>
-                ))}
+                {ritual.theme.cardMode === 'light'
+                  ? [
+                      { id: 'light-pure', label: 'Branco Puro', sub: 'Contraste máximo' },
+                      { id: 'light-parchment', label: 'Pergaminho Claro', sub: 'Textura suave' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => updateTheme({ bgTone: opt.id as BgTone })}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          ritual.theme.bgTone === opt.id
+                            ? 'bg-slate-900 border-slate-900 text-white font-bold'
+                            : 'bg-white border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <span className="text-xs font-bold block">{opt.label}</span>
+                        <span className="text-[10px] opacity-75 block mt-0.5">{opt.sub}</span>
+                      </button>
+                    ))
+                  : [
+                      { id: 'black', label: 'Preto Absoluto', sub: '#000000 puro' },
+                      { id: 'charcoal', label: 'Cinza Chumbo', sub: '#0d0d12 profundo' },
+                      { id: 'parchment', label: 'Grimório Escuro', sub: 'Trama paranormal' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => updateTheme({ bgTone: opt.id as BgTone })}
+                        className={`p-2.5 rounded-xl border text-left transition-all ${
+                          ritual.theme.bgTone === opt.id
+                            ? 'bg-zinc-800 border-zinc-400 text-white font-bold'
+                            : 'bg-[#181820] border-zinc-800 text-zinc-400'
+                        }`}
+                      >
+                        <span className="text-xs font-bold block">{opt.label}</span>
+                        <span className="text-[10px] opacity-75 block mt-0.5">{opt.sub}</span>
+                      </button>
+                    ))}
               </div>
             </div>
 
-            {/* Intensidade da Marca d'Água do Sigilo */}
-            <div className="space-y-1.5 pt-2 border-t border-zinc-800/80">
+            {/* Opacidade do Sigilo */}
+            <div
+              className={`space-y-1.5 pt-2 border-t ${
+                isLightApp ? 'border-slate-200' : 'border-zinc-800/80'
+              }`}
+            >
               <div className="flex items-center justify-between">
-                <label className="text-xs font-mono uppercase tracking-wider text-zinc-400">
+                <label className="text-xs font-mono uppercase tracking-wider font-semibold">
                   Opacidade do Sigilo de Fundo (Marca d'Água)
                 </label>
-                <span className="text-xs font-mono text-zinc-300">
+                <span className="text-xs font-mono font-bold">
                   {Math.round(ritual.theme.watermarkOpacity * 100)}%
                 </span>
               </div>
@@ -1264,76 +1584,108 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                 onChange={(e) =>
                   updateTheme({ watermarkOpacity: parseFloat(e.target.value) })
                 }
-                className="w-full accent-red-500 cursor-pointer"
+                className="w-full accent-red-600"
               />
             </div>
 
-            {/* Brilho Paranormal (Aura Glow) */}
-            <div className="flex items-center justify-between p-3 bg-[#181820] border border-zinc-800 rounded-lg">
-              <div>
-                <span className="text-xs font-medium text-white block">
-                  Brilho Paranormal do Elemento
-                </span>
-                <span className="text-[10px] text-zinc-400 block">
-                  Emite uma aura sutil na cor primordial do ritual
-                </span>
-              </div>
-              <input
-                type="checkbox"
-                checked={ritual.theme.accentGlow}
-                onChange={(e) => updateTheme({ accentGlow: e.target.checked })}
-                className="w-4 h-4 accent-red-600 rounded cursor-pointer"
-              />
-            </div>
-
-            {/* Verso da Carta Settings */}
-            <div className="space-y-2 pt-2 border-t border-zinc-800/80">
-              <span className="text-xs font-mono uppercase tracking-wider text-zinc-400 block">
-                Personalização do Verso da Carta
-              </span>
-
-              {/* Sigil Style on Back */}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => updateTheme({ backSigilStyle: 'grand-seal' })}
-                  className={`p-2 rounded border text-xs text-left transition-all ${
-                    ritual.theme.backSigilStyle === 'grand-seal'
-                      ? 'bg-zinc-800 border-zinc-400 text-white font-semibold'
-                      : 'bg-[#181820] border-zinc-800 text-zinc-400'
-                  }`}
-                >
-                  <span className="block font-medium">Grande Selo Universal</span>
-                  <span className="text-[10px] text-zinc-500 block">Os 5 elementos entrelaçados</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => updateTheme({ backSigilStyle: 'element' })}
-                  className={`p-2 rounded border text-xs text-left transition-all ${
-                    ritual.theme.backSigilStyle === 'element'
-                      ? 'bg-zinc-800 border-zinc-400 text-white font-semibold'
-                      : 'bg-[#181820] border-zinc-800 text-zinc-400'
-                  }`}
-                >
-                  <span className="block font-medium">Sigilo do Elemento</span>
-                  <span className="text-[10px] text-zinc-500 block">Ocultismo primordial puro</span>
-                </button>
+            {/* ESTILO DO VERSO DA CARTA: APENAS SÍMBOLO LIMPO & SELO */}
+            <div
+              className={`p-3.5 rounded-xl border space-y-3 ${
+                isLightApp ? 'bg-slate-50 border-slate-300' : 'bg-[#181820] border-zinc-800'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-mono uppercase tracking-wider font-bold block">
+                    Selo e Simbologia do Verso
+                  </span>
+                  <span className="text-[11px] opacity-75 block">
+                    Personalize a aparência das marcas ocultas na face traseira da carta
+                  </span>
+                </div>
               </div>
 
-              {/* Back quote */}
-              <div>
-                <label className="block text-[11px] text-zinc-400 mb-0.5">
-                  Frase Ocultista Gravada no Verso
-                </label>
+              {/* Checkbox: Apenas Símbolo Limpo no Verso */}
+              <label
+                className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                  ritual.theme.cleanBackSymbolOnly
+                    ? isLightApp
+                      ? 'bg-blue-50 border-blue-300 text-blue-900'
+                      : 'bg-blue-950/50 border-blue-800 text-blue-200'
+                    : isLightApp
+                    ? 'bg-white border-slate-200 text-slate-800'
+                    : 'bg-black/40 border-zinc-700/60 text-zinc-300'
+                }`}
+              >
                 <input
-                  type="text"
-                  value={ritual.theme.backQuoteText || ''}
-                  onChange={(e) => updateTheme({ backQuoteText: e.target.value })}
-                  placeholder="A Realidade é uma membrana frágil..."
-                  className="w-full bg-[#181820] border border-zinc-700/80 rounded px-2.5 py-1.5 text-xs text-white"
+                  type="checkbox"
+                  checked={ritual.theme.cleanBackSymbolOnly ?? false}
+                  onChange={(e) => updateTheme({ cleanBackSymbolOnly: e.target.checked })}
+                  className="w-4 h-4 mt-0.5 accent-blue-600 rounded"
                 />
-              </div>
+                <div>
+                  <span className="text-xs font-bold block">Apenas Símbolo Limpo no Verso</span>
+                  <span className="text-[11px] opacity-75 block mt-0.5 leading-snug">
+                    Remove completamente os padrões complexos, anéis concêntricos e círculos rúnicos de fundo, renderizando apenas o símbolo puro no centro da carta.
+                  </span>
+                </div>
+              </label>
+
+              {!ritual.theme.cleanBackSymbolOnly && (
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => updateTheme({ backSigilStyle: 'grand-seal' })}
+                    className={`p-2 rounded-lg border text-left transition-all ${
+                      ritual.theme.backSigilStyle !== 'element'
+                        ? 'bg-zinc-800 border-zinc-400 text-white font-bold'
+                        : isLightApp
+                        ? 'bg-white border-slate-200 text-slate-700'
+                        : 'bg-[#181820] border-zinc-800 text-zinc-400'
+                    }`}
+                  >
+                    <span className="text-xs font-bold block">Grande Selo Completo</span>
+                    <span className="text-[10px] opacity-75 block mt-0.5">Anéis astronômicos e rúnicos</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => updateTheme({ backSigilStyle: 'element' })}
+                    className={`p-2 rounded-lg border text-left transition-all ${
+                      ritual.theme.backSigilStyle === 'element'
+                        ? 'bg-zinc-800 border-zinc-400 text-white font-bold'
+                        : isLightApp
+                        ? 'bg-white border-slate-200 text-slate-700'
+                        : 'bg-[#181820] border-zinc-800 text-zinc-400'
+                    }`}
+                  >
+                    <span className="text-xs font-bold block">Sigilo do Elemento</span>
+                    <span className="text-[10px] opacity-75 block mt-0.5">Glifo temático clássico</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Frase Ocultista Gravada no Verso */}
+            <div
+              className={`pt-2 border-t ${
+                isLightApp ? 'border-slate-200' : 'border-zinc-800/80'
+              }`}
+            >
+              <label className="block text-xs font-mono uppercase tracking-wider mb-1 font-semibold">
+                Frase Gravada no Verso da Carta
+              </label>
+              <input
+                type="text"
+                value={ritual.theme.backQuoteText || ''}
+                onChange={(e) => updateTheme({ backQuoteText: e.target.value })}
+                placeholder="A Realidade é uma membrana frágil..."
+                className={`w-full rounded-xl px-3 py-2 text-xs border ${
+                  isLightApp
+                    ? 'bg-slate-50 border-slate-300 text-slate-900'
+                    : 'bg-[#181820] border-zinc-700/80 text-white'
+                }`}
+              />
             </div>
           </div>
         )}

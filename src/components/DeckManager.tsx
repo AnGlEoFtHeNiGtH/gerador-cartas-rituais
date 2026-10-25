@@ -25,6 +25,7 @@ interface DeckManagerProps {
   onImportDeck: (imported: Ritual[]) => void;
   isOpen: boolean;
   onClose: () => void;
+  appMode?: 'dark' | 'light';
 }
 
 export const DeckManager: React.FC<DeckManagerProps> = ({
@@ -38,11 +39,19 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
   onImportDeck,
   isOpen,
   onClose,
+  appMode = 'dark',
 }) => {
+  const isLight = appMode === 'light';
   const [search, setSearch] = useState('');
   const [elementFilter, setElementFilter] = useState<ElementId | 'all'>('all');
   const [circleFilter, setCircleFilter] = useState<number | 'all'>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
 
   if (!isOpen) return null;
 
@@ -70,6 +79,7 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+    showToast('✦ Backup do Grimório exportado em JSON!');
   };
 
   // Import Deck from JSON
@@ -92,12 +102,12 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
             })),
           }));
           onImportDeck(normalized);
-          alert(`Grimório importado com sucesso! ${normalized.length} rituais carregados.`);
+          showToast(`✦ Grimório importado! ${normalized.length} rituais carregados.`);
         } else {
-          alert('Arquivo JSON inválido. Certifique-se de que é um backup do Grimório.');
+          showToast('Arquivo JSON inválido. Certifique-se de que é um backup do Grimório.');
         }
       } catch {
-        alert('Erro ao ler arquivo JSON.');
+        showToast('Erro ao ler arquivo JSON.');
       }
     };
     reader.readAsText(file);
@@ -106,18 +116,34 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs">
-      <div className="relative w-full max-w-4xl max-h-[85vh] bg-[#101015] border border-zinc-800 rounded-2xl flex flex-col shadow-2xl overflow-hidden">
+      <div
+        className={`relative w-full max-w-4xl max-h-[85vh] border rounded-2xl flex flex-col shadow-2xl overflow-hidden transition-colors ${
+          isLight
+            ? 'bg-slate-50 border-slate-300 text-slate-800'
+            : 'bg-[#101015] border-zinc-800 text-zinc-100'
+        }`}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-[#0d0d11]">
+        <div
+          className={`flex items-center justify-between px-6 py-4 border-b ${
+            isLight
+              ? 'border-slate-200 bg-white'
+              : 'border-zinc-800 bg-[#0d0d11]'
+          }`}
+        >
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-red-950/60 border border-red-800/50 flex items-center justify-center text-red-400">
               <BookOpen className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-cinzel text-base font-bold text-white tracking-wide">
+              <h2
+                className={`font-cinzel text-base font-bold tracking-wide ${
+                  isLight ? 'text-slate-900' : 'text-white'
+                }`}
+              >
                 Grimório de Rituais (Deck)
               </h2>
-              <p className="text-xs text-zinc-400">
+              <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-zinc-400'}`}>
                 Gerencie todos os seus rituais salvos ({rituals.length} no grimório)
               </p>
             </div>
@@ -133,7 +159,11 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+              className={`p-1.5 rounded-lg transition-colors ${
+                isLight
+                  ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+              }`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -141,16 +171,26 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
         </div>
 
         {/* Search & Filter Toolbar */}
-        <div className="p-4 border-b border-zinc-800/80 bg-[#14141a] flex flex-wrap items-center justify-between gap-3">
+        <div
+          className={`p-4 border-b flex flex-wrap items-center justify-between gap-3 ${
+            isLight
+              ? 'border-slate-200 bg-slate-100/80'
+              : 'border-zinc-800/80 bg-[#14141a]'
+          }`}
+        >
           {/* Search Input */}
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+            <Search className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 ${isLight ? 'text-slate-400' : 'text-zinc-500'}`} />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar por nome ou efeito do ritual..."
-              className="w-full bg-[#1b1b24] border border-zinc-700/80 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-hidden focus:border-red-500"
+              className={`w-full rounded-lg pl-9 pr-3 py-1.5 text-xs transition-colors focus:outline-hidden ${
+                isLight
+                  ? 'bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-red-500'
+                  : 'bg-[#1b1b24] border border-zinc-700/80 text-white placeholder-zinc-500 focus:border-red-500'
+              }`}
             />
           </div>
 
@@ -160,7 +200,11 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
               onClick={() => setElementFilter('all')}
               className={`px-2.5 py-1 rounded text-xs transition-colors ${
                 elementFilter === 'all'
-                  ? 'bg-zinc-700 text-white font-semibold'
+                  ? isLight
+                    ? 'bg-slate-800 text-white font-semibold'
+                    : 'bg-zinc-700 text-white font-semibold'
+                  : isLight
+                  ? 'text-slate-600 hover:text-slate-900'
                   : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -176,7 +220,11 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                     onClick={() => setElementFilter(elem)}
                     className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
                       isSelected
-                        ? 'bg-zinc-800 border border-zinc-600 text-white font-semibold'
+                        ? isLight
+                          ? 'bg-white border border-slate-400 text-slate-900 font-semibold shadow-xs'
+                          : 'bg-zinc-800 border border-zinc-600 text-white font-semibold'
+                        : isLight
+                        ? 'text-slate-600 hover:text-slate-900'
                         : 'text-zinc-400 hover:text-white'
                     }`}
                   >
@@ -189,8 +237,16 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
           </div>
 
           {/* Circle Filter */}
-          <div className="flex items-center gap-1 bg-[#1b1b24] p-0.5 rounded border border-zinc-800 text-xs">
-            <span className="px-1.5 text-[10px] text-zinc-500 uppercase font-mono">Grau:</span>
+          <div
+            className={`flex items-center gap-1 p-0.5 rounded border text-xs ${
+              isLight
+                ? 'bg-white border-slate-300'
+                : 'bg-[#1b1b24] border-zinc-800'
+            }`}
+          >
+            <span className={`px-1.5 text-[10px] uppercase font-mono ${isLight ? 'text-slate-500' : 'text-zinc-500'}`}>
+              Grau:
+            </span>
             {[
               { val: 'all', label: 'Todos' },
               { val: 1, label: '1º' },
@@ -203,7 +259,11 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                 onClick={() => setCircleFilter(c.val as number | 'all')}
                 className={`px-2 py-0.5 rounded font-mono ${
                   circleFilter === c.val
-                    ? 'bg-zinc-700 text-white font-bold'
+                    ? isLight
+                      ? 'bg-slate-800 text-white font-bold'
+                      : 'bg-zinc-700 text-white font-bold'
+                    : isLight
+                    ? 'text-slate-600 hover:text-slate-900'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -214,7 +274,7 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
         </div>
 
         {/* Rituals Grid */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className={`flex-1 overflow-y-auto p-4 ${isLight ? 'bg-slate-100/50' : 'bg-transparent'}`}>
           {filteredRituals.length === 0 ? (
             <div className="text-center py-12 text-zinc-500">
               <p className="text-sm">Nenhum ritual encontrado com esses filtros.</p>
@@ -252,7 +312,11 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                     }}
                     className={`relative p-3.5 rounded-xl border text-left cursor-pointer transition-all flex flex-col justify-between group ${
                       isSelected
-                        ? 'bg-[#1c1c24] border-red-500/80 shadow-lg shadow-red-950/30 ring-1 ring-red-500/50'
+                        ? isLight
+                          ? 'bg-red-50/70 border-red-500 shadow-md ring-1 ring-red-400'
+                          : 'bg-[#1c1c24] border-red-500/80 shadow-lg shadow-red-950/30 ring-1 ring-red-500/50'
+                        : isLight
+                        ? 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-xs'
                         : 'bg-[#15151c] border-zinc-800 hover:border-zinc-700 hover:bg-[#181822]'
                     }`}
                   >
@@ -274,26 +338,53 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                             {cfg.name}
                           </span>
                         </div>
-                        <span className="text-xs font-mono font-bold text-zinc-400 bg-black/50 px-1.5 py-0.5 rounded border border-zinc-800">
+                        <span
+                          className={`text-xs font-mono font-bold px-1.5 py-0.5 rounded border ${
+                            isLight
+                              ? 'text-slate-600 bg-slate-100 border-slate-300'
+                              : 'text-zinc-400 bg-black/50 border-zinc-800'
+                          }`}
+                        >
                           {r.circle}º Círculo
                         </span>
                       </div>
 
                       {/* Ritual Name */}
-                      <h4 className="font-cinzel text-sm font-bold text-white group-hover:text-red-300 transition-colors">
+                      <h4
+                        className={`font-title text-sm font-bold transition-colors ${
+                          isLight
+                            ? 'text-slate-900 group-hover:text-red-700'
+                            : 'text-white group-hover:text-red-300'
+                        }`}
+                      >
                         {r.name}
                       </h4>
 
                       {/* Attributes preview */}
-                      <p className="text-[11px] text-zinc-400 line-clamp-2 mt-1 leading-snug">
+                      <p
+                        className={`text-[11px] line-clamp-2 mt-1 leading-snug font-body ${
+                          isLight ? 'text-slate-600' : 'text-zinc-400'
+                        }`}
+                      >
                         {r.description.replace(/\*\*/g, '').replace(/\*/g, '')}
                       </p>
                     </div>
 
                     {/* Footer bar & Action buttons */}
-                    <div className="mt-3 pt-2 border-t border-zinc-800/80 flex items-center justify-between text-[11px]">
-                      <span className="font-mono text-zinc-400 font-medium">
-                        {r.execution} • <span className="text-red-300">{displayPd}</span>
+                    <div
+                      className={`mt-3 pt-2 border-t flex items-center justify-between text-[11px] ${
+                        isLight ? 'border-slate-200' : 'border-zinc-800/80'
+                      }`}
+                    >
+                      <span
+                        className={`font-mono font-medium ${
+                          isLight ? 'text-slate-500' : 'text-zinc-400'
+                        }`}
+                      >
+                        {r.execution} •{' '}
+                        <span className={isLight ? 'text-red-700 font-bold' : 'text-red-300'}>
+                          {displayPd}
+                        </span>
                       </span>
 
                       <div
@@ -305,7 +396,11 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                           type="button"
                           onClick={() => onDuplicateRitual(r)}
                           title="Duplicar este ritual"
-                          className="p-1 rounded text-zinc-400 hover:text-white hover:bg-zinc-800"
+                          className={`p-1 rounded transition-colors ${
+                            isLight
+                              ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'
+                              : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                          }`}
                         >
                           <Copy className="w-3.5 h-3.5" />
                         </button>
@@ -335,7 +430,11 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                             type="button"
                             onClick={() => setConfirmDeleteId(r.id)}
                             title="Excluir ritual"
-                            className="p-1 rounded text-zinc-400 hover:text-red-400 hover:bg-zinc-800"
+                            className={`p-1 rounded transition-colors ${
+                              isLight
+                                ? 'text-slate-500 hover:text-red-600 hover:bg-slate-200'
+                                : 'text-zinc-400 hover:text-red-400 hover:bg-zinc-800'
+                            }`}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -350,19 +449,35 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
         </div>
 
         {/* Bottom Bar: Import, Export, Reset defaults */}
-        <div className="px-6 py-3 border-t border-zinc-800 bg-[#0d0d11] flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div
+          className={`px-6 py-3 border-t flex flex-wrap items-center justify-between gap-3 text-xs ${
+            isLight
+              ? 'border-slate-200 bg-white'
+              : 'border-zinc-800 bg-[#0d0d11]'
+          }`}
+        >
           <div className="flex items-center gap-2">
             {/* Export Deck */}
             <button
               onClick={handleExportDeckJson}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg transition-colors"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-colors ${
+                isLight
+                  ? 'bg-slate-200 hover:bg-slate-300 text-slate-800'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200'
+              }`}
             >
               <Download className="w-3.5 h-3.5" />
               <span>Exportar Deck (.json)</span>
             </button>
 
             {/* Import Deck */}
-            <label className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg cursor-pointer transition-colors">
+            <label
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer transition-colors ${
+                isLight
+                  ? 'bg-slate-200 hover:bg-slate-300 text-slate-800'
+                  : 'bg-zinc-800 hover:bg-zinc-700 text-zinc-200'
+              }`}
+            >
               <Upload className="w-3.5 h-3.5" />
               <span>Importar Deck</span>
               <input
@@ -377,21 +492,28 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
           <div>
             <button
               onClick={() => {
-                if (
-                  confirm(
-                    'Deseja restaurar os rituais padrão? Seus rituais existentes serão mesclados com os presets clássicos.'
-                  )
-                ) {
-                  onResetToDefaults();
-                }
+                onResetToDefaults();
+                showToast('✦ Rituais originais restaurados!');
               }}
-              className="flex items-center gap-1 text-zinc-500 hover:text-zinc-300 transition-colors text-[11px]"
+              className={`flex items-center gap-1 transition-colors text-[11px] ${
+                isLight
+                  ? 'text-slate-500 hover:text-slate-800'
+                  : 'text-zinc-500 hover:text-zinc-300'
+              }`}
             >
               <RefreshCw className="w-3 h-3" />
               <span>Restaurar Rituais Originais</span>
             </button>
           </div>
         </div>
+
+        {/* In-Modal Toast Notification */}
+        {toastMessage && (
+          <div className="absolute bottom-5 right-6 z-50 flex items-center gap-2 bg-slate-900 border border-red-500 text-white px-4 py-2 rounded-xl shadow-2xl text-xs font-medium animate-fade-in">
+            <Check className="w-4 h-4 text-red-400" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
       </div>
     </div>
   );

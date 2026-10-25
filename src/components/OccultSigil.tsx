@@ -1,5 +1,5 @@
 import React from 'react';
-import { ElementId, SigilSymbolPreset } from '../types';
+import { ElementId, SigilSymbolPreset, CustomIconFilter, CardMode } from '../types';
 
 export interface SigilPresetInfo {
   id: SigilSymbolPreset;
@@ -27,6 +27,9 @@ interface OccultSigilProps {
   element: ElementId;
   symbolPreset?: SigilSymbolPreset;
   customIconUrl?: string;
+  customIconFilter?: CustomIconFilter;
+  customIconInvert?: boolean;
+  cardMode?: CardMode;
   className?: string;
   size?: number;
   color?: string;
@@ -37,6 +40,9 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
   element,
   symbolPreset = 'default',
   customIconUrl,
+  customIconFilter = 'auto',
+  customIconInvert = false,
+  cardMode = 'dark',
   className = '',
   size = 48,
   color,
@@ -44,8 +50,8 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
 }) => {
   const filterId = `sigil-glow-${element}-${Math.random().toString(36).substr(2, 6)}`;
 
-  // Default color based on element
-  const defaultColors: Record<ElementId, string> = {
+  // Default color based on element and mode
+  const defaultDarkColors: Record<ElementId, string> = {
     sangue: '#e11d48',
     morte: '#e2e8f0',
     energia: '#c084fc',
@@ -54,23 +60,76 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
     custom: '#10b981',
   };
 
-  const activeColor = color || defaultColors[element] || '#ffffff';
+  const defaultLightColors: Record<ElementId, string> = {
+    sangue: '#be123c',
+    morte: '#1e293b',
+    energia: '#7e22ce',
+    conhecimento: '#b45309',
+    medo: '#0369a1',
+    custom: '#047857',
+  };
 
-  // If a custom image/icon was uploaded by the user, render it
+  const activeColor =
+    color ||
+    (cardMode === 'light' ? defaultLightColors[element] : defaultDarkColors[element]) ||
+    (cardMode === 'light' ? '#000000' : '#ffffff');
+
+  // Handle Universal Custom Image Icon Upload
   if (customIconUrl) {
+    // Generate CSS filters and blend modes based on filter selection & light/dark card mode
+    let filterStyle = '';
+    let blendModeStyle: React.CSSProperties['mixBlendMode'] = 'normal';
+
+    if (customIconInvert) {
+      filterStyle += ' invert(1)';
+    }
+
+    switch (customIconFilter) {
+      case 'silhouette':
+        // Mask with element color silhouette
+        filterStyle += ' brightness(0) saturate(100%)';
+        break;
+      case 'monochrome':
+        filterStyle += ' grayscale(100%) contrast(120%)';
+        break;
+      case 'invert':
+        filterStyle += ' invert(100%)';
+        break;
+      case 'auto':
+      default:
+        // Automatically harmonize white/black backgrounds
+        if (cardMode === 'light') {
+          // On light mode cards, multiply blending cleanly drops white backgrounds!
+          blendModeStyle = 'multiply';
+          filterStyle += ' contrast(115%)';
+        } else {
+          // On dark mode cards, if the image has a white background, invert or screen it
+          blendModeStyle = 'screen';
+          filterStyle += ' contrast(110%)';
+        }
+        break;
+      case 'original':
+        // No extra filtering
+        break;
+    }
+
     return (
       <div
         className={`relative shrink-0 flex items-center justify-center overflow-hidden rounded-full ${className}`}
         style={{
           width: `${size}px`,
           height: `${size}px`,
-          filter: glow ? `drop-shadow(0 0 6px ${activeColor}99)` : undefined,
+          filter: glow ? `drop-shadow(0 0 6px ${activeColor}88)` : undefined,
         }}
       >
         <img
           src={customIconUrl}
           alt="Símbolo Personalizado"
-          className="w-full h-full object-contain p-0.5 filter drop-shadow-md"
+          className="w-full h-full object-contain p-0.5"
+          style={{
+            filter: filterStyle.trim() || undefined,
+            mixBlendMode: blendModeStyle,
+          }}
         />
       </div>
     );
@@ -108,14 +167,11 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
           <path
             d="M32 50 C28 35 38 22 50 22 C62 22 72 35 68 50 C68 58 63 64 61 68 L39 68 C37 64 32 58 32 50 Z"
             fill={activeColor}
-            fillOpacity="0.18"
+            fillOpacity={cardMode === 'light' ? 0.25 : 0.18}
           />
-          {/* Eye sockets */}
           <circle cx="43" cy="45" r="4.5" fill={activeColor} />
           <circle cx="57" cy="45" r="4.5" fill={activeColor} />
-          {/* Nasal cavity */}
           <polygon points="50,53 47,60 53,60" fill={activeColor} />
-          {/* Jaw & Teeth */}
           <path d="M42 68 L42 76 L58 76 L58 68" strokeWidth="2.2" />
           <line x1="47" y1="68" x2="47" y2="76" strokeWidth="1.8" />
           <line x1="53" y1="68" x2="53" y2="76" strokeWidth="1.8" />
@@ -126,15 +182,13 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
         <g stroke={activeColor} strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="50" cy="50" r="42" strokeWidth="1.5" opacity="0.7" />
           <circle cx="50" cy="50" r="37" strokeWidth="2" strokeDasharray="6 3" />
-          {/* All-seeing Eye outline */}
           <path
             d="M 18,50 Q 50,22 82,50 Q 50,78 18,50 Z"
             fill={activeColor}
-            fillOpacity="0.18"
+            fillOpacity={cardMode === 'light' ? 0.25 : 0.18}
           />
-          <circle cx="50" cy="50" r="12" strokeWidth="2" fill={activeColor} fillOpacity="0.25" />
+          <circle cx="50" cy="50" r="12" strokeWidth="2" fill={activeColor} fillOpacity={0.25} />
           <circle cx="50" cy="50" r="5" fill={activeColor} />
-          {/* Radiating esoteric rays */}
           <line x1="50" y1="12" x2="50" y2="22" strokeWidth="2" />
           <line x1="50" y1="78" x2="50" y2="88" strokeWidth="2" />
           <line x1="12" y1="50" x2="22" y2="50" strokeWidth="2" />
@@ -165,11 +219,10 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
         <g stroke={activeColor} strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="50" cy="50" r="42" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
           <circle cx="50" cy="50" r="37" strokeWidth="2" />
-          {/* Thorned Heart & Tendrils */}
           <path
             d="M50 22 C36 16 22 30 22 47 C22 66 45 82 50 84 C55 82 78 66 78 47 C78 30 64 16 50 22 Z"
             fill={activeColor}
-            fillOpacity="0.2"
+            fillOpacity={cardMode === 'light' ? 0.28 : 0.2}
           />
           <path d="M50 14 L50 82" strokeWidth="2.4" />
           <path d="M30 40 L70 60" strokeWidth="2" />
@@ -184,11 +237,10 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
         <g stroke={activeColor} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="50" cy="50" r="42" strokeWidth="1.5" opacity="0.6" />
           <circle cx="50" cy="50" r="37" strokeWidth="2" strokeDasharray="8 3" />
-          {/* Mystic Flame */}
           <path
             d="M50 16 C50 16 30 40 30 56 C30 68 39 78 50 78 C61 78 70 68 70 56 C70 42 56 34 56 34 C56 34 62 46 56 52 C50 58 42 52 42 46 C42 36 50 16 50 16 Z"
             fill={activeColor}
-            fillOpacity="0.22"
+            fillOpacity={cardMode === 'light' ? 0.28 : 0.22}
           />
           <circle cx="50" cy="62" r="3" fill={activeColor} />
         </g>
@@ -201,7 +253,7 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
           <polygon
             points="50,14 62,36 50,40 70,58 52,60 62,86 38,54 48,50 30,36 46,34"
             fill={activeColor}
-            fillOpacity="0.22"
+            fillOpacity={cardMode === 'light' ? 0.28 : 0.22}
           />
           <circle cx="50" cy="14" r="2.5" fill={activeColor} />
           <circle cx="62" cy="86" r="2.5" fill={activeColor} />
@@ -212,11 +264,10 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
         <g stroke={activeColor} strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="50" cy="50" r="42" strokeWidth="1.5" opacity="0.7" />
           <circle cx="50" cy="50" r="37" strokeWidth="2" />
-          {/* Pentagram */}
           <polygon
             points="50,17 60,38 83,38 64,52 71,74 50,60 29,74 36,52 17,38 40,38"
             fill={activeColor}
-            fillOpacity="0.18"
+            fillOpacity={cardMode === 'light' ? 0.25 : 0.18}
           />
           <circle cx="50" cy="50" r="8" strokeWidth="1.5" opacity="0.8" />
           <circle cx="50" cy="50" r="3" fill={activeColor} />
@@ -227,13 +278,12 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
         <g stroke={activeColor} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="50" cy="50" r="42" strokeWidth="1.5" strokeDasharray="4 2" opacity="0.6" />
           <circle cx="50" cy="50" r="37" strokeWidth="2" />
-          {/* Hourglass */}
           <line x1="30" y1="24" x2="70" y2="24" strokeWidth="3" />
           <line x1="30" y1="76" x2="70" y2="76" strokeWidth="3" />
           <path
             d="M34 26 L66 26 L52 48 L66 74 L34 74 L48 48 Z"
             fill={activeColor}
-            fillOpacity="0.18"
+            fillOpacity={cardMode === 'light' ? 0.25 : 0.18}
           />
           <circle cx="50" cy="50" r="2" fill={activeColor} />
           <circle cx="50" cy="66" r="3" fill={activeColor} />
@@ -244,11 +294,10 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
         <g stroke={activeColor} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="50" cy="50" r="42" strokeWidth="1.5" strokeDasharray="14 8" opacity="0.6" />
           <circle cx="50" cy="50" r="37" strokeWidth="2" />
-          {/* Abyssal Rift */}
           <path
             d="M50 14 C30 25 15 45 22 70 C28 85 45 88 50 86 C55 88 72 85 78 70 C85 45 70 25 50 14 Z"
             fill={activeColor}
-            fillOpacity="0.16"
+            fillOpacity={cardMode === 'light' ? 0.24 : 0.16}
           />
           <path d="M50 18 L46 38 L55 52 L44 68 L50 82" strokeWidth="2.6" />
           <circle cx="50" cy="50" r="3" fill={activeColor} />
@@ -259,11 +308,10 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
         <g stroke={activeColor} strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="50" cy="50" r="42" strokeWidth="1.5" opacity="0.6" />
           <circle cx="50" cy="50" r="37" strokeWidth="2" />
-          {/* Ritual Dagger */}
           <path
             d="M50 16 L56 46 L64 48 L64 54 L54 54 L54 74 L50 82 L46 74 L46 54 L36 54 L36 48 L44 46 Z"
             fill={activeColor}
-            fillOpacity="0.22"
+            fillOpacity={cardMode === 'light' ? 0.28 : 0.22}
           />
           <line x1="50" y1="16" x2="50" y2="54" strokeWidth="1.8" />
           <circle cx="50" cy="82" r="2" fill={activeColor} />
@@ -274,11 +322,10 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
         <g stroke={activeColor} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="50" cy="50" r="42" strokeWidth="1.5" strokeDasharray="6 3" opacity="0.7" />
           <circle cx="50" cy="50" r="37" strokeWidth="2" />
-          {/* Crescent Moon & Eclipse */}
           <path
             d="M50 20 C66 20 80 34 80 50 C80 66 66 80 50 80 C40 80 32 75 26 67 C36 71 48 68 56 60 C64 52 66 40 60 28 C57 23 54 21 50 20 Z"
             fill={activeColor}
-            fillOpacity="0.25"
+            fillOpacity={cardMode === 'light' ? 0.3 : 0.25}
           />
           <circle cx="40" cy="46" r="3" fill={activeColor} />
         </g>
@@ -288,10 +335,8 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
         <g stroke={activeColor} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="50" cy="50" r="42" strokeWidth="1.5" opacity="0.6" />
           <circle cx="50" cy="50" r="37" strokeWidth="2" strokeDasharray="12 4" />
-          {/* Snake Ouroboros ring */}
           <circle cx="50" cy="50" r="26" strokeWidth="3" />
           <circle cx="50" cy="50" r="16" strokeWidth="1.5" strokeDasharray="3 3" opacity="0.6" />
-          {/* Head & Tail lock */}
           <polygon points="50,20 56,26 48,28" fill={activeColor} />
           <circle cx="50" cy="50" r="4" fill={activeColor} />
         </g>
@@ -309,11 +354,11 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
               <path
                 d="M50 20 C35 15 20 30 20 48 C20 68 45 84 50 86 C55 84 80 68 80 48 C80 30 65 15 50 20 Z"
                 fill={activeColor}
-                fillOpacity="0.15"
+                fillOpacity={cardMode === 'light' ? 0.22 : 0.15}
                 strokeWidth="2.5"
               />
               <path d="M50 12 L50 78" strokeWidth="2.5" />
-              <path d="M50 32 L30 52 L50 62 L70 52 Z" fill={activeColor} fillOpacity="0.25" strokeWidth="2" />
+              <path d="M50 32 L30 52 L50 62 L70 52 Z" fill={activeColor} fillOpacity={0.25} strokeWidth="2" />
               <path d="M26 36 L38 48" strokeWidth="2" />
               <path d="M74 36 L62 48" strokeWidth="2" />
               <circle cx="50" cy="85" r="2.5" fill={activeColor} />
@@ -352,7 +397,7 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
               <polygon
                 points="50,14 62,34 52,38 72,56 54,58 64,86 38,52 48,48 28,34 44,32"
                 fill={activeColor}
-                fillOpacity="0.2"
+                fillOpacity={cardMode === 'light' ? 0.26 : 0.2}
                 strokeWidth="2.5"
               />
               <line x1="16" y1="50" x2="84" y2="50" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.5" />
@@ -371,10 +416,10 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
               <path
                 d="M 18,50 Q 50,22 82,50 Q 50,78 18,50 Z"
                 fill={activeColor}
-                fillOpacity="0.15"
+                fillOpacity={cardMode === 'light' ? 0.22 : 0.15}
                 strokeWidth="2.5"
               />
-              <circle cx="50" cy="50" r="12" strokeWidth="2" fill={activeColor} fillOpacity="0.2" />
+              <circle cx="50" cy="50" r="12" strokeWidth="2" fill={activeColor} fillOpacity={0.2} />
               <circle cx="50" cy="50" r="5" fill={activeColor} />
               <line x1="50" y1="12" x2="50" y2="88" strokeWidth="1.5" opacity="0.8" />
               <line x1="12" y1="50" x2="88" y2="50" strokeWidth="1.5" opacity="0.8" />
@@ -392,7 +437,7 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
               <path
                 d="M50 14 C30 25 15 45 22 70 C28 85 45 88 50 86 C55 88 72 85 78 70 C85 45 70 25 50 14 Z"
                 fill={activeColor}
-                fillOpacity="0.12"
+                fillOpacity={cardMode === 'light' ? 0.22 : 0.12}
                 strokeWidth="2.5"
               />
               <path d="M50 18 L46 38 L55 52 L44 68 L50 82" strokeWidth="2.5" />
@@ -411,7 +456,7 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
               <polygon
                 points="50,16 61,35 84,35 66,49 72,71 50,58 28,71 34,49 16,35 39,35"
                 fill={activeColor}
-                fillOpacity="0.2"
+                fillOpacity={0.2}
                 strokeWidth="2.2"
               />
               <circle cx="50" cy="50" r="7" strokeWidth="2" />
@@ -429,8 +474,10 @@ export const GrandOccultSeal: React.FC<{
   size?: number;
   className?: string;
   color?: string;
-  element?: ElementId;
-}> = ({ size = 220, className = '', color = '#e2e8f0' }) => {
+  cardMode?: CardMode;
+}> = ({ size = 220, className = '', color = '#e2e8f0', cardMode = 'dark' }) => {
+  const strokeColor = color || (cardMode === 'light' ? '#18181b' : '#e2e8f0');
+
   return (
     <svg
       width={size}
@@ -440,7 +487,7 @@ export const GrandOccultSeal: React.FC<{
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <g stroke={color} strokeLinecap="round" strokeLinejoin="round">
+      <g stroke={strokeColor} strokeLinecap="round" strokeLinejoin="round">
         <circle cx="100" cy="100" r="95" strokeWidth="2" opacity="0.8" />
         <circle cx="100" cy="100" r="91" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
         <circle cx="100" cy="100" r="85" strokeWidth="1.5" opacity="0.7" />
@@ -488,14 +535,50 @@ export const GrandOccultSeal: React.FC<{
         <line x1="100" y1="10" x2="100" y2="190" strokeWidth="1.2" opacity="0.5" />
         <line x1="10" y1="100" x2="190" y2="100" strokeWidth="1.2" opacity="0.5" />
 
-        <circle cx="100" cy="24" r="5" strokeWidth="1.5" fill="#000000" />
-        <circle cx="172" cy="76" r="5" strokeWidth="1.5" fill="#000000" />
-        <circle cx="144" cy="162" r="5" strokeWidth="1.5" fill="#000000" />
-        <circle cx="56" cy="162" r="5" strokeWidth="1.5" fill="#000000" />
-        <circle cx="28" cy="76" r="5" strokeWidth="1.5" fill="#000000" />
+        <circle
+          cx="100"
+          cy="24"
+          r="5"
+          strokeWidth="1.5"
+          fill={cardMode === 'light' ? '#ffffff' : '#000000'}
+        />
+        <circle
+          cx="172"
+          cy="76"
+          r="5"
+          strokeWidth="1.5"
+          fill={cardMode === 'light' ? '#ffffff' : '#000000'}
+        />
+        <circle
+          cx="144"
+          cy="162"
+          r="5"
+          strokeWidth="1.5"
+          fill={cardMode === 'light' ? '#ffffff' : '#000000'}
+        />
+        <circle
+          cx="56"
+          cy="162"
+          r="5"
+          strokeWidth="1.5"
+          fill={cardMode === 'light' ? '#ffffff' : '#000000'}
+        />
+        <circle
+          cx="28"
+          cy="76"
+          r="5"
+          strokeWidth="1.5"
+          fill={cardMode === 'light' ? '#ffffff' : '#000000'}
+        />
 
-        <circle cx="100" cy="100" r="10" strokeWidth="1.8" fill="#000000" />
-        <circle cx="100" cy="100" r="4" fill={color} />
+        <circle
+          cx="100"
+          cy="100"
+          r="10"
+          strokeWidth="1.8"
+          fill={cardMode === 'light' ? '#ffffff' : '#000000'}
+        />
+        <circle cx="100" cy="100" r="4" fill={strokeColor} />
       </g>
     </svg>
   );

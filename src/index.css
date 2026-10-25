@@ -1,26 +1,45 @@
 @import "tailwindcss";
 
+/* ======================================================== */
+/* CUSTOM TYPOGRAPHY: WESTSAC & OPTIMA LT STD MEDIUM       */
+/* ======================================================== */
+
+/* Westsac Title Font with local / fallback chain */
+@font-face {
+  font-family: 'Westsac';
+  src: local('Westsac'), local('Westsac Regular');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Optima LT Std Medium Body Font with local / fallback chain */
+@font-face {
+  font-family: 'Optima LT Std Medium';
+  src: local('Optima LT Std Medium'), local('Optima LT Std'), local('Optima');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   :root {
-    --font-cinzel: 'Cinzel', serif;
-    --font-cinzel-dec: 'Cinzel Decorative', serif;
-    --font-body: 'Plus Jakarta Sans', sans-serif;
+    --font-title: 'Westsac', 'Cinzel', serif;
+    --font-body: 'Optima LT Std Medium', 'Optima', 'URW Classico', 'Plus Jakarta Sans', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
   }
   
   body {
     font-family: var(--font-body);
-    background-color: #0b0b0e;
-    color: #e2e8f0;
   }
 }
 
-.font-cinzel {
-  font-family: var(--font-cinzel);
+.font-title {
+  font-family: var(--font-title);
 }
 
-.font-cinzel-dec {
-  font-family: var(--font-cinzel-dec);
+.font-cinzel {
+  font-family: var(--font-title);
 }
 
 .font-body {
@@ -65,36 +84,100 @@
   );
 }
 
-/* Custom scrollbars for grimoire editor */
+/* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #09090c;
+  background: rgba(0, 0, 0, 0.1);
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272e;
+  background: rgba(100, 100, 115, 0.4);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f4a;
+  background: rgba(100, 100, 115, 0.7);
 }
 
-/* Print styling for standard physical cards (63mm x 88mm) */
+/* Scrollbar suppression classes to eliminate ugly scrollbars during export/print */
+.scrollbar-none,
+.no-scrollbar {
+  -ms-overflow-style: none !important; /* IE and Edge */
+  scrollbar-width: none !important; /* Firefox */
+}
+.scrollbar-none::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+}
+
+/* Print styling for physical cards and A4 light sheets */
 @media print {
   @page {
     size: A4 portrait;
-    margin: 10mm;
+    margin: 8mm;
   }
   
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
   body {
     background: #ffffff !important;
     color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
-  .no-print {
+  /* Hide app chrome, headers, floating buttons, toasts, navbars */
+  header,
+  nav,
+  button,
+  .no-print,
+  .print-hidden,
+  [data-no-print] {
     display: none !important;
+  }
+
+  /* Make sure modals and backdrops don't block printing */
+  .fixed.inset-0 {
+    position: static !important;
+    background: transparent !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-height: none !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Force modal card containers to be transparent/clean */
+  .fixed.inset-0 > div {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    max-height: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Printable sheet container */
+  #light-print-virtual-sheet,
+  .print-sheet {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    background: transparent !important;
+    width: 100% !important;
+    page-break-inside: avoid !important;
   }
 
   .print-only {

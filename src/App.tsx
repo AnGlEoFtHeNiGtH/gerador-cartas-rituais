@@ -5,7 +5,8 @@ import { RitualCard } from './components/RitualCard';
 import { EditorPanel } from './components/EditorPanel';
 import { DeckManager } from './components/DeckManager';
 import { PrintModal } from './components/PrintModal';
-import { exportCardAsPng, sanitizeFilename } from './utils/exportCard';
+import { LightPrintModal } from './components/LightPrintModal';
+import { exportCardAsPng, sanitizeFilename, safeSaveToLocalStorage } from './utils/exportCard';
 import { soundEngine } from './utils/audio';
 import { OccultSigil } from './components/OccultSigil';
 import {
@@ -21,11 +22,39 @@ import {
   ZoomOut,
   Layers,
   Sparkles,
+  Sun,
+  Moon,
+  Feather,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'grimorio_paranormal_rituals_v3';
 
 export default function App() {
+  // Application UI Mode: dark or light
+  const [appMode, setAppMode] = useState<'dark' | 'light'>(() => {
+    try {
+      const saved = localStorage.getItem('grimorio_paranormal_theme_ui');
+      return saved === 'light' ? 'light' : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  const toggleAppMode = () => {
+    setAppMode((prev) => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      try {
+        localStorage.setItem('grimorio_paranormal_theme_ui', next);
+      } catch {}
+      showToast(
+        next === 'light'
+          ? 'Modo Claro ativado na interface'
+          : 'Modo Escuro ativado na interface'
+      );
+      return next;
+    });
+  };
+
   // Load saved rituals or initial presets, normalizing any legacy PE to PD
   const [rituals, setRituals] = useState<Ritual[]>(() => {
     try {
@@ -62,16 +91,16 @@ export default function App() {
   // Modals & Audio
   const [isDeckOpen, setIsDeckOpen] = useState(false);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
+  const [isLightPrintOpen, setIsLightPrintOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Sync to localStorage
+  // Sync to localStorage safely
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(rituals));
-    } catch (err) {
-      console.warn('Failed to save to localStorage:', err);
+    const result = safeSaveToLocalStorage(STORAGE_KEY, rituals);
+    if (!result.success) {
+      console.warn('LocalStorage limit reached');
     }
   }, [rituals]);
 
@@ -116,6 +145,7 @@ export default function App() {
       ],
       flavorText: 'As palavras sussurradas abrem fendas na Realidade.',
       theme: {
+        cardMode: 'dark',
         cornerStyle: 'chamfer',
         borderStyle: 'double-silver',
         bgTone: 'black',
@@ -247,12 +277,26 @@ export default function App() {
     }
   };
 
+  const isLightApp = appMode === 'light';
+
   return (
-    <div className="min-h-screen bg-[#0b0b0f] text-zinc-100 flex flex-col font-sans selection:bg-red-950 selection:text-red-200">
+    <div
+      className={`min-h-screen flex flex-col font-sans transition-colors ${
+        isLightApp
+          ? 'bg-[#f4f5f9] text-slate-900 selection:bg-red-200 selection:text-red-950'
+          : 'bg-[#0b0b0f] text-zinc-100 selection:bg-red-950 selection:text-red-200'
+      }`}
+    >
       {/* ======================================================== */}
       {/* TOP BAR CONTRACT: Zone 1 (Wordmark) — Zone 2 (Nav links) — Zone 3 (Primary Action) */}
       {/* ======================================================== */}
-      <header className="flex items-center justify-between gap-8 px-6 py-3.5 border-b border-zinc-800/80 bg-[#0d0d12]/95 backdrop-blur-md sticky top-0 z-40">
+      <header
+        className={`flex items-center justify-between gap-8 px-6 py-3.5 border-b sticky top-0 z-40 backdrop-blur-md transition-colors ${
+          isLightApp
+            ? 'border-slate-200 bg-white/95'
+            : 'border-zinc-800/80 bg-[#0d0d12]/95'
+        }`}
+      >
         {/* Zone 1: Single text element wordmark */}
         <div className="flex items-center gap-2.5 whitespace-nowrap shrink-0">
           <div className="w-8 h-8 rounded-lg bg-red-950/80 border border-red-800/60 flex items-center justify-center text-red-400 shadow-xs">
@@ -263,19 +307,35 @@ export default function App() {
               size={20}
             />
           </div>
-          <span className="font-cinzel text-base font-bold tracking-wider text-white">
+          <span
+            className={`font-title text-base font-bold tracking-wider ${
+              isLightApp ? 'text-slate-900' : 'text-white'
+            }`}
+          >
             Grimório Paranormal
           </span>
-          <span className="hidden sm:inline-block text-[11px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded">
+          <span
+            className={`hidden sm:inline-block text-[11px] font-mono px-2 py-0.5 rounded border ${
+              isLightApp
+                ? 'text-slate-600 bg-slate-100 border-slate-300'
+                : 'text-zinc-400 bg-zinc-900 border-zinc-800'
+            }`}
+          >
             PD Edition
           </span>
         </div>
 
         {/* Zone 2: Navigation Links & Deck Manager Quick Access */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-zinc-300">
+        <nav
+          className={`hidden md:flex items-center gap-6 text-sm font-medium ${
+            isLightApp ? 'text-slate-600' : 'text-zinc-300'
+          }`}
+        >
           <button
             onClick={() => setIsDeckOpen(true)}
-            className="flex items-center gap-2 hover:text-white transition-colors whitespace-nowrap shrink-0"
+            className={`flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 ${
+              isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
+            }`}
           >
             <BookOpen className="w-4 h-4 text-zinc-400" />
             <span>Deck de Rituais ({rituals.length})</span>
@@ -283,7 +343,9 @@ export default function App() {
 
           <button
             onClick={handleCreateNewRitual}
-            className="flex items-center gap-1.5 hover:text-white transition-colors whitespace-nowrap shrink-0"
+            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+              isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
+            }`}
           >
             <Plus className="w-4 h-4 text-zinc-400" />
             <span>Novo Ritual</span>
@@ -291,15 +353,47 @@ export default function App() {
 
           <button
             onClick={() => setIsPrintOpen(true)}
-            className="flex items-center gap-1.5 hover:text-white transition-colors whitespace-nowrap shrink-0"
+            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+              isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
+            }`}
           >
             <Printer className="w-4 h-4 text-zinc-400" />
-            <span>Folha de Impressão</span>
+            <span>Folha Padrão (63×88)</span>
+          </button>
+
+          <button
+            onClick={() => setIsLightPrintOpen(true)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap shrink-0 shadow-xs ${
+              isLightApp
+                ? 'bg-blue-50 border-blue-200 text-blue-900 hover:bg-blue-100 hover:border-blue-300'
+                : 'bg-blue-950/70 border-blue-800/80 text-blue-300 hover:bg-blue-900 hover:text-white'
+            }`}
+            title="Versão de Impressão Leve (A4) - Fundo 100% Branco e Economia de Tinta"
+          >
+            <Feather className="w-3.5 h-3.5 text-blue-400" />
+            <span>Versão de Impressão Leve (A4)</span>
           </button>
         </nav>
 
-        {/* Zone 3: Primary Actions (Atmosphere, Quick Export) */}
+        {/* Zone 3: Primary Actions (Light/Dark Toggle, Atmosphere, Quick Export) */}
         <div className="flex items-center gap-3 shrink-0">
+          {/* Light / Dark Mode Toggle Button */}
+          <button
+            onClick={toggleAppMode}
+            title={
+              isLightApp
+                ? 'Alternar para Modo Escuro na interface'
+                : 'Alternar para Modo Claro na interface'
+            }
+            className={`p-2 rounded-lg border transition-all flex items-center justify-center ${
+              isLightApp
+                ? 'bg-slate-100 border-slate-300 text-amber-600 hover:bg-slate-200 hover:text-amber-700 shadow-xs'
+                : 'bg-zinc-900 border-zinc-800 text-amber-400 hover:bg-zinc-800 hover:text-amber-300'
+            }`}
+          >
+            {isLightApp ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+          </button>
+
           {/* Ambient Sound Toggle */}
           <button
             onClick={handleToggleAmbient}
@@ -311,6 +405,8 @@ export default function App() {
             className={`p-2 rounded-lg border transition-all ${
               isAmbientPlaying
                 ? 'bg-red-950/70 border-red-800 text-red-300 shadow-xs'
+                : isLightApp
+                ? 'bg-slate-100 border-slate-300 text-slate-600 hover:text-slate-900'
                 : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -324,7 +420,11 @@ export default function App() {
           {/* Quick Deck Button on mobile */}
           <button
             onClick={() => setIsDeckOpen(true)}
-            className="md:hidden p-2 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300"
+            className={`md:hidden p-2 rounded-lg border ${
+              isLightApp
+                ? 'bg-slate-100 border-slate-300 text-slate-700'
+                : 'bg-zinc-900 border-zinc-800 text-zinc-300'
+            }`}
             title="Abrir Grimório"
           >
             <BookOpen className="w-4 h-4" />
@@ -358,20 +458,38 @@ export default function App() {
               setActiveView(v);
               setIsFlipped3D(v === 'back');
             }}
+            appMode={appMode}
+            onOpenLightPrint={() => setIsLightPrintOpen(true)}
           />
         </section>
 
         {/* RIGHT COLUMN: Live Card Preview & Controls */}
         <section className="lg:col-span-6 xl:col-span-7 flex flex-col items-center">
           {/* Preview Toolbar */}
-          <div className="w-full max-w-[580px] mb-4 p-3 bg-[#131319] border border-zinc-800 rounded-xl flex flex-wrap items-center justify-between gap-3 shadow-lg">
+          <div
+            className={`w-full max-w-[580px] mb-4 p-3 border rounded-xl flex flex-wrap items-center justify-between gap-3 shadow-lg transition-colors ${
+              isLightApp
+                ? 'bg-white border-slate-200'
+                : 'bg-[#131319] border-zinc-800'
+            }`}
+          >
             {/* View Mode Toggle: Single (with 3D Flip) or Side-by-Side Split */}
-            <div className="flex items-center gap-1 bg-[#1a1a24] p-1 rounded-lg border border-zinc-800 text-xs">
+            <div
+              className={`flex items-center gap-1 p-1 rounded-lg border text-xs ${
+                isLightApp
+                  ? 'bg-slate-100 border-slate-300'
+                  : 'bg-[#1a1a24] border-zinc-800'
+              }`}
+            >
               <button
                 onClick={() => setPreviewMode('single')}
                 className={`px-2.5 py-1 rounded transition-colors ${
                   previewMode === 'single'
-                    ? 'bg-zinc-700 text-white font-semibold'
+                    ? isLightApp
+                      ? 'bg-slate-800 text-white font-semibold'
+                      : 'bg-zinc-700 text-white font-semibold'
+                    : isLightApp
+                    ? 'text-slate-600 hover:text-slate-900'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -381,7 +499,11 @@ export default function App() {
                 onClick={() => setPreviewMode('split')}
                 className={`flex items-center gap-1 px-2.5 py-1 rounded transition-colors ${
                   previewMode === 'split'
-                    ? 'bg-zinc-700 text-white font-semibold'
+                    ? isLightApp
+                      ? 'bg-slate-800 text-white font-semibold'
+                      : 'bg-zinc-700 text-white font-semibold'
+                    : isLightApp
+                    ? 'text-slate-600 hover:text-slate-900'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -394,7 +516,11 @@ export default function App() {
             {previewMode === 'single' && (
               <button
                 onClick={handleToggleFlip}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg text-xs font-medium border border-zinc-700/60 transition-colors shadow-xs"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors shadow-xs ${
+                  isLightApp
+                    ? 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                    : 'bg-zinc-800 hover:bg-zinc-700 text-white border-zinc-700/60'
+                }`}
               >
                 <RotateCw className="w-3.5 h-3.5" />
                 <span>Girar Carta ({activeView === 'front' ? 'Ver Verso' : 'Ver Frente'})</span>
@@ -402,21 +528,31 @@ export default function App() {
             )}
 
             {/* Zoom Controls */}
-            <div className="flex items-center gap-1 bg-[#1a1a24] p-1 rounded-lg border border-zinc-800 text-xs text-zinc-300">
+            <div
+              className={`flex items-center gap-1 p-1 rounded-lg border text-xs ${
+                isLightApp
+                  ? 'bg-slate-100 border-slate-300 text-slate-700'
+                  : 'bg-[#1a1a24] border-zinc-800 text-zinc-300'
+              }`}
+            >
               <button
                 onClick={() => setCardScale((s) => Math.max(0.75, s - 0.1))}
                 title="Diminuir Zoom"
-                className="p-1 hover:text-white"
+                className={isLightApp ? 'p-1 hover:text-slate-950' : 'p-1 hover:text-white'}
               >
                 <ZoomOut className="w-3.5 h-3.5" />
               </button>
-              <span className="font-mono text-[11px] px-1 text-zinc-400">
+              <span
+                className={`font-mono text-[11px] px-1 ${
+                  isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                }`}
+              >
                 {Math.round(cardScale * 100)}%
               </span>
               <button
                 onClick={() => setCardScale((s) => Math.min(1.3, s + 0.1))}
                 title="Aumentar Zoom"
-                className="p-1 hover:text-white"
+                className={isLightApp ? 'p-1 hover:text-slate-950' : 'p-1 hover:text-white'}
               >
                 <ZoomIn className="w-3.5 h-3.5" />
               </button>
@@ -424,9 +560,21 @@ export default function App() {
           </div>
 
           {/* Visual Presentation Canvas */}
-          <div className="w-full flex flex-col items-center justify-center p-6 bg-[#09090d] border border-zinc-800/90 rounded-2xl shadow-2xl relative overflow-hidden min-h-[660px]">
+          <div
+            className={`w-full flex flex-col items-center justify-center p-6 border rounded-2xl shadow-2xl relative overflow-hidden min-h-[660px] transition-colors ${
+              isLightApp
+                ? 'bg-[#e2e8f0]/70 border-slate-300 shadow-inner'
+                : 'bg-[#09090d] border-zinc-800/90'
+            }`}
+          >
             {/* Occult background ambient pattern */}
-            <div className="absolute inset-0 bg-[radial-gradient(#1c1c28_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
+            <div
+              className={`absolute inset-0 [background-size:24px_24px] pointer-events-none ${
+                isLightApp
+                  ? 'bg-[radial-gradient(#94a3b8_1px,transparent_1px)] opacity-35'
+                  : 'bg-[radial-gradient(#1c1c28_1px,transparent_1px)] opacity-40'
+              }`}
+            />
 
             {previewMode === 'single' ? (
               /* SINGLE CARD VIEW WITH 3D FLIP */
@@ -448,7 +596,11 @@ export default function App() {
               /* SIDE-BY-SIDE DUAL PREVIEW (FRONT & BACK) */
               <div className="flex flex-wrap items-center justify-center gap-8 my-auto py-4">
                 <div className="flex flex-col items-center">
-                  <span className="text-[11px] font-mono uppercase tracking-widest text-zinc-500 mb-2">
+                  <span
+                    className={`text-[11px] font-mono uppercase tracking-widest mb-2 ${
+                      isLightApp ? 'text-slate-500' : 'text-zinc-500'
+                    }`}
+                  >
                     ✦ FACE PRINCIPAL (FRENTE)
                   </span>
                   <RitualCard
@@ -460,7 +612,11 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-col items-center">
-                  <span className="text-[11px] font-mono uppercase tracking-widest text-zinc-500 mb-2">
+                  <span
+                    className={`text-[11px] font-mono uppercase tracking-widest mb-2 ${
+                      isLightApp ? 'text-slate-500' : 'text-zinc-500'
+                    }`}
+                  >
                     ✦ FACE OCULTA (VERSO)
                   </span>
                   <RitualCard
@@ -478,7 +634,11 @@ export default function App() {
               <button
                 onClick={() => handleExportPng('front')}
                 disabled={isExporting}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700/80 hover:bg-zinc-800 text-xs text-zinc-200 transition-colors shadow-xs"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors shadow-xs ${
+                  isLightApp
+                    ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-700'
+                    : 'bg-zinc-900 border-zinc-700/80 hover:bg-zinc-800 text-zinc-200'
+                }`}
               >
                 <Download className="w-3.5 h-3.5 text-zinc-400" />
                 <span>Exportar Frente</span>
@@ -487,7 +647,11 @@ export default function App() {
               <button
                 onClick={() => handleExportPng('back')}
                 disabled={isExporting}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700/80 hover:bg-zinc-800 text-xs text-zinc-200 transition-colors shadow-xs"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors shadow-xs ${
+                  isLightApp
+                    ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-700'
+                    : 'bg-zinc-900 border-zinc-700/80 hover:bg-zinc-800 text-zinc-200'
+                }`}
               >
                 <Download className="w-3.5 h-3.5 text-zinc-400" />
                 <span>Exportar Verso</span>
@@ -496,18 +660,39 @@ export default function App() {
               <button
                 onClick={() => handleExportPng('both')}
                 disabled={isExporting}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/80 border border-red-800 hover:bg-red-900 text-xs text-red-200 transition-colors shadow-xs font-medium"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors shadow-xs font-medium ${
+                  isLightApp
+                    ? 'bg-red-700 border-red-700 hover:bg-red-800 text-white shadow-md'
+                    : 'bg-red-950/80 border border-red-800 hover:bg-red-900 text-red-200'
+                }`}
               >
-                <Sparkles className="w-3.5 h-3.5 text-red-400" />
+                <Sparkles className="w-3.5 h-3.5 text-red-300" />
                 <span>Exportar Ambas (Bundle)</span>
               </button>
 
               <button
                 onClick={() => setIsPrintOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-700/80 hover:bg-zinc-800 text-xs text-zinc-200 transition-colors shadow-xs"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors shadow-xs ${
+                  isLightApp
+                    ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-700'
+                    : 'bg-zinc-900 border-zinc-700/80 hover:bg-zinc-800 text-zinc-200'
+                }`}
               >
                 <Printer className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Imprimir Cartas (63×88mm)</span>
+                <span>Imprimir Padrão (63×88mm)</span>
+              </button>
+
+              <button
+                onClick={() => setIsLightPrintOpen(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors shadow-xs ${
+                  isLightApp
+                    ? 'bg-blue-50 border-blue-300 hover:bg-blue-100 text-blue-900'
+                    : 'bg-blue-950/70 border-blue-800/80 hover:bg-blue-900 text-blue-200'
+                }`}
+                title="Versão de Impressão Leve (A4) - Fundo 100% Branco e Economia de Tinta"
+              >
+                <Feather className="w-3.5 h-3.5 text-blue-400" />
+                <span>Impressão Leve (A4)</span>
               </button>
             </div>
           </div>
@@ -538,13 +723,23 @@ export default function App() {
         onDeleteRitual={handleDeleteRitual}
         onResetToDefaults={handleResetToDefaults}
         onImportDeck={handleImportDeck}
+        appMode={appMode}
       />
 
-      {/* Print Modal */}
+      {/* Print Modal (Classic 63x88mm Cards) */}
       <PrintModal
         isOpen={isPrintOpen}
         onClose={() => setIsPrintOpen(false)}
         ritual={currentRitual}
+        appMode={appMode}
+      />
+
+      {/* Light Print Modal (Versão de Impressão Leve - Economia de Tinta / Ficha Limpa) */}
+      <LightPrintModal
+        isOpen={isLightPrintOpen}
+        onClose={() => setIsLightPrintOpen(false)}
+        ritual={currentRitual}
+        appMode={appMode}
       />
     </div>
   );

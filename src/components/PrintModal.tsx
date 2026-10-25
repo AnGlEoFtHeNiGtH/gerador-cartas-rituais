@@ -7,9 +7,16 @@ interface PrintModalProps {
   ritual: Ritual;
   isOpen: boolean;
   onClose: () => void;
+  appMode?: 'dark' | 'light';
 }
 
-export const PrintModal: React.FC<PrintModalProps> = ({ ritual, isOpen, onClose }) => {
+export const PrintModal: React.FC<PrintModalProps> = ({
+  ritual,
+  isOpen,
+  onClose,
+  appMode = 'dark',
+}) => {
+  const isLight = appMode === 'light';
   const [printLayout, setPrintLayout] = useState<'both' | 'front-only' | 'back-only'>('both');
   const [showCropMarks, setShowCropMarks] = useState(true);
 
@@ -21,18 +28,36 @@ export const PrintModal: React.FC<PrintModalProps> = ({ ritual, isOpen, onClose 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-      <div className="relative w-full max-w-4xl max-h-[90vh] bg-[#101015] border border-zinc-800 rounded-2xl flex flex-col shadow-2xl overflow-hidden">
+      <div
+        className={`relative w-full max-w-4xl max-h-[90vh] border rounded-2xl flex flex-col shadow-2xl overflow-hidden transition-colors ${
+          isLight
+            ? 'bg-slate-50 border-slate-300 text-slate-800'
+            : 'bg-[#101015] border-zinc-800 text-zinc-100'
+        }`}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-[#0c0c10]">
+        <div
+          className={`flex items-center justify-between px-6 py-4 border-b ${
+            isLight ? 'border-slate-200 bg-white' : 'border-zinc-800 bg-[#0c0c10]'
+          }`}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-zinc-800 flex items-center justify-center text-white">
+            <div
+              className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                isLight ? 'bg-slate-200 text-slate-800' : 'bg-zinc-800 text-white'
+              }`}
+            >
               <Printer className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="font-cinzel text-base font-bold text-white tracking-wide">
+              <h2
+                className={`font-title text-base font-bold tracking-wide ${
+                  isLight ? 'text-slate-900' : 'text-white'
+                }`}
+              >
                 Modo de Impressão Física (63mm × 88mm)
               </h2>
-              <p className="text-xs text-zinc-400">
+              <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-zinc-400'}`}>
                 Formato real de card game (Poker Size) com guias de corte para sleeves
               </p>
             </div>
@@ -48,7 +73,11 @@ export const PrintModal: React.FC<PrintModalProps> = ({ ritual, isOpen, onClose 
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+              className={`p-1.5 rounded-lg transition-colors ${
+                isLight
+                  ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+              }`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -56,15 +85,29 @@ export const PrintModal: React.FC<PrintModalProps> = ({ ritual, isOpen, onClose 
         </div>
 
         {/* Toolbar / Options */}
-        <div className="px-6 py-3 border-b border-zinc-800 bg-[#14141a] flex flex-wrap items-center justify-between gap-4 text-xs">
+        <div
+          className={`px-6 py-3 border-b flex flex-wrap items-center justify-between gap-4 text-xs ${
+            isLight ? 'border-slate-200 bg-slate-100/90' : 'border-zinc-800 bg-[#14141a]'
+          }`}
+        >
           <div className="flex items-center gap-2">
-            <span className="text-zinc-400 font-mono text-[11px] uppercase">Formato:</span>
-            <div className="flex items-center gap-1 bg-[#1c1c24] p-1 rounded-lg border border-zinc-800">
+            <span className={`font-mono text-[11px] uppercase ${isLight ? 'text-slate-500' : 'text-zinc-400'}`}>
+              Formato:
+            </span>
+            <div
+              className={`flex items-center gap-1 p-1 rounded-lg border ${
+                isLight ? 'bg-white border-slate-300' : 'bg-[#1c1c24] border-zinc-800'
+              }`}
+            >
               <button
                 onClick={() => setPrintLayout('both')}
                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${
                   printLayout === 'both'
-                    ? 'bg-zinc-700 text-white font-semibold'
+                    ? isLight
+                      ? 'bg-slate-800 text-white font-semibold'
+                      : 'bg-zinc-700 text-white font-semibold'
+                    : isLight
+                    ? 'text-slate-600 hover:text-slate-900'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -74,7 +117,11 @@ export const PrintModal: React.FC<PrintModalProps> = ({ ritual, isOpen, onClose 
                 onClick={() => setPrintLayout('front-only')}
                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${
                   printLayout === 'front-only'
-                    ? 'bg-zinc-700 text-white font-semibold'
+                    ? isLight
+                      ? 'bg-slate-800 text-white font-semibold'
+                      : 'bg-zinc-700 text-white font-semibold'
+                    : isLight
+                    ? 'text-slate-600 hover:text-slate-900'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -84,7 +131,11 @@ export const PrintModal: React.FC<PrintModalProps> = ({ ritual, isOpen, onClose 
                 onClick={() => setPrintLayout('back-only')}
                 className={`px-3 py-1 rounded text-xs font-medium transition-all ${
                   printLayout === 'back-only'
-                    ? 'bg-zinc-700 text-white font-semibold'
+                    ? isLight
+                      ? 'bg-slate-800 text-white font-semibold'
+                      : 'bg-zinc-700 text-white font-semibold'
+                    : isLight
+                    ? 'text-slate-600 hover:text-slate-900'
                     : 'text-zinc-400 hover:text-white'
                 }`}
               >
@@ -93,7 +144,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({ ritual, isOpen, onClose 
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-zinc-300 cursor-pointer">
+          <label className={`flex items-center gap-2 cursor-pointer ${isLight ? 'text-slate-700' : 'text-zinc-300'}`}>
             <input
               type="checkbox"
               checked={showCropMarks}
@@ -105,7 +156,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({ ritual, isOpen, onClose 
         </div>
 
         {/* Printable Preview Sheet */}
-        <div className="flex-1 overflow-y-auto p-8 bg-[#08080a] flex items-center justify-center">
+        <div className={`flex-1 overflow-y-auto p-8 flex items-center justify-center ${isLight ? 'bg-slate-200/70' : 'bg-[#08080a]'}`}>
           {/* Virtual A4 Paper Container */}
           <div
             id="print-area"
@@ -157,7 +208,13 @@ export const PrintModal: React.FC<PrintModalProps> = ({ ritual, isOpen, onClose 
         </div>
 
         {/* Footer info */}
-        <div className="px-6 py-2.5 border-t border-zinc-800 bg-[#0c0c10] text-center text-[11px] text-zinc-400">
+        <div
+          className={`px-6 py-2.5 border-t text-center text-[11px] ${
+            isLight
+              ? 'border-slate-200 bg-white text-slate-500'
+              : 'border-zinc-800 bg-[#0c0c10] text-zinc-400'
+          }`}
+        >
           💡 Para melhor qualidade física, configure sua impressora para &ldquo;Escala: 100%&rdquo; e papel fotográfico ou couchê 250g/m² ou 300g/m².
         </div>
       </div>

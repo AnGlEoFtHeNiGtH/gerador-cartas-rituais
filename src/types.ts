@@ -27,7 +27,9 @@ export interface Modification {
 
 export type CornerStyle = 'chamfer' | 'sharp' | 'rounded';
 export type BorderStyle = 'double-silver' | 'runic' | 'gold-accent' | 'pure-minimal';
-export type BgTone = 'black' | 'charcoal' | 'parchment';
+export type BgTone = 'black' | 'charcoal' | 'parchment' | 'light-pure' | 'light-parchment';
+export type CardMode = 'dark' | 'light';
+export type CustomIconFilter = 'auto' | 'silhouette' | 'monochrome' | 'invert' | 'original';
 
 export interface RitualArtwork {
   url: string; // Base64 data URL or web image URL
@@ -38,10 +40,12 @@ export interface RitualArtwork {
   positionY: number; // 0 to 100%
   showOnFront: boolean;
   showOnBack: boolean;
-  blendMode: 'normal' | 'luminosity' | 'overlay' | 'screen';
+  blendMode: 'normal' | 'luminosity' | 'overlay' | 'screen' | 'multiply';
 }
 
 export interface CardThemeOptions {
+  cardMode?: CardMode; // 'dark' (padrão paranormal escuro) ou 'light' (modo claro de alto contraste)
+  themeMode?: CardMode; // Backward compatibility alias
   cornerStyle: CornerStyle;
   borderStyle: BorderStyle;
   bgTone: BgTone;
@@ -50,6 +54,9 @@ export interface CardThemeOptions {
   accentGlow: boolean;
   backQuoteText: string;
   backSigilStyle: 'element' | 'grand-seal';
+  cleanBackSymbolOnly?: boolean; // Oculta anéis rúnicos e padrões complexos no verso da carta
+  customIconFilter?: CustomIconFilter;
+  customIconInvert?: boolean;
 }
 
 export interface Ritual {
@@ -65,7 +72,7 @@ export interface Ritual {
   range: string;
   target: string;
   duration: string;
-  basePd: string; // e.g., "1 PD", "3 PD", "6 PD", "10 PD" (substituição total de PE por PD)
+  basePd: string; // e.g., "1 PD", "3 PD", "6 PD", "10 PD"
   resistance?: string;
   description: string;
   modifications: Modification[];
@@ -85,6 +92,10 @@ export interface ElementConfig {
   glowColor: string;
   textColor: string;
   borderColor: string;
+  // Complementary color for light mode cards
+  lightPrimaryColor: string;
+  lightTextColor: string;
+  lightBorderColor: string;
 }
 
 export const ELEMENT_CONFIGS: Record<ElementId, ElementConfig> = {
@@ -97,6 +108,9 @@ export const ELEMENT_CONFIGS: Record<ElementId, ElementConfig> = {
     glowColor: 'rgba(225, 29, 72, 0.45)',
     textColor: '#fecdd3',
     borderColor: '#e11d48',
+    lightPrimaryColor: '#be123c',
+    lightTextColor: '#881337',
+    lightBorderColor: '#be123c',
   },
   morte: {
     id: 'morte',
@@ -107,6 +121,9 @@ export const ELEMENT_CONFIGS: Record<ElementId, ElementConfig> = {
     glowColor: 'rgba(241, 245, 249, 0.35)',
     textColor: '#f8fafc',
     borderColor: '#94a3b8',
+    lightPrimaryColor: '#334155',
+    lightTextColor: '#0f172a',
+    lightBorderColor: '#475569',
   },
   energia: {
     id: 'energia',
@@ -117,6 +134,9 @@ export const ELEMENT_CONFIGS: Record<ElementId, ElementConfig> = {
     glowColor: 'rgba(192, 132, 252, 0.45)',
     textColor: '#f3e8ff',
     borderColor: '#a855f7',
+    lightPrimaryColor: '#7e22ce',
+    lightTextColor: '#581c87',
+    lightBorderColor: '#7e22ce',
   },
   conhecimento: {
     id: 'conhecimento',
@@ -127,6 +147,9 @@ export const ELEMENT_CONFIGS: Record<ElementId, ElementConfig> = {
     glowColor: 'rgba(251, 191, 36, 0.45)',
     textColor: '#fef3c7',
     borderColor: '#f59e0b',
+    lightPrimaryColor: '#b45309',
+    lightTextColor: '#78350f',
+    lightBorderColor: '#b45309',
   },
   medo: {
     id: 'medo',
@@ -137,6 +160,9 @@ export const ELEMENT_CONFIGS: Record<ElementId, ElementConfig> = {
     glowColor: 'rgba(56, 189, 248, 0.45)',
     textColor: '#e0f2fe',
     borderColor: '#0284c7',
+    lightPrimaryColor: '#0369a1',
+    lightTextColor: '#0c4a6e',
+    lightBorderColor: '#0284c7',
   },
   custom: {
     id: 'custom',
@@ -147,5 +173,8 @@ export const ELEMENT_CONFIGS: Record<ElementId, ElementConfig> = {
     glowColor: 'rgba(16, 185, 129, 0.45)',
     textColor: '#d1fae5',
     borderColor: '#10b981',
+    lightPrimaryColor: '#047857',
+    lightTextColor: '#064e3b',
+    lightBorderColor: '#047857',
   },
 };

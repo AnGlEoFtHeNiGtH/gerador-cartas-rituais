@@ -6,6 +6,7 @@ import { EditorPanel } from './components/EditorPanel';
 import { DeckManager } from './components/DeckManager';
 import { PrintModal } from './components/PrintModal';
 import { LightPrintModal } from './components/LightPrintModal';
+import { MultiCardPrintModal } from './components/MultiCardPrintModal';
 import { exportCardAsPng, sanitizeFilename, safeSaveToLocalStorage } from './utils/exportCard';
 import { soundEngine } from './utils/audio';
 import { OccultSigil } from './components/OccultSigil';
@@ -25,6 +26,7 @@ import {
   Sun,
   Moon,
   Feather,
+  Grid2X2,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'grimorio_paranormal_rituals_v3';
@@ -92,9 +94,16 @@ export default function App() {
   const [isDeckOpen, setIsDeckOpen] = useState(false);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
   const [isLightPrintOpen, setIsLightPrintOpen] = useState(false);
+  const [isMultiPrintOpen, setIsMultiPrintOpen] = useState(false);
+  const [multiPrintRituals, setMultiPrintRituals] = useState<Ritual[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const handleOpenMultiPrint = (selected: Ritual[]) => {
+    setMultiPrintRituals(selected);
+    setIsMultiPrintOpen(true);
+  };
 
   // Sync to localStorage safely
   useEffect(() => {
@@ -694,6 +703,22 @@ export default function App() {
                 <Feather className="w-3.5 h-3.5 text-blue-400" />
                 <span>Impressão Leve (A4)</span>
               </button>
+
+              <button
+                onClick={() => {
+                  setMultiPrintRituals([currentRitual]);
+                  setIsMultiPrintOpen(true);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors shadow-xs ${
+                  isLightApp
+                    ? 'bg-amber-50 border-amber-300 hover:bg-amber-100 text-amber-900'
+                    : 'bg-amber-950/70 border-amber-800/80 hover:bg-amber-900 text-amber-200'
+                }`}
+                title="Imprimir até 4 cartas em uma folha A4 em formato Grid 2×2 com alinhamento duplex"
+              >
+                <Grid2X2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Grade 2×2 (A4)</span>
+              </button>
             </div>
           </div>
         </section>
@@ -723,6 +748,7 @@ export default function App() {
         onDeleteRitual={handleDeleteRitual}
         onResetToDefaults={handleResetToDefaults}
         onImportDeck={handleImportDeck}
+        onOpenMultiPrint={handleOpenMultiPrint}
         appMode={appMode}
       />
 
@@ -739,6 +765,14 @@ export default function App() {
         isOpen={isLightPrintOpen}
         onClose={() => setIsLightPrintOpen(false)}
         ritual={currentRitual}
+        appMode={appMode}
+      />
+
+      {/* Multi-Card Batch Print Modal (Grid 2x2 A4 com Alinhamento Duplex) */}
+      <MultiCardPrintModal
+        isOpen={isMultiPrintOpen}
+        onClose={() => setIsMultiPrintOpen(false)}
+        rituals={multiPrintRituals.length > 0 ? multiPrintRituals : [currentRitual]}
         appMode={appMode}
       />
     </div>

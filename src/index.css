@@ -168,27 +168,32 @@
     z-index: 999999 !important;
   }
 
+  .page-a4,
   .page-a4-sheet {
     page-break-after: always !important;
     break-after: page !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    height: 100vh;
-    max-height: 297mm;
-    box-sizing: border-box;
-    margin: 0 auto;
-    padding: 10mm;
-    background: white !important;
-    color: black !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    height: 297mm !important;
+    box-sizing: border-box !important;
+    margin: 0 auto !important;
+    padding: 10mm !important;
+    background: #ffffff !important;
+    color: #000000 !important;
     box-shadow: none !important;
     border: none !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    justify-content: center !important;
+    justify-content: space-between !important;
     overflow: hidden !important;
+    position: relative !important;
   }
 
+  .page-a4:last-child,
   .page-a4-sheet:last-child {
     page-break-after: auto !important;
     break-after: auto !important;

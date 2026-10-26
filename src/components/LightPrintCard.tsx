@@ -63,18 +63,31 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
   const inkColor = '#0f172a';
   const blueprintAccent = '#1e3a8a';
 
+  const baseWidth = 440;
+  const baseHeight = 615;
+  const isScaled = scale !== 1;
+
   return (
     <div
       id={id}
       className={`relative select-none font-body bg-white text-slate-900 transition-all ${className}`}
       style={{
-        width: `${440 * scale}px`,
-        height: `${615 * scale}px`,
-        transformOrigin: 'top center',
+        width: `${Math.round(baseWidth * scale)}px`,
+        height: `${Math.round(baseHeight * scale)}px`,
+        overflow: 'hidden',
+        boxSizing: 'border-box',
       }}
     >
       {/* Outer Stylized Draft Border with Corner Crosshairs */}
-      <div className="w-full h-full p-3.5 bg-white border-2 border-slate-900 flex flex-col justify-between relative overflow-hidden box-border">
+      <div
+        className="w-[440px] h-[615px] p-3.5 bg-white border-2 border-slate-900 flex flex-col justify-between relative overflow-hidden box-border"
+        style={{
+          width: `${baseWidth}px`,
+          height: `${baseHeight}px`,
+          transform: isScaled ? `scale(${scale})` : undefined,
+          transformOrigin: 'top left',
+        }}
+      >
         {/* Investigation Draft Corner Accents */}
         <div className="absolute top-1.5 left-1.5 text-[11px] font-mono leading-none text-slate-600 pointer-events-none">
           ┌

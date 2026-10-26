@@ -138,20 +138,29 @@ export const RitualCard: React.FC<RitualCardProps> = ({
   const isIllustrationMode = showArtworkOnFront && ritual.artwork?.mode === 'illustration';
   const isBackgroundArtMode = showArtworkOnFront && ritual.artwork?.mode === 'background';
 
+  const baseWidth = 440;
+  const baseHeight = 615;
+  const isScaled = scale !== 1;
+
   // Base preview dimensions: 440px x 615px (poker card ratio ~1:1.397)
   return (
     <div
       id={id}
-      className={`relative select-none transition-all duration-300 font-body ${className}`}
+      className={`relative select-none font-body ${className}`}
       style={{
-        width: `${440 * scale}px`,
-        height: `${615 * scale}px`,
-        transformOrigin: 'top center',
+        width: `${Math.round(baseWidth * scale)}px`,
+        height: `${Math.round(baseHeight * scale)}px`,
+        overflow: 'hidden',
+        boxSizing: 'border-box',
       }}
     >
       <div
-        className={`w-full h-full p-2.5 transition-all relative overflow-hidden flex flex-col justify-between ${getBgClass()} ${getCornerClass()} border-2 ${getOuterBorderClass()}`}
+        className={`w-[440px] h-[615px] p-2.5 transition-all relative overflow-hidden flex flex-col justify-between ${getBgClass()} ${getCornerClass()} border-2 ${getOuterBorderClass()}`}
         style={{
+          width: `${baseWidth}px`,
+          height: `${baseHeight}px`,
+          transform: isScaled ? `scale(${scale})` : undefined,
+          transformOrigin: 'top left',
           boxShadow: isLight
             ? ritual.theme.accentGlow
               ? `0 0 20px ${activeAccentColor}44, inset 0 0 20px rgba(0,0,0,0.05)`
@@ -386,13 +395,13 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                   }`}
                 >
                   {/* Execução */}
-                  <div className="flex flex-col items-center justify-center">
+                  <div className="flex flex-col items-center justify-center min-w-0 overflow-hidden">
                     <span
                       className={`flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider font-semibold ${
                         isLight ? 'text-zinc-600' : 'text-zinc-400'
                       }`}
                     >
-                      <Zap className="w-3.5 h-3.5" />
+                      <Zap className="w-3.5 h-3.5 shrink-0" />
                       Exec
                     </span>
                     <span
@@ -407,7 +416,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
 
                   {/* Alcance */}
                   <div
-                    className={`flex flex-col items-center justify-center border-l pl-1 ${
+                    className={`flex flex-col items-center justify-center border-l pl-1 min-w-0 overflow-hidden ${
                       isLight ? 'border-zinc-300' : 'border-zinc-800'
                     }`}
                   >
@@ -416,7 +425,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                         isLight ? 'text-zinc-600' : 'text-zinc-400'
                       }`}
                     >
-                      <Compass className="w-3.5 h-3.5" />
+                      <Compass className="w-3.5 h-3.5 shrink-0" />
                       Alc
                     </span>
                     <span
@@ -431,7 +440,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
 
                   {/* Alvo / Área */}
                   <div
-                    className={`flex flex-col items-center justify-center border-l pl-1 ${
+                    className={`flex flex-col items-center justify-center border-l pl-1 min-w-0 overflow-hidden ${
                       isLight ? 'border-zinc-300' : 'border-zinc-800'
                     }`}
                   >
@@ -440,7 +449,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                         isLight ? 'text-zinc-600' : 'text-zinc-400'
                       }`}
                     >
-                      <Target className="w-3.5 h-3.5" />
+                      <Target className="w-3.5 h-3.5 shrink-0" />
                       Alvo
                     </span>
                     <span
@@ -455,7 +464,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
 
                   {/* Duração */}
                   <div
-                    className={`flex flex-col items-center justify-center border-l pl-1 ${
+                    className={`flex flex-col items-center justify-center border-l pl-1 min-w-0 overflow-hidden ${
                       isLight ? 'border-zinc-300' : 'border-zinc-800'
                     }`}
                   >
@@ -464,7 +473,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                         isLight ? 'text-zinc-600' : 'text-zinc-400'
                       }`}
                     >
-                      <Hourglass className="w-3.5 h-3.5" />
+                      <Hourglass className="w-3.5 h-3.5 shrink-0" />
                       Dur
                     </span>
                     <span
@@ -479,7 +488,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
 
                   {/* Custo PD Base (Rigorosamente PD, Maior e Destacado) */}
                   <div
-                    className={`flex flex-col items-center justify-center border-l pl-1 ${
+                    className={`flex flex-col items-center justify-center border-l pl-1 min-w-0 overflow-hidden ${
                       isLight ? 'border-zinc-300' : 'border-zinc-800'
                     }`}
                   >
@@ -487,7 +496,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider font-bold"
                       style={{ color: activeAccentColor }}
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Sparkles className="w-3.5 h-3.5 shrink-0" />
                       Custo
                     </span>
                     <span

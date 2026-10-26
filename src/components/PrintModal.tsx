@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Ritual } from '../types';
 import { RitualCard } from './RitualCard';
 import { Printer, X, LayoutGrid, Layers, Check } from 'lucide-react';
@@ -27,7 +28,8 @@ export const PrintModal: React.FC<PrintModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+    <>
+      <div className="no-print fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
       <div
         className={`relative w-full max-w-4xl max-h-[90vh] border rounded-2xl flex flex-col shadow-2xl overflow-hidden transition-colors ${
           isLight
@@ -219,5 +221,72 @@ export const PrintModal: React.FC<PrintModalProps> = ({
         </div>
       </div>
     </div>
+
+    {/* Portaled dedicated print output */}
+    {createPortal(
+      <div className="print-container">
+        {(printLayout === 'both' || printLayout === 'front-only') && (
+          <div className="page-a4-sheet">
+            <div className="w-full flex items-center justify-between text-[11px] font-mono tracking-wider text-slate-500 uppercase border-b border-slate-300 pb-2 mb-6">
+              <span>ORDEM PARANORMAL · IMPRESSÃO FÍSICA POKER SIZE</span>
+              <span className="font-bold text-slate-800">FACE 1 · FRENTE · {ritual.name}</span>
+              <span>{ritual.element.toUpperCase()}</span>
+            </div>
+            <div className="relative flex flex-col items-center justify-center my-auto">
+              {showCropMarks && (
+                <>
+                  <div className="absolute -top-6 left-0 w-px h-5 bg-black" />
+                  <div className="absolute -top-6 right-0 w-px h-5 bg-black" />
+                  <div className="absolute -bottom-6 left-0 w-px h-5 bg-black" />
+                  <div className="absolute -bottom-6 right-0 w-px h-5 bg-black" />
+                  <div className="absolute top-0 -left-6 h-px w-5 bg-black" />
+                  <div className="absolute bottom-0 -left-6 h-px w-5 bg-black" />
+                  <div className="absolute top-0 -right-6 h-px w-5 bg-black" />
+                  <div className="absolute bottom-0 -right-6 h-px w-5 bg-black" />
+                </>
+              )}
+              <RitualCard ritual={ritual} viewSide="front" scale={1} />
+            </div>
+            <div className="w-full flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-slate-300 pt-2 mt-6">
+              <span>FORMATO POKER SIZE (63mm × 88mm)</span>
+              <span>CORTE NAS GUIAS EXTERNAS</span>
+              <span>PAPEL RECOMENDADO: COUCHÊ 250G OU 300G</span>
+            </div>
+          </div>
+        )}
+
+        {(printLayout === 'both' || printLayout === 'back-only') && (
+          <div className="page-a4-sheet">
+            <div className="w-full flex items-center justify-between text-[11px] font-mono tracking-wider text-slate-500 uppercase border-b border-slate-300 pb-2 mb-6">
+              <span>ORDEM PARANORMAL · IMPRESSÃO FÍSICA POKER SIZE</span>
+              <span className="font-bold text-slate-800">FACE 2 · VERSO · {ritual.name}</span>
+              <span>{ritual.element.toUpperCase()}</span>
+            </div>
+            <div className="relative flex flex-col items-center justify-center my-auto">
+              {showCropMarks && (
+                <>
+                  <div className="absolute -top-6 left-0 w-px h-5 bg-black" />
+                  <div className="absolute -top-6 right-0 w-px h-5 bg-black" />
+                  <div className="absolute -bottom-6 left-0 w-px h-5 bg-black" />
+                  <div className="absolute -bottom-6 right-0 w-px h-5 bg-black" />
+                  <div className="absolute top-0 -left-6 h-px w-5 bg-black" />
+                  <div className="absolute bottom-0 -left-6 h-px w-5 bg-black" />
+                  <div className="absolute top-0 -right-6 h-px w-5 bg-black" />
+                  <div className="absolute bottom-0 -right-6 h-px w-5 bg-black" />
+                </>
+              )}
+              <RitualCard ritual={ritual} viewSide="back" scale={1} />
+            </div>
+            <div className="w-full flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-slate-300 pt-2 mt-6">
+              <span>FORMATO POKER SIZE (63mm × 88mm)</span>
+              <span>ALINHE COM A FACE 1</span>
+              <span>PAPEL RECOMENDADO: COUCHÊ 250G OU 300G</span>
+            </div>
+          </div>
+        )}
+      </div>,
+      document.body
+    )}
+  </>
   );
 };

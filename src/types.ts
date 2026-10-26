@@ -79,6 +79,9 @@ export interface Ritual {
   flavorText?: string;
   theme: CardThemeOptions;
   artwork?: RitualArtwork;
+  author?: string; // Nome do autor / agente paranormal que publicou
+  isPublic?: boolean; // Se a carta está no Grimório Público
+  publishedAt?: number; // Timestamp de publicação
   createdAt: number;
   updatedAt: number;
 }

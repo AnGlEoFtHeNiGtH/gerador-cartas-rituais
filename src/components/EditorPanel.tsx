@@ -30,6 +30,7 @@ import {
   Moon,
   Wand2,
   Feather,
+  Share2,
 } from 'lucide-react';
 
 interface EditorPanelProps {
@@ -39,6 +40,7 @@ interface EditorPanelProps {
   setActiveView: (view: 'front' | 'back') => void;
   appMode?: 'dark' | 'light';
   onOpenLightPrint?: () => void;
+  onPublishToPublic?: () => void;
 }
 
 // Compress uploaded image onto client canvas to prevent exceeding localStorage quota
@@ -81,6 +83,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   setActiveView,
   appMode = 'dark',
   onOpenLightPrint,
+  onPublishToPublic,
 }) => {
   const [activeTab, setActiveTab] = useState<'content' | 'mods' | 'art' | 'style'>('content');
   const [imageInputUrl, setImageInputUrl] = useState('');
@@ -397,6 +400,23 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
             Verso
           </button>
         </div>
+
+        {/* Publicar Carta no Deck Público button */}
+        {onPublishToPublic && (
+          <button
+            type="button"
+            onClick={onPublishToPublic}
+            className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shrink-0 ml-2 ${
+              isLightApp
+                ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 shadow-2xs'
+                : 'bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border-blue-800/60 shadow-2xs'
+            }`}
+            title="Publicar esta carta no Grimório Público da Comunidade"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span>Publicar</span>
+          </button>
+        )}
       </div>
 
       {/* Editor Content Area */}

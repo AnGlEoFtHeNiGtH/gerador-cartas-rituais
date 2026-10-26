@@ -7,10 +7,13 @@ import { DeckManager } from './components/DeckManager';
 import { PrintModal } from './components/PrintModal';
 import { LightPrintModal } from './components/LightPrintModal';
 import { MultiCardPrintModal } from './components/MultiCardPrintModal';
+import { AdminLoginModal } from './components/AdminLoginModal';
 import { exportCardAsPng, sanitizeFilename, safeSaveToLocalStorage } from './utils/exportCard';
 import { healCorruptedCharacters } from './utils/textFormatter';
 import { soundEngine } from './utils/audio';
 import { OccultSigil } from './components/OccultSigil';
+import { isAdminAuthenticated, logoutAdmin } from './utils/adminAuth';
+import { publishRitualToPublicDeck } from './utils/publicDeck';
 import {
   Download,
   Printer,
@@ -28,6 +31,10 @@ import {
   Moon,
   Feather,
   Grid2X2,
+  Shield,
+  ShieldCheck,
+  Globe,
+  Share2,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'grimorio_paranormal_rituals_v3';
@@ -115,6 +122,58 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Admin Authentication State
+  const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => isAdminAuthenticated());
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleAuthChange = (e: Event) => {
+      const custom = e as CustomEvent<{ isAuthenticated: boolean }>;
+      if (custom.detail && typeof custom.detail.isAuthenticated === 'boolean') {
+        setIsAdminLoggedIn(custom.detail.isAuthenticated);
+      } else {
+        setIsAdminLoggedIn(isAdminAuthenticated());
+      }
+    };
+    window.addEventListener('admin-auth-changed', handleAuthChange);
+    return () => window.removeEventListener('admin-auth-changed', handleAuthChange);
+  }, []);
+
+  const handleOpenAdminModal = () => {
+    setIsAdminModalOpen(true);
+  };
+
+  const handleLogoutAdmin = () => {
+    logoutAdmin();
+    setIsAdminLoggedIn(false);
+    showToast('Modo Administrador encerrado.');
+  };
+
+  // Copy ritual from public community deck to user's private grimoire
+  const handleCopyFromPublicDeck = (pubRitual: Ritual) => {
+    const clone: Ritual = {
+      ...pubRitual,
+      id: `ritual-${Date.now()}`,
+      name: `${pubRitual.name} (Cópia)`,
+      isPublic: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    const updated = [clone, ...rituals];
+    setRituals(updated);
+    setCurrentRitual(clone);
+    setActiveView('front');
+    setIsFlipped3D(false);
+    showToast(`✦ Ritual "${pubRitual.name}" adicionado ao seu Grimório!`);
+  };
+
+  // Publish current active ritual directly to the public community grimoire
+  const handlePublishCurrentRitual = () => {
+    soundEngine.playSigilChime(640);
+    const res = publishRitualToPublicDeck(currentRitual, 'Agente Ocultista');
+    showToast(res.message);
+  };
 
   const handleOpenMultiPrint = (selected: Ritual[]) => {
     setMultiPrintRituals(selected);

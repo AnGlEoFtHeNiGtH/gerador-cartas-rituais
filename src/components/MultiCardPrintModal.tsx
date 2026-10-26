@@ -228,7 +228,7 @@ export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
               <div>
                 <div className="flex items-center gap-2">
                   <h2
-                    className={`font-title text-base font-bold tracking-wide ${
+                    className={`font-cinzel text-base font-bold tracking-wide ${
                       isLight ? 'text-slate-900' : 'text-white'
                     }`}
                   >

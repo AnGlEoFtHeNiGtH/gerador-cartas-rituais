@@ -1,7 +1,7 @@
 import React from 'react';
 import { Ritual, ELEMENT_CONFIGS, ElementConfig } from '../types';
 import { OccultSigil, GrandOccultSeal } from './OccultSigil';
-import { formatRitualText } from '../utils/textFormatter';
+import { formatRitualText, healCorruptedCharacters } from '../utils/textFormatter';
 import { Compass, Target, Hourglass, Zap, ShieldAlert, Sparkles } from 'lucide-react';
 
 interface RitualCardProps {
@@ -292,7 +292,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
               >
                 {/* TOP HEADER: DYNAMIC FONT SIZING & PROTECTED BADGE SPACE */}
                 {(() => {
-                  const ritualName = ritual.name || 'Nome do Ritual';
+                  const ritualName = healCorruptedCharacters(ritual.name || '') || 'Nome do Ritual';
                   const nameLen = ritualName.trim().length;
                   let titleFontSizeClass = 'text-lg md:text-xl';
                   if (nameLen > 32) {
@@ -326,13 +326,14 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                         />
                       </div>
 
-                      {/* Center: Title in Westsac Font & Subtitle (Protected flex-1 min-w-0 container) */}
+                      {/* Center: Title in Westsac Font with Unicode Latin Fallback (Protected flex-1 min-w-0 container) */}
                       <div className="flex-1 min-w-0 text-center px-1 flex flex-col justify-center overflow-hidden">
                         <h2
                           className={`font-title ${titleFontSizeClass} font-bold tracking-wider uppercase line-clamp-2 break-words ${
                             isLight ? 'text-zinc-900 drop-shadow-xs' : 'text-white drop-shadow-md'
                           }`}
                           style={{
+                            fontFamily: "'Westsac', 'Cinzel', 'Times New Roman', Georgia, serif",
                             letterSpacing: '0.05em',
                             wordBreak: 'break-word',
                             textShadow:
@@ -408,9 +409,9 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       className={`text-xs font-bold truncate w-full mt-0.5 ${
                         isLight ? 'text-zinc-900' : 'text-zinc-100'
                       }`}
-                      title={ritual.execution}
+                      title={healCorruptedCharacters(ritual.execution || '')}
                     >
-                      {ritual.execution || 'Padrão'}
+                      {healCorruptedCharacters(ritual.execution || 'Padrão')}
                     </span>
                   </div>
 
@@ -432,9 +433,9 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       className={`text-xs font-bold truncate w-full mt-0.5 ${
                         isLight ? 'text-zinc-900' : 'text-zinc-100'
                       }`}
-                      title={ritual.range}
+                      title={healCorruptedCharacters(ritual.range || '')}
                     >
-                      {ritual.range || 'Toque'}
+                      {healCorruptedCharacters(ritual.range || 'Toque')}
                     </span>
                   </div>
 
@@ -456,9 +457,9 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       className={`text-xs font-bold truncate w-full mt-0.5 ${
                         isLight ? 'text-zinc-900' : 'text-zinc-100'
                       }`}
-                      title={ritual.target}
+                      title={healCorruptedCharacters(ritual.target || '')}
                     >
-                      {ritual.target || '1 criatura'}
+                      {healCorruptedCharacters(ritual.target || '1 criatura')}
                     </span>
                   </div>
 
@@ -480,9 +481,9 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       className={`text-xs font-bold truncate w-full mt-0.5 ${
                         isLight ? 'text-zinc-900' : 'text-zinc-100'
                       }`}
-                      title={ritual.duration}
+                      title={healCorruptedCharacters(ritual.duration || '')}
                     >
-                      {ritual.duration || 'Instantânea'}
+                      {healCorruptedCharacters(ritual.duration || 'Instantânea')}
                     </span>
                   </div>
 
@@ -526,7 +527,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       <ShieldAlert className="w-3.5 h-3.5" />
                       Resistência:
                     </span>
-                    <span className="font-bold">{ritual.resistance}</span>
+                    <span className="font-bold">{healCorruptedCharacters(ritual.resistance)}</span>
                   </div>
                 )}
               </div>
@@ -660,7 +661,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       isLight ? 'text-zinc-600' : 'text-zinc-400'
                     }`}
                   >
-                    &ldquo;{ritual.flavorText}&rdquo;
+                    &ldquo;{healCorruptedCharacters(ritual.flavorText)}&rdquo;
                   </p>
                 )}
 
@@ -780,8 +781,10 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                           : undefined,
                     }}
                   >
-                    {ritual.theme.backQuoteText ||
-                      'A Realidade é uma membrana frágil diante do Outro Lado.'}
+                    {healCorruptedCharacters(
+                      ritual.theme.backQuoteText ||
+                        'A Realidade é uma membrana frágil diante do Outro Lado.'
+                    )}
                   </p>
                 </div>
               </div>

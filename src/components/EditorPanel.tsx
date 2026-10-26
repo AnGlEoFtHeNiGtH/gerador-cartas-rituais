@@ -420,7 +420,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                 value={ritual.name}
                 onChange={(e) => update({ name: e.target.value })}
                 placeholder="Ex: Amaldiçoar Arma, Ectoplasma..."
-                className={`w-full rounded-xl px-3.5 py-2 text-base font-title font-bold tracking-wide focus:outline-hidden focus:ring-2 focus:ring-red-500 transition-all border ${
+                className={`w-full rounded-xl px-3.5 py-2 text-base font-sans font-bold tracking-wide focus:outline-hidden focus:ring-2 focus:ring-red-500 transition-all border ${
                   isLightApp
                     ? 'bg-slate-50 border-slate-300 text-slate-900 placeholder-slate-400'
                     : 'bg-[#181820] border-zinc-700/80 text-white placeholder-zinc-500'
@@ -529,7 +529,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                       key={tier}
                       type="button"
                       onClick={() => update({ circle: tier })}
-                      className={`flex flex-col items-center justify-center py-2 rounded-xl border text-xs font-title transition-all ${
+                      className={`flex flex-col items-center justify-center py-2 rounded-xl border text-xs font-cinzel transition-all ${
                         ritual.circle === tier
                           ? isLightApp
                             ? 'bg-slate-900 border-slate-900 text-white font-bold shadow-xs'

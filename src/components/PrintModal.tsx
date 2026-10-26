@@ -53,7 +53,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
             </div>
             <div>
               <h2
-                className={`font-title text-base font-bold tracking-wide ${
+                className={`font-cinzel text-base font-bold tracking-wide ${
                   isLight ? 'text-slate-900' : 'text-white'
                 }`}
               >

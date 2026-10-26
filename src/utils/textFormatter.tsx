@@ -1,6 +1,78 @@
 import React from 'react';
 
 /**
+ * Heals known character corruption patterns caused by legacy non-Unicode 8-bit fonts
+ * (e.g. Cyrillic/Greek substitutions like "Vocк" -> "Você", "caυtica" -> "caótica", "padrro" -> "padrão").
+ */
+export function healCorruptedCharacters(text: string): string {
+  if (!text) return '';
+
+  return text
+    // Replace Cyrillic 'к' (0xEA in win1251) where 'ê' was intended
+    .replace(/\bVocк\b/g, 'Você')
+    .replace(/\bvocк\b/g, 'você')
+    .replace(/resistкncia/gi, (m) => m[0] === 'R' ? 'Resistência' : 'resistência')
+    .replace(/permanкncia/gi, (m) => m[0] === 'P' ? 'Permanência' : 'permanência')
+    .replace(/apкndice/gi, 'apêndice')
+    .replace(/experiкncia/gi, 'experiência')
+    .replace(/violкncia/gi, 'violência')
+    .replace(/essкncia/gi, 'essência')
+    .replace(/consequкncia/gi, 'consequência')
+    .replace(/iminкncia/gi, 'iminência')
+    .replace(/\balкm\b/gi, (m) => m[0] === 'A' ? 'Além' : 'além')
+    .replace(/\btambкm\b/gi, (m) => m[0] === 'T' ? 'Também' : 'também')
+    .replace(/\bninguкm\b/gi, (m) => m[0] === 'N' ? 'Ninguém' : 'ninguém')
+    .replace(/\btrкs\b/gi, (m) => m[0] === 'T' ? 'Três' : 'três')
+
+    // Replace Greek 'υ' / Cyrillic 'у' (0xF3) where 'ó' was intended
+    .replace(/ca[υу]tica/gi, (m) => m[0] === 'C' ? 'Caótica' : 'caótica')
+    .replace(/ca[υу]tico/gi, (m) => m[0] === 'C' ? 'Caótico' : 'caótico')
+    .replace(/\bap[υу]s\b/gi, (m) => m[0] === 'A' ? 'Após' : 'após')
+    .replace(/\bs[υу]\b/g, 'só')
+    .replace(/\bS[υу]\b/g, 'Só')
+    .replace(/\bn[υу]s\b/gi, (m) => m[0] === 'N' ? 'Nós' : 'nós')
+    .replace(/\bv[υу]s\b/gi, (m) => m[0] === 'V' ? 'Vós' : 'vós')
+    .replace(/pr[υу]prio/gi, (m) => m[0] === 'P' ? 'Próprio' : 'próprio')
+    .replace(/pr[υу]pria/gi, (m) => m[0] === 'P' ? 'Própria' : 'própria')
+    .replace(/m[υу]vel/gi, (m) => m[0] === 'M' ? 'Móvel' : 'móvel')
+    .replace(/pr[υу]ximo/gi, (m) => m[0] === 'P' ? 'Próximo' : 'próximo')
+    .replace(/pr[υу]xima/gi, (m) => m[0] === 'P' ? 'Próxima' : 'próxima')
+
+    // Replace 'ro' (0xE3) endings where 'ão' was intended
+    .replace(/\bpadrro\b/gi, (m) => m[0] === 'P' ? 'Padrão' : 'padrão')
+    .replace(/açro\b/gi, (m) => m[0] === 'A' ? 'Ação' : 'ação')
+    .replace(/açres\b/gi, (m) => m[0] === 'A' ? 'Ações' : 'ações')
+    .replace(/reaçro\b/gi, (m) => m[0] === 'R' ? 'Reação' : 'reação')
+    .replace(/reaçres\b/gi, (m) => m[0] === 'R' ? 'Reações' : 'reações')
+    .replace(/condiçro\b/gi, (m) => m[0] === 'C' ? 'Condição' : 'condição')
+    .replace(/condiçres\b/gi, (m) => m[0] === 'C' ? 'Condições' : 'condições')
+    .replace(/duraçro\b/gi, (m) => m[0] === 'D' ? 'Duração' : 'duração')
+    .replace(/execuçro\b/gi, (m) => m[0] === 'E' ? 'Execução' : 'execução')
+    .replace(/maldiçro\b/gi, (m) => m[0] === 'M' ? 'Maldição' : 'maldição')
+    .replace(/ilusro\b/gi, (m) => m[0] === 'I' ? 'Ilusão' : 'ilusão')
+    .replace(/visro\b/gi, (m) => m[0] === 'V' ? 'Visão' : 'visão')
+    .replace(/invocaçro\b/gi, (m) => m[0] === 'I' ? 'Invocação' : 'invocação')
+    .replace(/evocaçro\b/gi, (m) => m[0] === 'E' ? 'Evocação' : 'evocação')
+    .replace(/transmutaçro\b/gi, (m) => m[0] === 'T' ? 'Transmutação' : 'transmutação')
+    .replace(/regeneraçro\b/gi, (m) => m[0] === 'R' ? 'Regeneração' : 'regeneração')
+    .replace(/sustentaçro\b/gi, (m) => m[0] === 'S' ? 'Sustentação' : 'sustentação')
+    .replace(/detonaçro\b/gi, (m) => m[0] === 'D' ? 'Detonação' : 'detonação')
+    .replace(/deflagraçro\b/gi, (m) => m[0] === 'D' ? 'Deflagração' : 'deflagração')
+    .replace(/concentraçro\b/gi, (m) => m[0] === 'C' ? 'Concentração' : 'concentração')
+    .replace(/conjuraçro\b/gi, (m) => m[0] === 'C' ? 'Conjuração' : 'conjuração')
+    .replace(/percepçro\b/gi, (m) => m[0] === 'P' ? 'Percepção' : 'percepção')
+    .replace(/investigaçro\b/gi, (m) => m[0] === 'I' ? 'Investigação' : 'investigação')
+    .replace(/\bnro\b/gi, (m) => m[0] === 'N' ? 'Não' : 'não')
+    .replace(/\bsro\b/gi, (m) => m[0] === 'S' ? 'São' : 'são')
+    .replace(/\bestro\b/gi, (m) => m[0] === 'E' ? 'Estão' : 'estão')
+    .replace(/\bserro\b/gi, (m) => m[0] === 'S' ? 'Serão' : 'serão')
+    .replace(/\bentro\b/gi, (m) => m[0] === 'E' ? 'Então' : 'então')
+    .replace(/\bchro\b/gi, (m) => m[0] === 'C' ? 'Chão' : 'chão')
+    .replace(/\bmro\b/gi, (m) => m[0] === 'M' ? 'Mão' : 'mão')
+    .replace(/\bmros\b/gi, (m) => m[0] === 'M' ? 'Mãos' : 'mãos');
+}
+
+/**
  * Formats rich text in ritual descriptions:
  * - **bold**
  * - *italic*
@@ -10,10 +82,11 @@ import React from 'react';
 export function formatRitualText(text: string, accentColor?: string): React.ReactNode {
   if (!text) return null;
 
-  const lines = text.split('\n');
+  const cleanText = healCorruptedCharacters(text);
+  const lines = cleanText.split('\n');
 
   return (
-    <div className="space-y-1.5 leading-relaxed text-justify font-polymath">
+    <div className="space-y-1.5 leading-relaxed text-justify font-body">
       {lines.map((line, lineIndex) => {
         if (!line.trim()) return <div key={lineIndex} className="h-1" />;
 

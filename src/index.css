@@ -4,46 +4,65 @@
 /* CUSTOM TYPOGRAPHY: WESTSAC & OPTIMA LT STD MEDIUM       */
 /* ======================================================== */
 
-/* Westsac Title Font with local / fallback chain */
+/* Westsac Title Font with Unicode-range protection:
+   Only basic ASCII (U+0020-007E) is taken from Westsac.
+   Any accented characters (ç, ã, é, ó, ê, etc.) automatically fall back to Cinzel / Times New Roman */
 @font-face {
   font-family: 'Westsac';
   src: local('Westsac'), local('Westsac Regular');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0020-007E;
 }
 
-/* Optima LT Std Medium Body Font with local / fallback chain */
+/* Optima LT Std Medium Body Font with Unicode-range protection:
+   Only basic ASCII (U+0020-007E) is taken from local Optima.
+   Any accented characters automatically fall back to Segoe UI / Plus Jakarta Sans / Arial */
 @font-face {
   font-family: 'Optima LT Std Medium';
   src: local('Optima LT Std Medium'), local('Optima LT Std'), local('Optima');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
+  unicode-range: U+0020-007E;
 }
 
 @layer base {
   :root {
-    --font-title: 'Westsac', 'Cinzel', serif;
-    --font-body: 'Optima LT Std Medium', 'Optima', 'URW Classico', 'Plus Jakarta Sans', sans-serif;
-    --font-mono: 'JetBrains Mono', monospace;
+    --font-title: 'Westsac', 'Cinzel', 'Times New Roman', Georgia, serif;
+    --font-body: 'Optima LT Std Medium', 'Optima', 'Segoe UI', 'Plus Jakarta Sans', Arial, -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Plus Jakarta Sans', Helvetica, Arial, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
   }
   
   body {
     font-family: var(--font-body);
   }
+
+  /* Universal input & form control protection:
+     Ensures typing in Portuguese (ç, ã, é, ó, ê) in inputs/textareas/selects uses rock-solid system UI fonts */
+  input,
+  textarea,
+  select {
+    font-family: var(--font-ui) !important;
+  }
 }
 
 .font-title {
-  font-family: var(--font-title);
+  font-family: 'Westsac', 'Cinzel', 'Times New Roman', Georgia, serif;
 }
 
 .font-cinzel {
-  font-family: var(--font-title);
+  font-family: 'Cinzel', 'Times New Roman', Georgia, serif;
 }
 
 .font-body {
-  font-family: var(--font-body);
+  font-family: 'Optima LT Std Medium', 'Optima', 'Segoe UI', 'Plus Jakarta Sans', Arial, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.font-ui {
+  font-family: var(--font-ui);
 }
 
 .font-mono-code {
@@ -211,6 +230,21 @@
 
   .print-only {
     display: block !important;
+  }
+
+  /* Robust Unicode Typography for Print Engine */
+  .font-title,
+  [class*="font-title"] {
+    font-family: 'Westsac', 'Cinzel', 'Times New Roman', Georgia, serif !important;
+  }
+
+  .font-body,
+  [class*="font-body"],
+  body,
+  .print-container,
+  .page-a4,
+  .page-a4-sheet {
+    font-family: 'Optima LT Std Medium', 'Optima', 'Segoe UI', Arial, 'Plus Jakarta Sans', sans-serif !important;
   }
 }
 

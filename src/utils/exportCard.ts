@@ -21,6 +21,18 @@ export async function exportCardAsPng(
   }
 
   try {
+    // Ensure document fonts are resolved before capturing to guarantee full glyph fidelity
+    if (typeof document !== 'undefined' && 'fonts' in document) {
+      try {
+        await Promise.race([
+          document.fonts.ready,
+          new Promise((resolve) => setTimeout(resolve, 800)),
+        ]);
+      } catch {
+        // Silently continue if font API throws
+      }
+    }
+
     // 15 seconds timeout safeguard to prevent async freezes if fonts or assets stall
     const timeoutPromise = new Promise<never>((_, reject) => {
       const timer = setTimeout(() => {
@@ -43,10 +55,11 @@ export async function exportCardAsPng(
         }
         return true;
       },
-      // Guarantee scrollbars are hidden in cloned node during canvas capture
+      // Guarantee scrollbars are hidden and crisp text anti-aliasing during canvas capture
       style: {
         overflow: 'hidden',
         scrollbarWidth: 'none',
+        textRendering: 'optimizeLegibility',
       },
     });
 

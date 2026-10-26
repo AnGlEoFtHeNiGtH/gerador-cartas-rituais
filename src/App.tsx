@@ -8,6 +8,7 @@ import { PrintModal } from './components/PrintModal';
 import { LightPrintModal } from './components/LightPrintModal';
 import { MultiCardPrintModal } from './components/MultiCardPrintModal';
 import { exportCardAsPng, sanitizeFilename, safeSaveToLocalStorage } from './utils/exportCard';
+import { healCorruptedCharacters } from './utils/textFormatter';
 import { soundEngine } from './utils/audio';
 import { OccultSigil } from './components/OccultSigil';
 import {
@@ -57,21 +58,36 @@ export default function App() {
     });
   };
 
-  // Load saved rituals or initial presets, normalizing any legacy PE to PD
+  // Load saved rituals or initial presets, normalizing any legacy PE to PD and healing corrupted characters
   const [rituals, setRituals] = useState<Ritual[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('grimorio_paranormal_rituals_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Normalize legacy PE fields if found
+          // Normalize legacy PE fields and heal any corrupted accent characters
           return parsed.map((item) => ({
             ...item,
+            name: healCorruptedCharacters(item.name || ''),
+            description: healCorruptedCharacters(item.description || ''),
+            execution: healCorruptedCharacters(item.execution || ''),
+            range: healCorruptedCharacters(item.range || ''),
+            target: healCorruptedCharacters(item.target || ''),
+            duration: healCorruptedCharacters(item.duration || ''),
+            resistance: healCorruptedCharacters(item.resistance || ''),
+            flavorText: healCorruptedCharacters(item.flavorText || ''),
             basePd: item.basePd || item.basePe || '1 PD',
-            modifications: (item.modifications || []).map((m: { cost?: string }) => ({
+            modifications: (item.modifications || []).map((m: { id: string; name?: string; text?: string; cost?: string; requirement?: string }) => ({
               ...m,
+              name: healCorruptedCharacters(m.name || ''),
+              text: healCorruptedCharacters(m.text || ''),
+              requirement: healCorruptedCharacters(m.requirement || ''),
               cost: (m.cost || '+2 PD').replace(/PE/g, 'PD'),
             })),
+            theme: {
+              ...item.theme,
+              backQuoteText: healCorruptedCharacters(item.theme?.backQuoteText || ''),
+            },
           }));
         }
       }

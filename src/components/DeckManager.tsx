@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Ritual, ElementId, ELEMENT_CONFIGS } from '../types';
 import { OccultSigil } from './OccultSigil';
 import { soundEngine } from '../utils/audio';
+import { healCorruptedCharacters } from '../utils/textFormatter';
 import {
   Search,
   Plus,
@@ -103,9 +104,12 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
 
   // Filter rituals
   const filteredRituals = rituals.filter((r) => {
+    const healedName = healCorruptedCharacters(r.name).toLowerCase();
+    const healedDesc = healCorruptedCharacters(r.description).toLowerCase();
+    const searchClean = search.toLowerCase();
     const matchesSearch =
-      r.name.toLowerCase().includes(search.toLowerCase()) ||
-      r.description.toLowerCase().includes(search.toLowerCase());
+      healedName.includes(searchClean) ||
+      healedDesc.includes(searchClean);
     const matchesElement = elementFilter === 'all' || r.element === elementFilter;
     const matchesCircle = circleFilter === 'all' || r.circle === circleFilter;
     return matchesSearch && matchesElement && matchesCircle;
@@ -137,15 +141,30 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
     reader.onload = (event) => {
       try {
         const parsed = JSON.parse(event.target?.result as string);
-        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].name) {
-          // Normalize legacy PE fields if found
+        if (Array.isArray(parsed)) {
+          // Normalize legacy PE fields and heal corrupted accents
           const normalized: Ritual[] = parsed.map((item) => ({
             ...item,
+            name: healCorruptedCharacters(item.name || ''),
+            description: healCorruptedCharacters(item.description || ''),
+            execution: healCorruptedCharacters(item.execution || ''),
+            range: healCorruptedCharacters(item.range || ''),
+            target: healCorruptedCharacters(item.target || ''),
+            duration: healCorruptedCharacters(item.duration || ''),
+            resistance: healCorruptedCharacters(item.resistance || ''),
+            flavorText: healCorruptedCharacters(item.flavorText || ''),
             basePd: item.basePd || item.basePe || '1 PD',
-            modifications: (item.modifications || []).map((m: { cost?: string }) => ({
+            modifications: (item.modifications || []).map((m: { id: string; name?: string; text?: string; cost?: string; requirement?: string }) => ({
               ...m,
+              name: healCorruptedCharacters(m.name || ''),
+              text: healCorruptedCharacters(m.text || ''),
+              requirement: healCorruptedCharacters(m.requirement || ''),
               cost: (m.cost || '+2 PD').replace(/PE/g, 'PD'),
             })),
+            theme: {
+              ...item.theme,
+              backQuoteText: healCorruptedCharacters(item.theme?.backQuoteText || ''),
+            },
           }));
           onImportDeck(normalized);
           showToast(`✦ Grimório importado! ${normalized.length} rituais carregados.`);
@@ -470,7 +489,7 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                             : 'text-white group-hover:text-red-300'
                         }`}
                       >
-                        {r.name}
+                        {healCorruptedCharacters(r.name)}
                       </h4>
 
                       {/* Attributes preview */}
@@ -479,7 +498,7 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                           isLight ? 'text-slate-600' : 'text-zinc-400'
                         }`}
                       >
-                        {r.description.replace(/\*\*/g, '').replace(/\*/g, '')}
+                        {healCorruptedCharacters(r.description.replace(/\*\*/g, '').replace(/\*/g, ''))}
                       </p>
                     </div>
 
@@ -494,7 +513,7 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                           isLight ? 'text-slate-500' : 'text-zinc-400'
                         }`}
                       >
-                        {r.execution} •{' '}
+                        {healCorruptedCharacters(r.execution)} •{' '}
                         <span className={isLight ? 'text-red-700 font-bold' : 'text-red-300'}>
                           {displayPd}
                         </span>

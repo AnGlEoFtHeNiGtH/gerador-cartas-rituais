@@ -1,7 +1,7 @@
 import React from 'react';
 import { Ritual, ELEMENT_CONFIGS, ElementConfig } from '../types';
 import { OccultSigil } from './OccultSigil';
-import { formatRitualText } from '../utils/textFormatter';
+import { formatRitualText, healCorruptedCharacters } from '../utils/textFormatter';
 import { Compass, Target, Clock, Zap, ShieldAlert, Sparkles, Feather } from 'lucide-react';
 
 interface LightPrintCardProps {
@@ -47,7 +47,7 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
     4: 'IV',
   };
 
-  const ritualName = ritual.name || 'Nome do Ritual';
+  const ritualName = healCorruptedCharacters(ritual.name || '') || 'Nome do Ritual';
   const nameLen = ritualName.trim().length;
   let titleFontSizeClass = 'text-xl md:text-2xl';
   if (nameLen > 32) {
@@ -123,11 +123,14 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
                       <span>{ritual.circle}º CÍRCULO (GRAU {romanNumerals[ritual.circle] || 'I'})</span>
                     </div>
 
-                    {/* Ritual Title in Westsac Font with Highlighted Background */}
+                    {/* Ritual Title in Westsac Font with Highlighted Background and Unicode Fallback */}
                     <div className="bg-slate-900 text-white px-2.5 py-1 rounded-sm shadow-xs inline-block max-w-full">
                       <h2
                         className={`font-title ${titleFontSizeClass} font-bold tracking-wider uppercase line-clamp-2 break-words leading-snug`}
-                        style={{ letterSpacing: '0.04em' }}
+                        style={{
+                          fontFamily: "'Westsac', 'Cinzel', 'Times New Roman', Georgia, serif",
+                          letterSpacing: '0.04em',
+                        }}
                         title={ritualName}
                       >
                         {ritualName}
@@ -149,57 +152,72 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
                 {/* SIMPLIFIED & CLEAN ATTRIBUTES BAR */}
                 <div className="mt-2.5 pt-2 border-t border-slate-200 grid grid-cols-5 gap-1 text-center bg-slate-50/80 rounded-md p-1.5 border border-slate-200">
                   {/* Execução */}
-                  <div className="flex flex-col items-center justify-center">
+                  <div className="flex flex-col items-center justify-center min-w-0 overflow-hidden">
                     <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
-                      <Zap className="w-3 h-3 text-slate-700" />
+                      <Zap className="w-3 h-3 text-slate-700 shrink-0" />
                       Exec
                     </span>
-                    <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
-                      {ritual.execution || 'Padrão'}
+                    <span
+                      className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
+                      title={healCorruptedCharacters(ritual.execution || '')}
+                    >
+                      {healCorruptedCharacters(ritual.execution || 'Padrão')}
                     </span>
                   </div>
 
                   {/* Alcance */}
-                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1">
+                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
                     <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
-                      <Compass className="w-3 h-3 text-slate-700" />
+                      <Compass className="w-3 h-3 text-slate-700 shrink-0" />
                       Alc
                     </span>
-                    <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
-                      {ritual.range || 'Toque'}
+                    <span
+                      className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
+                      title={healCorruptedCharacters(ritual.range || '')}
+                    >
+                      {healCorruptedCharacters(ritual.range || 'Toque')}
                     </span>
                   </div>
 
                   {/* Alvo / Área */}
-                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1">
+                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
                     <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
-                      <Target className="w-3 h-3 text-slate-700" />
+                      <Target className="w-3 h-3 text-slate-700 shrink-0" />
                       Alvo
                     </span>
-                    <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
-                      {ritual.target || '1 criatura'}
+                    <span
+                      className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
+                      title={healCorruptedCharacters(ritual.target || '')}
+                    >
+                      {healCorruptedCharacters(ritual.target || '1 criatura')}
                     </span>
                   </div>
 
                   {/* Duração */}
-                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1">
+                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
                     <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
-                      <Clock className="w-3 h-3 text-slate-700" />
+                      <Clock className="w-3 h-3 text-slate-700 shrink-0" />
                       Dur
                     </span>
-                    <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
-                      {ritual.duration || 'Instantânea'}
+                    <span
+                      className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
+                      title={healCorruptedCharacters(ritual.duration || '')}
+                    >
+                      {healCorruptedCharacters(ritual.duration || 'Instantânea')}
                     </span>
                   </div>
 
                   {/* Resistência */}
-                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1">
+                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
                     <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
-                      <ShieldAlert className="w-3 h-3 text-slate-700" />
+                      <ShieldAlert className="w-3 h-3 text-slate-700 shrink-0" />
                       Resist
                     </span>
-                    <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
-                      {ritual.resistance || 'Nenhuma'}
+                    <span
+                      className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
+                      title={healCorruptedCharacters(ritual.resistance || '')}
+                    >
+                      {healCorruptedCharacters(ritual.resistance || 'Nenhuma')}
                     </span>
                   </div>
                 </div>

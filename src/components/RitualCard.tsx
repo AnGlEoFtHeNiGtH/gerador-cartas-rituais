@@ -1,7 +1,7 @@
 import React from 'react';
 import { Ritual, ELEMENT_CONFIGS, ElementConfig } from '../types';
 import { OccultSigil, GrandOccultSeal } from './OccultSigil';
-import { formatRitualText, healCorruptedCharacters } from '../utils/textFormatter';
+import { formatRitualText, healCorruptedCharacters, sanitizeTextForCustomFont } from '../utils/textFormatter';
 import { Compass, Target, Hourglass, Zap, ShieldAlert, Sparkles } from 'lucide-react';
 
 interface RitualCardProps {
@@ -292,7 +292,8 @@ export const RitualCard: React.FC<RitualCardProps> = ({
               >
                 {/* TOP HEADER: DYNAMIC FONT SIZING & PROTECTED BADGE SPACE */}
                 {(() => {
-                  const ritualName = healCorruptedCharacters(ritual.name || '') || 'Nome do Ritual';
+                  const rawName = healCorruptedCharacters(ritual.name || '') || 'Nome do Ritual';
+                  const ritualName = sanitizeTextForCustomFont(rawName);
                   const nameLen = ritualName.trim().length;
                   let titleFontSizeClass = 'text-lg md:text-xl';
                   if (nameLen > 32) {
@@ -326,7 +327,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                         />
                       </div>
 
-                      {/* Center: Title in Westsac Font with Unicode Latin Fallback (Protected flex-1 min-w-0 container) */}
+                      {/* Center: Title in Westsac Font with Unicode Latin Fallback & Custom Font Sanitization (Protected flex-1 min-w-0 container) */}
                       <div className="flex-1 min-w-0 text-center px-1 flex flex-col justify-center overflow-hidden">
                         <h2
                           className={`font-title ${titleFontSizeClass} font-bold tracking-wider uppercase line-clamp-2 break-words ${
@@ -341,7 +342,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                                 ? `0 0 10px ${elementConfig.glowColor}`
                                 : undefined,
                           }}
-                          title={ritualName}
+                          title={rawName}
                         >
                           {ritualName}
                         </h2>
@@ -781,7 +782,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                           : undefined,
                     }}
                   >
-                    {healCorruptedCharacters(
+                    {sanitizeTextForCustomFont(
                       ritual.theme.backQuoteText ||
                         'A Realidade é uma membrana frágil diante do Outro Lado.'
                     )}

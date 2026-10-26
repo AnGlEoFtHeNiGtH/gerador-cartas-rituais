@@ -1,7 +1,7 @@
 import React from 'react';
 import { Ritual, ELEMENT_CONFIGS, ElementConfig } from '../types';
 import { OccultSigil } from './OccultSigil';
-import { formatRitualText, healCorruptedCharacters } from '../utils/textFormatter';
+import { formatRitualText, healCorruptedCharacters, sanitizeTextForCustomFont } from '../utils/textFormatter';
 import { Compass, Target, Clock, Zap, ShieldAlert, Sparkles, Feather } from 'lucide-react';
 
 interface LightPrintCardProps {
@@ -47,7 +47,8 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
     4: 'IV',
   };
 
-  const ritualName = healCorruptedCharacters(ritual.name || '') || 'Nome do Ritual';
+  const rawRitualName = healCorruptedCharacters(ritual.name || '') || 'Nome do Ritual';
+  const ritualName = sanitizeTextForCustomFont(rawRitualName);
   const nameLen = ritualName.trim().length;
   let titleFontSizeClass = 'text-xl md:text-2xl';
   if (nameLen > 32) {
@@ -131,7 +132,7 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
                           fontFamily: "'Westsac', 'Cinzel', 'Times New Roman', Georgia, serif",
                           letterSpacing: '0.04em',
                         }}
-                        title={ritualName}
+                        title={rawRitualName}
                       >
                         {ritualName}
                       </h2>
@@ -338,7 +339,7 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
                             {mod.cost}
                           </span>
                           <span className="font-title text-sm font-bold text-slate-900 tracking-wide uppercase">
-                            {mod.name}
+                            {sanitizeTextForCustomFont(mod.name || '')}
                           </span>
                         </div>
 
@@ -380,7 +381,7 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
               {/* VERSO FOOTER: OCCULT QUOTE & ARCHIVE STAMP */}
               <div className="pt-2 border-t-2 border-slate-900 flex items-center justify-between text-[9px] font-mono text-slate-600">
                 <span className="italic font-serif line-clamp-1 max-w-[280px]">
-                  &ldquo;{ritual.theme.backQuoteText || 'A Realidade resiste ao Outro Lado.'}&rdquo;
+                  &ldquo;{sanitizeTextForCustomFont(ritual.theme.backQuoteText || 'A Realidade resiste ao Outro Lado.')}&rdquo;
                 </span>
                 <span className="font-bold text-slate-900 uppercase">
                   PÁGINA 2 · VERSO

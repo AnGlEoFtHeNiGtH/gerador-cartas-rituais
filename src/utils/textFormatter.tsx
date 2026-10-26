@@ -69,7 +69,37 @@ export function healCorruptedCharacters(text: string): string {
     .replace(/\bentro\b/gi, (m) => m[0] === 'E' ? 'Então' : 'então')
     .replace(/\bchro\b/gi, (m) => m[0] === 'C' ? 'Chão' : 'chão')
     .replace(/\bmro\b/gi, (m) => m[0] === 'M' ? 'Mão' : 'mão')
-    .replace(/\bmros\b/gi, (m) => m[0] === 'M' ? 'Mãos' : 'mãos');
+    .replace(/\bmros\b/gi, (m) => m[0] === 'M' ? 'Mãos' : 'mãos')
+
+    // Generic fallback for any remaining stray Cyrillic 'к' or Greek 'υ' inside Latin words
+    .replace(/([a-zA-ZáàãâéèíóôõúçÁÀÃÂÉÈÍÓÔÕÚÇ])к/g, '$1ê')
+    .replace(/к([a-zA-ZáàãâéèíóôõúçÁÀÃÂÉÈÍÓÔÕÚÇ])/g, 'ê$1')
+    .replace(/([a-zA-ZáàãâéèíóôõúçÁÀÃÂÉÈÍÓÔÕÚÇ])[υу]/g, '$1ó')
+    .replace(/[υу]([a-zA-ZáàãâéèíóôõúçÁÀÃÂÉÈÍÓÔÕÚÇ])/g, 'ó$1');
+}
+
+/**
+ * Sanitizes text specifically for custom display fonts (such as Westsac / Optima)
+ * that have an incomplete or corrupted internal cmap table for Latin Extended glyphs.
+ * Automatically replaces accented characters and cedillas with safe clean ASCII equivalents,
+ * preventing corrupted symbols (like "Vocк", "caυtica", "padrro") from ever appearing in custom fonts.
+ */
+export function sanitizeTextForCustomFont(text: string): string {
+  if (!text) return '';
+  const healed = healCorruptedCharacters(text);
+  return healed
+    .replace(/ç/g, 'c')
+    .replace(/Ç/g, 'C')
+    .replace(/[áàãâä]/g, 'a')
+    .replace(/[ÁÀÃÂÄ]/g, 'A')
+    .replace(/[éèêë]/g, 'e')
+    .replace(/[ÉÈÊË]/g, 'E')
+    .replace(/[íìîï]/g, 'i')
+    .replace(/[ÍÌÎÏ]/g, 'I')
+    .replace(/[óòõôö]/g, 'o')
+    .replace(/[ÓÒÕÔÖ]/g, 'O')
+    .replace(/[úùûü]/g, 'u')
+    .replace(/[ÚÙÛÜ]/g, 'U');
 }
 
 /**

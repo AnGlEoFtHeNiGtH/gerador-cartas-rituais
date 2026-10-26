@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Ritual, ElementId, ELEMENT_CONFIGS } from '../types';
 import { OccultSigil } from './OccultSigil';
 import { soundEngine } from '../utils/audio';
-import { healCorruptedCharacters } from '../utils/textFormatter';
+import { healCorruptedCharacters, sanitizeTextForCustomFont } from '../utils/textFormatter';
 import {
   Search,
   Plus,
@@ -488,8 +488,9 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                             ? 'text-slate-900 group-hover:text-red-700'
                             : 'text-white group-hover:text-red-300'
                         }`}
+                        title={healCorruptedCharacters(r.name)}
                       >
-                        {healCorruptedCharacters(r.name)}
+                        {sanitizeTextForCustomFont(r.name)}
                       </h4>
 
                       {/* Attributes preview */}

@@ -126,6 +126,7 @@ export default function App() {
   // Admin Authentication State
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => isAdminAuthenticated());
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [deckInitialTab, setDeckInitialTab] = useState<'private' | 'public'>('private');
 
   useEffect(() => {
     const handleAuthChange = (e: Event) => {
@@ -411,43 +412,81 @@ export default function App() {
 
         {/* Zone 2: Navigation Links & Deck Manager Quick Access */}
         <nav
-          className={`hidden md:flex items-center gap-6 text-sm font-medium ${
+          className={`hidden md:flex items-center gap-4 text-sm font-medium ${
             isLightApp ? 'text-slate-600' : 'text-zinc-300'
           }`}
         >
+          {/* Meu Grimório (Privado) */}
           <button
-            onClick={() => setIsDeckOpen(true)}
-            className={`flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 ${
+            onClick={() => {
+              setDeckInitialTab('private');
+              setIsDeckOpen(true);
+            }}
+            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
               isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
             }`}
           >
-            <BookOpen className="w-4 h-4 text-zinc-400" />
-            <span>Deck de Rituais ({rituals.length})</span>
+            <BookOpen className="w-4 h-4 text-red-500" />
+            <span>Meu Grimório ({rituals.length})</span>
+          </button>
+
+          {/* Grimório Público (Comunidade) */}
+          <button
+            onClick={() => {
+              setDeckInitialTab('public');
+              setIsDeckOpen(true);
+            }}
+            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
+            }`}
+          >
+            <Globe className="w-4 h-4 text-blue-500" />
+            <span>Grimório Público</span>
+          </button>
+
+          {/* Acesso Admin Shortcut in Header */}
+          <button
+            onClick={() => setIsAdminModalOpen(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-xs ${
+              isAdminLoggedIn
+                ? 'bg-emerald-950/80 border-emerald-600 text-emerald-300 hover:bg-emerald-900/90'
+                : isLightApp
+                ? 'border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700'
+                : 'border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300'
+            }`}
+            title="Acesso de Administrador (Gauss0413)"
+          >
+            {isAdminLoggedIn ? (
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+            ) : (
+              <Shield className="w-3.5 h-3.5 text-amber-400" />
+            )}
+            <span>{isAdminLoggedIn ? 'Admin Ativo' : 'Acesso Admin'}</span>
           </button>
 
           <button
             onClick={handleCreateNewRitual}
-            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
               isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
             }`}
           >
             <Plus className="w-4 h-4 text-zinc-400" />
-            <span>Novo Ritual</span>
+            <span>Novo</span>
           </button>
 
           <button
             onClick={() => setIsPrintOpen(true)}
-            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 ${
+            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
               isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
             }`}
           >
             <Printer className="w-4 h-4 text-zinc-400" />
-            <span>Folha Padrão (63×88)</span>
+            <span>63×88mm</span>
           </button>
 
           <button
             onClick={() => setIsLightPrintOpen(true)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap shrink-0 shadow-xs ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap shrink-0 shadow-xs cursor-pointer ${
               isLightApp
                 ? 'bg-blue-50 border-blue-200 text-blue-900 hover:bg-blue-100 hover:border-blue-300'
                 : 'bg-blue-950/70 border-blue-800/80 text-blue-300 hover:bg-blue-900 hover:text-white'
@@ -455,12 +494,26 @@ export default function App() {
             title="Versão de Impressão Leve (A4) - Fundo 100% Branco e Economia de Tinta"
           >
             <Feather className="w-3.5 h-3.5 text-blue-400" />
-            <span>Versão de Impressão Leve (A4)</span>
+            <span>Impressão Leve (A4)</span>
           </button>
         </nav>
 
-        {/* Zone 3: Primary Actions (Light/Dark Toggle, Atmosphere, Quick Export) */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Zone 3: Primary Actions (Light/Dark Toggle, Atmosphere, Publicar, Quick Export) */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          {/* Publicar Carta no Deck Público */}
+          <button
+            onClick={handlePublishCurrentRitual}
+            title="Publicar esta carta no Grimório Público da Comunidade"
+            className={`hidden lg:flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+              isLightApp
+                ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 shadow-2xs'
+                : 'bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border-blue-800/60 shadow-2xs'
+            }`}
+          >
+            <Share2 className="w-3.5 h-3.5 text-blue-400" />
+            <span>Publicar Carta</span>
+          </button>
+
           {/* Light / Dark Mode Toggle Button */}
           <button
             onClick={toggleAppMode}
@@ -469,7 +522,7 @@ export default function App() {
                 ? 'Alternar para Modo Escuro na interface'
                 : 'Alternar para Modo Claro na interface'
             }
-            className={`p-2 rounded-lg border transition-all flex items-center justify-center ${
+            className={`p-2 rounded-lg border transition-all flex items-center justify-center cursor-pointer ${
               isLightApp
                 ? 'bg-slate-100 border-slate-300 text-amber-600 hover:bg-slate-200 hover:text-amber-700 shadow-xs'
                 : 'bg-zinc-900 border-zinc-800 text-amber-400 hover:bg-zinc-800 hover:text-amber-300'
@@ -486,7 +539,7 @@ export default function App() {
                 ? 'Desativar som ambiente'
                 : 'Ativar som ambiente paranormal'
             }
-            className={`p-2 rounded-lg border transition-all ${
+            className={`p-2 rounded-lg border transition-all cursor-pointer ${
               isAmbientPlaying
                 ? 'bg-red-950/70 border-red-800 text-red-300 shadow-xs'
                 : isLightApp
@@ -504,7 +557,7 @@ export default function App() {
           {/* Quick Deck Button on mobile */}
           <button
             onClick={() => setIsDeckOpen(true)}
-            className={`md:hidden p-2 rounded-lg border ${
+            className={`md:hidden p-2 rounded-lg border cursor-pointer ${
               isLightApp
                 ? 'bg-slate-100 border-slate-300 text-slate-700'
                 : 'bg-zinc-900 border-zinc-800 text-zinc-300'
@@ -519,7 +572,7 @@ export default function App() {
             <button
               onClick={() => handleExportPng(activeView)}
               disabled={isExporting}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-red-700 hover:bg-red-600 rounded-lg shadow-lg shadow-red-950/40 transition-all whitespace-nowrap shrink-0 disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-red-700 hover:bg-red-600 rounded-lg shadow-lg shadow-red-950/40 transition-all whitespace-nowrap shrink-0 disabled:opacity-50 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>{isExporting ? 'Renderizando...' : 'Exportar Carta (PNG)'}</span>
@@ -544,6 +597,7 @@ export default function App() {
             }}
             appMode={appMode}
             onOpenLightPrint={() => setIsLightPrintOpen(true)}
+            onPublishToPublic={handlePublishCurrentRitual}
           />
         </section>
 
@@ -823,8 +877,22 @@ export default function App() {
         onDeleteRitual={handleDeleteRitual}
         onResetToDefaults={handleResetToDefaults}
         onImportDeck={handleImportDeck}
+        onCopyFromPublicDeck={handleCopyFromPublicDeck}
         onOpenMultiPrint={handleOpenMultiPrint}
         appMode={appMode}
+        isAdminAuthenticated={isAdminLoggedIn}
+        onOpenAdminModal={handleOpenAdminModal}
+        onLogoutAdmin={handleLogoutAdmin}
+        initialTab={deckInitialTab}
+      />
+
+      {/* Admin Login & Moderation Modal */}
+      <AdminLoginModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        appMode={appMode}
+        isAdminAuthenticated={isAdminLoggedIn}
+        onAuthStateChange={(isAuth) => setIsAdminLoggedIn(isAuth)}
       />
 
       {/* Print Modal (Classic 63x88mm Cards) */}

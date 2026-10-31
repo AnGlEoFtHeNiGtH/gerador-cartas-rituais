@@ -19,7 +19,10 @@ export const ADMIN_CREDENTIALS = {
 export function isAdminAuthenticated(): boolean {
   try {
     if (typeof window === 'undefined') return false;
-    return sessionStorage.getItem(ADMIN_STORAGE_KEY) === 'true';
+    return (
+      sessionStorage.getItem(ADMIN_STORAGE_KEY) === 'true' ||
+      localStorage.getItem(ADMIN_STORAGE_KEY) === 'true'
+    );
   } catch {
     return false;
   }
@@ -35,6 +38,7 @@ export function authenticateAdmin(user: string, pass: string): { success: boolea
   if (cleanUser === ADMIN_USER_EXPECTED && cleanPass === ADMIN_PASS_EXPECTED) {
     try {
       sessionStorage.setItem(ADMIN_STORAGE_KEY, 'true');
+      localStorage.setItem(ADMIN_STORAGE_KEY, 'true');
       window.dispatchEvent(new CustomEvent('admin-auth-changed', { detail: { isAuthenticated: true } }));
     } catch (e) {
       console.warn('Failed to save admin session:', e);
@@ -55,6 +59,7 @@ export function logoutAdmin(): void {
   try {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem(ADMIN_STORAGE_KEY);
+      localStorage.removeItem(ADMIN_STORAGE_KEY);
       window.dispatchEvent(new CustomEvent('admin-auth-changed', { detail: { isAuthenticated: false } }));
     }
   } catch (e) {

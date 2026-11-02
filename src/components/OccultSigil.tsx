@@ -475,8 +475,10 @@ export const GrandOccultSeal: React.FC<{
   className?: string;
   color?: string;
   cardMode?: CardMode;
-}> = ({ size = 220, className = '', color = '#e2e8f0', cardMode = 'dark' }) => {
+  glow?: boolean;
+}> = ({ size = 220, className = '', color = '#e2e8f0', cardMode = 'dark', glow = false }) => {
   const strokeColor = color || (cardMode === 'light' ? '#18181b' : '#e2e8f0');
+  const filterId = `grand-seal-glow-${Math.random().toString(36).substr(2, 6)}`;
 
   return (
     <svg
@@ -487,7 +489,23 @@ export const GrandOccultSeal: React.FC<{
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
-      <g stroke={strokeColor} strokeLinecap="round" strokeLinejoin="round">
+      {glow && (
+        <defs>
+          <filter id={filterId} x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3.5" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+      )}
+      <g
+        stroke={strokeColor}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        filter={glow ? `url(#${filterId})` : undefined}
+      >
         <circle cx="100" cy="100" r="95" strokeWidth="2" opacity="0.8" />
         <circle cx="100" cy="100" r="91" strokeWidth="1" strokeDasharray="3 3" opacity="0.5" />
         <circle cx="100" cy="100" r="85" strokeWidth="1.5" opacity="0.7" />

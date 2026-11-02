@@ -9,6 +9,7 @@ import {
   CardMode,
   CustomIconFilter,
   ELEMENT_CONFIGS,
+  getOfficialBackArtGlow,
 } from '../types';
 import { OccultSigil, SIGIL_PRESETS } from './OccultSigil';
 import { soundEngine } from '../utils/audio';
@@ -90,6 +91,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   const [iconInputUrl, setIconInputUrl] = useState('');
 
   const isLightApp = appMode === 'light';
+  const elementGlowConfig = getOfficialBackArtGlow(ritual.element, ritual.customElementColor);
 
   // Fallback for basePd if older data exists
   const currentBasePd =
@@ -1110,6 +1112,34 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
               </p>
             </div>
 
+            {/* Checkbox: Ocultar Símbolo do Elemento / Exibir Apenas Arte */}
+            <label
+              className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${
+                ritual.theme.hideElementSymbol
+                  ? isLightApp
+                    ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-2xs'
+                    : 'bg-amber-950/40 border-amber-700/80 text-amber-200 shadow-2xs'
+                  : isLightApp
+                  ? 'bg-white border-slate-200 text-slate-800'
+                  : 'bg-[#181820] border-zinc-700/80 text-zinc-300'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={ritual.theme.hideElementSymbol ?? false}
+                onChange={(e) => updateTheme({ hideElementSymbol: e.target.checked })}
+                className="w-4 h-4 mt-0.5 accent-amber-600 rounded"
+              />
+              <div>
+                <span className="text-xs font-bold block">
+                  Ocultar Símbolo do Elemento / Exibir Apenas Arte
+                </span>
+                <span className="text-[11px] opacity-75 block mt-0.5 leading-snug">
+                  Oculta o ícone circular do elemento no cabeçalho superior esquerdo da carta. O título se expande com mais espaço e a sua arte ganha destaque total sem poluição visual.
+                </span>
+              </div>
+            </label>
+
             {ritual.artwork?.url ? (
               <div
                 className={`p-3.5 rounded-xl border space-y-3 ${
@@ -1240,6 +1270,53 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                       <span>Exibir no Verso da Carta</span>
                     </label>
                   </div>
+
+                  {/* Toggle: Brilho na Arte do Verso (Glow Paranormal Oficial) */}
+                  <label
+                    className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
+                      ritual.theme.backArtGlow
+                        ? isLightApp
+                          ? 'bg-red-50 border-red-300 text-red-950 shadow-2xs'
+                          : 'bg-red-950/40 border-red-800 text-red-200 shadow-2xs'
+                        : isLightApp
+                        ? 'bg-slate-100/70 border-slate-200 text-slate-700'
+                        : 'bg-black/40 border-zinc-700/60 text-zinc-300'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={ritual.theme.backArtGlow ?? false}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        updateTheme({ backArtGlow: checked });
+                        if (checked && !ritual.artwork?.showOnBack) {
+                          updateArtwork({ showOnBack: true });
+                        }
+                      }}
+                      className="w-4 h-4 mt-0.5 accent-red-600 rounded"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-xs font-bold flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          Brilho na Arte do Verso (Glow Paranormal)
+                        </span>
+                        <span
+                          className="text-[10px] font-mono px-2 py-0.5 rounded font-bold border"
+                          style={{
+                            backgroundColor: `${elementGlowConfig.primaryGlowRgba.replace(/[\d.]+\)$/, '0.15)')}`,
+                            borderColor: elementGlowConfig.primaryGlowRgba,
+                            color: isLightApp ? '#0f172a' : '#f8fafc',
+                          }}
+                        >
+                          {elementGlowConfig.colorName}
+                        </span>
+                      </div>
+                      <span className="text-[11px] opacity-75 block mt-0.5 leading-snug">
+                        Aplica a aura de brilho oficial do elemento na ilustração, exclusivamente no verso da carta (a frente permanece limpa).
+                      </span>
+                    </div>
+                  </label>
 
                   {/* Sliders */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
@@ -1456,6 +1533,34 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Checkbox: Ocultar Símbolo do Elemento / Exibir Apenas Arte */}
+            <label
+              className={`flex items-start gap-2.5 p-3 rounded-xl border cursor-pointer transition-colors ${
+                ritual.theme.hideElementSymbol
+                  ? isLightApp
+                    ? 'bg-amber-50 border-amber-300 text-amber-900 shadow-2xs'
+                    : 'bg-amber-950/40 border-amber-700/80 text-amber-200 shadow-2xs'
+                  : isLightApp
+                  ? 'bg-white border-slate-200 text-slate-800'
+                  : 'bg-[#181820] border-zinc-700/80 text-zinc-300'
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={ritual.theme.hideElementSymbol ?? false}
+                onChange={(e) => updateTheme({ hideElementSymbol: e.target.checked })}
+                className="w-4 h-4 mt-0.5 accent-amber-600 rounded"
+              />
+              <div>
+                <span className="text-xs font-bold block">
+                  Ocultar Símbolo do Elemento / Exibir Apenas Arte
+                </span>
+                <span className="text-[11px] opacity-75 block mt-0.5 leading-snug">
+                  Oculta o ícone circular do elemento no cabeçalho superior esquerdo da frente, expandindo o título e dando foco total e absoluto à arte e ilustração na carta.
+                </span>
+              </div>
+            </label>
 
             {/* Formato dos Cantos */}
             <div>
@@ -1684,6 +1789,122 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                   </button>
                 </div>
               )}
+
+              {/* Checkbox: Brilho Característico no Símbolo do Verso */}
+              <label
+                className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                  ritual.theme.backSigilGlow
+                    ? isLightApp
+                      ? 'bg-purple-50 border-purple-300 text-purple-900 shadow-2xs'
+                      : 'bg-purple-950/50 border-purple-800 text-purple-200 shadow-2xs'
+                    : isLightApp
+                    ? 'bg-white border-slate-200 text-slate-800'
+                    : 'bg-black/40 border-zinc-700/60 text-zinc-300'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={ritual.theme.backSigilGlow ?? false}
+                  onChange={(e) => updateTheme({ backSigilGlow: e.target.checked })}
+                  className="w-4 h-4 mt-0.5 accent-purple-600 rounded"
+                />
+                <div>
+                  <span className="text-xs font-bold flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                    Brilho Característico no Símbolo do Verso (Glow)
+                  </span>
+                  <span className="text-[11px] opacity-75 block mt-0.5 leading-snug">
+                    Aplica uma aura luminosa e envolvente na tonalidade autêntica do elemento paranormal (Sangue, Morte, Energia, Conhecimento ou Medo).
+                  </span>
+                </div>
+              </label>
+
+              {/* Slider: Opacidade do Símbolo do Verso */}
+              <div
+                className={`space-y-1.5 p-2.5 rounded-lg border ${
+                  isLightApp ? 'bg-white border-slate-200' : 'bg-black/40 border-zinc-700/60'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-mono uppercase tracking-wider font-semibold">
+                    Opacidade do Símbolo do Verso
+                  </label>
+                  <span className="text-xs font-mono font-bold">
+                    {Math.round(
+                      (ritual.theme.backSigilOpacity !== undefined
+                        ? ritual.theme.backSigilOpacity
+                        : 1) * 100
+                    )}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={
+                    ritual.theme.backSigilOpacity !== undefined
+                      ? ritual.theme.backSigilOpacity
+                      : 1
+                  }
+                  onChange={(e) =>
+                    updateTheme({ backSigilOpacity: parseFloat(e.target.value) })
+                  }
+                  className="w-full accent-red-600"
+                />
+                <div className="flex justify-between text-[10px] text-zinc-500 font-mono">
+                  <span>0% (Invisível)</span>
+                  <span>50% (Espectral)</span>
+                  <span>100% (Sólido)</span>
+                </div>
+              </div>
+
+              {/* Checkbox: Brilho na Arte do Verso (Glow Paranormal Oficial) */}
+              <label
+                className={`flex items-start gap-2.5 p-2.5 rounded-lg border cursor-pointer transition-colors ${
+                  ritual.theme.backArtGlow
+                    ? isLightApp
+                      ? 'bg-red-50 border-red-300 text-red-950 shadow-2xs'
+                      : 'bg-red-950/50 border-red-800 text-red-200 shadow-2xs'
+                    : isLightApp
+                    ? 'bg-white border-slate-200 text-slate-800'
+                    : 'bg-black/40 border-zinc-700/60 text-zinc-300'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  checked={ritual.theme.backArtGlow ?? false}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    updateTheme({ backArtGlow: checked });
+                    if (checked && ritual.artwork && !ritual.artwork.showOnBack) {
+                      updateArtwork({ showOnBack: true });
+                    }
+                  }}
+                  className="w-4 h-4 mt-0.5 accent-red-600 rounded"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-xs font-bold flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-red-400" />
+                      Brilho na Arte do Verso (Glow Oficial)
+                    </span>
+                    <span
+                      className="text-[10px] font-mono px-2 py-0.5 rounded font-bold border"
+                      style={{
+                        backgroundColor: `${elementGlowConfig.primaryGlowRgba.replace(/[\d.]+\)$/, '0.15)')}`,
+                        borderColor: elementGlowConfig.primaryGlowRgba,
+                        color: isLightApp ? '#0f172a' : '#f8fafc',
+                      }}
+                    >
+                      {elementGlowConfig.colorName}
+                    </span>
+                  </div>
+                  <span className="text-[11px] opacity-75 block mt-0.5 leading-snug">
+                    Aplica o brilho oficial de Ordem Paranormal exclusivo na imagem da arte no verso ({elementGlowConfig.colorName}). Independente do símbolo central.
+                  </span>
+                </div>
+              </label>
             </div>
 
             {/* Frase Ocultista Gravada no Verso */}

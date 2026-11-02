@@ -1,5 +1,5 @@
 import React from 'react';
-import { Ritual, ELEMENT_CONFIGS, ElementConfig } from '../types';
+import { Ritual, ELEMENT_CONFIGS, ElementConfig, getOfficialBackArtGlow } from '../types';
 import { OccultSigil, GrandOccultSeal } from './OccultSigil';
 import { formatRitualText, healCorruptedCharacters, sanitizeTextForCustomFont } from '../utils/textFormatter';
 import { Compass, Target, Hourglass, Zap, ShieldAlert, Sparkles } from 'lucide-react';
@@ -51,6 +51,8 @@ export const RitualCard: React.FC<RitualCardProps> = ({
   };
 
   const currentSide = isFlipped ? (viewSide === 'front' ? 'back' : 'front') : viewSide;
+  const isBack = currentSide === 'back';
+  const backArtGlowStyle = getOfficialBackArtGlow(ritual.element, ritual.customElementColor);
   const basePdValue =
     ritual.basePd || (ritual as unknown as { basePe?: string }).basePe || '1 PD';
 
@@ -134,7 +136,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
   const showArtworkOnFront = hasArtwork && (ritual.artwork?.showOnFront ?? true);
   const showArtworkOnBack =
     hasArtwork &&
-    (ritual.artwork?.showOnBack || ritual.artwork?.mode === 'back-cover');
+    (ritual.artwork?.showOnBack || ritual.artwork?.mode === 'back-cover' || Boolean(ritual.theme.backArtGlow));
   const isIllustrationMode = showArtworkOnFront && ritual.artwork?.mode === 'illustration';
   const isBackgroundArtMode = showArtworkOnFront && ritual.artwork?.mode === 'background';
 
@@ -304,31 +306,39 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                     titleFontSizeClass = 'text-base leading-tight';
                   }
 
+                  const hideSymbol = ritual.theme.hideElementSymbol;
+
                   return (
                     <div className="flex items-center justify-between gap-2.5">
-                      {/* Left: Element Sigil / Custom Icon (Protected 48px Box) */}
+                      {/* Left: Element Sigil / Custom Icon (Protected 48px Box) - Conditionally Hidden */}
+                      {!hideSymbol && (
+                        <div
+                          className={`shrink-0 w-12 h-12 min-w-[48px] flex items-center justify-center rounded-full border shadow-inner ${
+                            isLight
+                              ? 'border-zinc-300 bg-zinc-50'
+                              : 'border-zinc-700 bg-black/80'
+                          }`}
+                        >
+                          <OccultSigil
+                            element={ritual.element}
+                            symbolPreset={ritual.symbolPreset}
+                            customIconUrl={ritual.customElementIcon}
+                            customIconFilter={ritual.theme.customIconFilter}
+                            customIconInvert={ritual.theme.customIconInvert}
+                            cardMode={ritual.theme.cardMode}
+                            size={36}
+                            color={activeAccentColor}
+                            glow={ritual.theme.accentGlow}
+                          />
+                        </div>
+                      )}
+
+                      {/* Center: Title in Westsac Font with Unicode Latin Fallback & Custom Font Sanitization */}
                       <div
-                        className={`shrink-0 w-12 h-12 min-w-[48px] flex items-center justify-center rounded-full border shadow-inner ${
-                          isLight
-                            ? 'border-zinc-300 bg-zinc-50'
-                            : 'border-zinc-700 bg-black/80'
+                        className={`flex-1 min-w-0 flex flex-col justify-center overflow-hidden ${
+                          hideSymbol ? 'text-left pl-1.5' : 'text-center px-1'
                         }`}
                       >
-                        <OccultSigil
-                          element={ritual.element}
-                          symbolPreset={ritual.symbolPreset}
-                          customIconUrl={ritual.customElementIcon}
-                          customIconFilter={ritual.theme.customIconFilter}
-                          customIconInvert={ritual.theme.customIconInvert}
-                          cardMode={ritual.theme.cardMode}
-                          size={36}
-                          color={activeAccentColor}
-                          glow={ritual.theme.accentGlow}
-                        />
-                      </div>
-
-                      {/* Center: Title in Westsac Font with Unicode Latin Fallback & Custom Font Sanitization (Protected flex-1 min-w-0 container) */}
-                      <div className="flex-1 min-w-0 text-center px-1 flex flex-col justify-center overflow-hidden">
                         <h2
                           className={`font-title ${titleFontSizeClass} font-bold tracking-wider uppercase line-clamp-2 break-words ${
                             isLight ? 'text-zinc-900 drop-shadow-xs' : 'text-white drop-shadow-md'
@@ -347,9 +357,9 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                           {ritualName}
                         </h2>
                         <div
-                          className={`flex items-center justify-center gap-1.5 text-xs tracking-widest uppercase font-semibold mt-0.5 shrink-0 ${
-                            isLight ? 'text-zinc-600' : 'text-zinc-400'
-                          }`}
+                          className={`flex items-center gap-1.5 text-xs tracking-widest uppercase font-semibold mt-0.5 shrink-0 ${
+                            hideSymbol ? 'justify-start' : 'justify-center'
+                          } ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}
                         >
                           <span style={{ color: activeAccentColor }}>
                             {elementConfig.name}
@@ -690,84 +700,121 @@ export const RitualCard: React.FC<RitualCardProps> = ({
             /* BACK VIEW (VERSO) - CLEANED OF UNWANTED DECORATIVE TEXTS */
             /* ======================================================== */
             <div className="relative z-10 flex flex-col h-full items-center justify-center text-center p-4 overflow-hidden">
-              {/* Back Artwork Layer if enabled */}
+              {/* Back Artwork Layer with Exclusive Paranormal Glow Effect */}
               {showArtworkOnBack && ritual.artwork && (
-                <div
-                  className="absolute inset-0 pointer-events-none overflow-hidden z-0"
-                  style={{
-                    opacity: ritual.artwork.opacity ?? 0.45,
-                    mixBlendMode: isLight
-                      ? ritual.artwork.blendMode === 'normal'
-                        ? 'multiply'
-                        : ritual.artwork.blendMode
-                      : ritual.artwork.blendMode || 'normal',
-                  }}
-                >
-                  <img
-                    src={ritual.artwork.url}
-                    alt=""
-                    className="w-full h-full"
-                    style={{
-                      objectFit: ritual.artwork.fit || 'cover',
-                      objectPosition: `50% ${ritual.artwork.positionY ?? 50}%`,
-                      transform: `scale(${ritual.artwork.scale ?? 1})`,
-                    }}
-                  />
+                <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
                   <div
-                    className={`absolute inset-0 ${
-                      isLight ? 'bg-white/40' : 'bg-black/50'
-                    }`}
-                  />
+                    className="w-full h-full relative transition-all duration-300"
+                    style={{
+                      opacity: ritual.artwork.opacity ?? (ritual.theme.backArtGlow ? 0.8 : 0.45),
+                      mixBlendMode: isLight
+                        ? ritual.artwork.blendMode === 'normal'
+                          ? 'multiply'
+                          : ritual.artwork.blendMode
+                        : ritual.artwork.blendMode || 'normal',
+                    }}
+                  >
+                    <img
+                      src={ritual.artwork.url}
+                      alt=""
+                      className="w-full h-full transition-all duration-300"
+                      style={{
+                        objectFit: ritual.artwork.fit || 'cover',
+                        objectPosition: `50% ${ritual.artwork.positionY ?? 50}%`,
+                        transform: `scale(${ritual.artwork.scale ?? 1})`,
+                        filter: isBack && ritual.theme.backArtGlow ? backArtGlowStyle.filter : undefined,
+                      }}
+                    />
+                    <div
+                      className={`absolute inset-0 transition-opacity duration-300 ${
+                        isLight
+                          ? 'bg-white/30'
+                          : isBack && ritual.theme.backArtGlow
+                          ? 'bg-black/30'
+                          : 'bg-black/50'
+                      }`}
+                    />
+                  </div>
+
+                  {/* Exclusive Back Art Glow Aura Halo Frame (Official Ordem Paranormal Element Glow) */}
+                  {isBack && ritual.theme.backArtGlow && (
+                    <div
+                      className="absolute inset-0 pointer-events-none transition-all duration-300"
+                      style={{
+                        boxShadow: backArtGlowStyle.boxShadow,
+                        filter: backArtGlowStyle.filter,
+                      }}
+                    />
+                  )}
                 </div>
               )}
 
               {/* Center Sigil & Inscriptions in Westsac font */}
               <div className="my-auto flex flex-col items-center justify-center relative z-10">
-                {ritual.theme.cleanBackSymbolOnly ? (
-                  /* Clean Symbol Only - No concentric rings, no complex runes */
-                  <div className="relative p-2 flex items-center justify-center">
-                    <OccultSigil
-                      element={ritual.element}
-                      symbolPreset={ritual.symbolPreset}
-                      customIconUrl={ritual.customElementIcon}
-                      customIconFilter={ritual.theme.customIconFilter}
-                      customIconInvert={ritual.theme.customIconInvert}
-                      cardMode={ritual.theme.cardMode}
-                      size={200}
-                      color={activeAccentColor}
-                      glow={ritual.theme.accentGlow}
-                    />
-                  </div>
-                ) : ritual.theme.backSigilStyle === 'element' ? (
-                  <div className="relative">
-                    <OccultSigil
-                      element={ritual.element}
-                      symbolPreset={ritual.symbolPreset}
-                      customIconUrl={ritual.customElementIcon}
-                      customIconFilter={ritual.theme.customIconFilter}
-                      customIconInvert={ritual.theme.customIconInvert}
-                      cardMode={ritual.theme.cardMode}
-                      size={210}
-                      color={activeAccentColor}
-                      glow={ritual.theme.accentGlow}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div
-                        className={`w-40 h-40 rounded-full border border-dashed ${
-                          isLight ? 'border-zinc-300' : 'border-zinc-700/60'
-                        }`}
+                <div
+                  className="relative flex items-center justify-center transition-all duration-200"
+                  style={{
+                    opacity:
+                      typeof ritual.theme.backSigilOpacity === 'number'
+                        ? ritual.theme.backSigilOpacity
+                        : 1,
+                    filter: ritual.theme.backSigilGlow
+                      ? `drop-shadow(0 0 14px ${activeAccentColor}) drop-shadow(0 0 28px ${elementConfig.glowColor})`
+                      : undefined,
+                  }}
+                >
+                  {ritual.theme.cleanBackSymbolOnly ? (
+                    /* Clean Symbol Only - No concentric rings, no complex runes */
+                    <div className="relative p-2 flex items-center justify-center">
+                      <OccultSigil
+                        element={ritual.element}
+                        symbolPreset={ritual.symbolPreset}
+                        customIconUrl={ritual.customElementIcon}
+                        customIconFilter={ritual.theme.customIconFilter}
+                        customIconInvert={ritual.theme.customIconInvert}
+                        cardMode={ritual.theme.cardMode}
+                        size={200}
+                        color={activeAccentColor}
+                        glow={ritual.theme.backSigilGlow || ritual.theme.accentGlow}
                       />
                     </div>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <GrandOccultSeal
-                      size={220}
-                      color={activeAccentColor}
-                      cardMode={ritual.theme.cardMode}
-                    />
-                  </div>
-                )}
+                  ) : ritual.theme.backSigilStyle === 'element' ? (
+                    <div className="relative">
+                      <OccultSigil
+                        element={ritual.element}
+                        symbolPreset={ritual.symbolPreset}
+                        customIconUrl={ritual.customElementIcon}
+                        customIconFilter={ritual.theme.customIconFilter}
+                        customIconInvert={ritual.theme.customIconInvert}
+                        cardMode={ritual.theme.cardMode}
+                        size={210}
+                        color={activeAccentColor}
+                        glow={ritual.theme.backSigilGlow || ritual.theme.accentGlow}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div
+                          className={`w-40 h-40 rounded-full border border-dashed ${
+                            isLight ? 'border-zinc-300' : 'border-zinc-700/60'
+                          }`}
+                          style={
+                            ritual.theme.backSigilGlow
+                              ? { borderColor: activeAccentColor }
+                              : undefined
+                          }
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <GrandOccultSeal
+                        size={220}
+                        color={activeAccentColor}
+                        cardMode={ritual.theme.cardMode}
+                        glow={ritual.theme.backSigilGlow || ritual.theme.accentGlow}
+                      />
+                    </div>
+                  )}
+                </div>
 
                 {/* Custom Occult Center Inscription (Westsac font) */}
                 <div className="mt-5 max-w-[300px]">

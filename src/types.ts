@@ -55,6 +55,10 @@ export interface CardThemeOptions {
   backQuoteText: string;
   backSigilStyle: 'element' | 'grand-seal';
   cleanBackSymbolOnly?: boolean; // Oculta anéis rúnicos e padrões complexos no verso da carta
+  hideElementSymbol?: boolean; // Oculta o ícone circular do elemento no topo da frente da carta (foco total na arte)
+  backSigilGlow?: boolean; // Ativa brilho luminoso/aura na cor do elemento no símbolo do verso
+  backSigilOpacity?: number; // Opacidade do símbolo do verso (0.0 a 1.0)
+  backArtGlow?: boolean; // Efeito de brilho (glow) exclusivo na Arte & Ilustração do verso da carta com cores oficiais do elemento
   customIconFilter?: CustomIconFilter;
   customIconInvert?: boolean;
 }
@@ -180,4 +184,69 @@ export const ELEMENT_CONFIGS: Record<ElementId, ElementConfig> = {
     lightTextColor: '#064e3b',
     lightBorderColor: '#047857',
   },
+};
+
+export interface BackArtGlowStyle {
+  colorName: string;
+  primaryGlowRgba: string;
+  filter: string;
+  boxShadow: string;
+}
+
+// Mapeamento Oficial de Cores do Universo Ordem Paranormal para o Glow Exclusivo da Arte do Verso
+export const OFFICIAL_BACK_ART_GLOW: Record<ElementId, BackArtGlowStyle> = {
+  // Sangue: Vermelho carmesim vibrante
+  sangue: {
+    colorName: 'Vermelho Carmesim Vibrante',
+    primaryGlowRgba: 'rgba(220, 38, 38, 0.85)',
+    filter: 'drop-shadow(0 0 18px rgba(220, 38, 38, 0.85)) drop-shadow(0 0 36px rgba(220, 38, 38, 0.65))',
+    boxShadow: '0 0 32px rgba(220, 38, 38, 0.85), inset 0 0 28px rgba(220, 38, 38, 0.6)',
+  },
+  // Morte: Preto profundo espectral com aura de transição escura/cinza espectral
+  morte: {
+    colorName: 'Preto Profundo Espectral',
+    primaryGlowRgba: 'rgba(10, 10, 15, 0.95)',
+    filter: 'drop-shadow(0 0 20px rgba(10, 10, 15, 0.95)) drop-shadow(0 0 35px rgba(30, 41, 59, 0.9)) drop-shadow(0 0 50px rgba(148, 163, 184, 0.5))',
+    boxShadow: '0 0 30px rgba(10, 10, 15, 0.95), 0 0 45px rgba(51, 65, 85, 0.65), inset 0 0 30px rgba(10, 10, 15, 0.95)',
+  },
+  // Energia: Roxo / magenta caótico e elétrico
+  energia: {
+    colorName: 'Roxo / Magenta Caótico e Elétrico',
+    primaryGlowRgba: 'rgba(168, 85, 247, 0.85)',
+    filter: 'drop-shadow(0 0 18px rgba(168, 85, 247, 0.85)) drop-shadow(0 0 36px rgba(168, 85, 247, 0.65))',
+    boxShadow: '0 0 32px rgba(168, 85, 247, 0.85), inset 0 0 28px rgba(168, 85, 247, 0.6)',
+  },
+  // Conhecimento: Amarelo ouro / dourado radiante
+  conhecimento: {
+    colorName: 'Amarelo Ouro / Dourado Radiante',
+    primaryGlowRgba: 'rgba(234, 179, 8, 0.85)',
+    filter: 'drop-shadow(0 0 18px rgba(234, 179, 8, 0.85)) drop-shadow(0 0 36px rgba(234, 179, 8, 0.65))',
+    boxShadow: '0 0 32px rgba(234, 179, 8, 0.85), inset 0 0 28px rgba(234, 179, 8, 0.6)',
+  },
+  // Medo: Branco / ciano espectral e ectoplásmico
+  medo: {
+    colorName: 'Branco / Ciano Espectral e Ectoplásmico',
+    primaryGlowRgba: 'rgba(164, 242, 244, 0.85)',
+    filter: 'drop-shadow(0 0 18px rgba(164, 242, 244, 0.85)) drop-shadow(0 0 36px rgba(56, 189, 248, 0.7))',
+    boxShadow: '0 0 32px rgba(164, 242, 244, 0.85), inset 0 0 28px rgba(56, 189, 248, 0.55)',
+  },
+  // Personalizado
+  custom: {
+    colorName: 'Personalizado',
+    primaryGlowRgba: 'rgba(16, 185, 129, 0.85)',
+    filter: 'drop-shadow(0 0 18px rgba(16, 185, 129, 0.85)) drop-shadow(0 0 36px rgba(16, 185, 129, 0.65))',
+    boxShadow: '0 0 32px rgba(16, 185, 129, 0.85), inset 0 0 28px rgba(16, 185, 129, 0.55)',
+  },
+};
+
+export const getOfficialBackArtGlow = (element: ElementId, customColor?: string): BackArtGlowStyle => {
+  if (element === 'custom' && customColor) {
+    return {
+      colorName: 'Elemento Customizado',
+      primaryGlowRgba: customColor,
+      filter: `drop-shadow(0 0 18px ${customColor}) drop-shadow(0 0 36px ${customColor}aa)`,
+      boxShadow: `0 0 32px ${customColor}, inset 0 0 28px ${customColor}99`,
+    };
+  }
+  return OFFICIAL_BACK_ART_GLOW[element] || OFFICIAL_BACK_ART_GLOW.sangue;
 };

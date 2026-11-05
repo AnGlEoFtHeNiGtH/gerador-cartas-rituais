@@ -725,7 +725,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                             });
                             soundEngine.playSigilChime(560);
                           }}
-                          className={`group relative flex flex-col items-center justify-between p-2.5 rounded-xl border text-center transition-all ${
+                          className={`group relative flex flex-col items-center justify-between p-2 rounded-xl border text-center transition-all h-[105px] ${
                             isActive
                               ? isLightApp
                                 ? 'bg-amber-50/90 border-amber-400 shadow-md ring-2 ring-amber-400/70 text-slate-900 font-bold'
@@ -734,10 +734,10 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                               ? 'bg-white border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50'
                               : 'bg-black/50 border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:bg-zinc-900/60'
                           }`}
-                          title={`${item.name} (${item.tag}): ${item.description}`}
+                          title={`${item.name}: ${item.description}`}
                         >
                           <div
-                            className="w-12 h-12 rounded-full flex items-center justify-center p-1.5 bg-black/85 border overflow-hidden transition-transform group-hover:scale-105"
+                            className="w-11 h-11 rounded-full flex items-center justify-center p-1.5 bg-black/85 border overflow-hidden transition-transform group-hover:scale-105 shrink-0"
                             style={{
                               borderColor: item.glowRgba,
                               boxShadow: isActive ? `0 0 12px ${item.glowRgba}` : undefined,
@@ -753,16 +753,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                             />
                           </div>
 
-                          <span className="text-xs font-bold mt-2 leading-tight">
+                          <span className="text-xs font-bold leading-tight truncate w-full px-1">
                             {item.name}
                           </span>
 
-                          <span className="text-[10px] opacity-75 leading-tight line-clamp-1">
-                            {item.tag}
-                          </span>
-
                           <div
-                            className={`mt-1.5 text-[9px] font-mono px-1.5 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                            className={`text-[9px] font-mono px-2 py-0.5 rounded-full font-bold flex items-center justify-center gap-1 ${
                               isActive
                                 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
                                 : 'opacity-60'
@@ -771,7 +767,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                             {isActive ? (
                               <>
                                 <Check className="w-2.5 h-2.5" />
-                                <span>Ativo no Canto</span>
+                                <span>Ativo</span>
                               </>
                             ) : (
                               <span>Selecionar</span>

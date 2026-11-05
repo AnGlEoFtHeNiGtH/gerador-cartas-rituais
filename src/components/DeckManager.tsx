@@ -97,6 +97,7 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
   // Multi-print 2x2 selection
   const [selectedRitualIds, setSelectedRitualIds] = useState<string[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [justCopiedId, setJustCopiedId] = useState<string | null>(null);
 
   // Public Deck local state synced with storage events
   const [publicRituals, setPublicRituals] = useState<Ritual[]>(() => getPublicRituals());
@@ -113,6 +114,14 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
     }
   }, [initialTab, isOpen]);
 
+  // Sync public deck and admin auth whenever modal opens or tab changes
+  useEffect(() => {
+    if (isOpen) {
+      setPublicRituals(getPublicRituals());
+      setLocalIsAdmin(checkAdminAuth());
+    }
+  }, [isOpen, activeDeckTab]);
+
   // Sync admin authentication state across windows/modals
   useEffect(() => {
     const handleAdminSync = () => {
@@ -128,7 +137,7 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
     };
   }, []);
 
-  // Sync public deck on mount or whenever storage/custom event fires
+  // Sync public deck whenever storage or custom event fires
   useEffect(() => {
     const handleUpdate = () => {
       setPublicRituals(getPublicRituals());
@@ -198,19 +207,41 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
     }
   };
 
-  // Copy ritual from public grimoire into user's private grimoire
+  // Copy ritual from public grimoire into user's private grimoire with instant visual feedback
   const handleCopyFromPublic = (pubRitual: Ritual, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     soundEngine.playSigilChime(580);
+    setJustCopiedId(pubRitual.id);
+    setTimeout(() => {
+      setJustCopiedId((prev) => (prev === pubRitual.id ? null : prev));
+    }, 2500);
+
     if (onCopyFromPublicDeck) {
       onCopyFromPublicDeck(pubRitual);
     }
     showToast(`✦ Ritual "${pubRitual.name}" copiado para o seu Grimório Privado!`);
   };
 
-  // Admin moderation: delete from public deck
+  // Admin moderation: delete from public deck with 1-click on the trash icon
   const handleAdminDeletePublicRitual = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const target = publicRituals.find((r) => r.id === id);
+    const ritualName = target?.name || 'este ritual';
+
+    if (
+      !window.confirm(
+        `[ADMINISTRADOR] Tem certeza de que deseja excluir permanentemente o ritual "${ritualName}" do Grimório Público?`
+      )
+    ) {
+      return;
+    }
+
     soundEngine.playSigilChime(280);
     const res = deleteRitualFromPublicDeck(id);
     if (res.success) {
@@ -499,12 +530,31 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
               </button>
             </div>
 
-            {/* Tab Information Pill */}
-            <div className="hidden md:flex items-center gap-2 text-[11px]">
+            {/* Tab Information Pill & Refresh */}
+            <div className="flex items-center gap-2 text-[11px]">
               {activeDeckTab === 'public' && (
-                <span className={`italic ${isLight ? 'text-slate-500' : 'text-zinc-400'}`}>
-                  Copie qualquer ritual público para editar livremente no seu espaço privado.
-                </span>
+                <>
+                  <span className={`hidden md:inline italic ${isLight ? 'text-slate-500' : 'text-zinc-400'}`}>
+                    Copie qualquer ritual público para editar no seu espaço privado.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPublicRituals(getPublicRituals());
+                      soundEngine.playSigilChime(500);
+                      showToast('✦ Grimório público sincronizado!');
+                    }}
+                    title="Atualizar lista pública da comunidade"
+                    className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                      isLight
+                        ? 'border-slate-300 bg-white hover:bg-slate-100 text-slate-700'
+                        : 'border-zinc-700 bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300'
+                    }`}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Atualizar</span>
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -988,44 +1038,35 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                                   type="button"
                                   onClick={(e) => handleCopyFromPublic(r, e)}
                                   title="Copiar este ritual para o seu Grimório Privado"
-                                  className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-red-600 hover:bg-red-500 text-white shadow-xs transition-colors cursor-pointer"
+                                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold shadow-xs transition-all cursor-pointer ${
+                                    justCopiedId === r.id
+                                      ? 'bg-emerald-600 text-white shadow-emerald-950/40 ring-1 ring-emerald-400'
+                                      : 'bg-red-600 hover:bg-red-500 text-white hover:shadow-md active:scale-95'
+                                  }`}
                                 >
-                                  <DownloadCloud className="w-3 h-3" />
-                                  <span>Copiar</span>
+                                  {justCopiedId === r.id ? (
+                                    <>
+                                      <Check className="w-3 h-3 stroke-[3]" />
+                                      <span>Copiado!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <DownloadCloud className="w-3 h-3" />
+                                      <span>Copiar</span>
+                                    </>
+                                  )}
                                 </button>
 
-                                {/* ADMIN EXCLUSION PRIVILEGE */}
+                                {/* ADMIN EXCLUSION PRIVILEGE: 1-CLIQUE NA LIXEIRA */}
                                 {effectiveIsAdmin && (
-                                  <>
-                                    {confirmAdminDeleteId === r.id ? (
-                                      <div className="flex items-center gap-1 bg-red-950 border border-red-700 px-1.5 py-0.5 rounded">
-                                        <span className="text-[9px] text-red-200 font-bold">Excluir do público?</span>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => handleAdminDeletePublicRitual(r.id, e)}
-                                          className="text-[9px] bg-red-600 hover:bg-red-500 text-white px-1.5 py-0.2 rounded font-bold cursor-pointer"
-                                        >
-                                          Sim
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={() => setConfirmAdminDeleteId(null)}
-                                          className="text-[9px] text-zinc-400 hover:text-white cursor-pointer"
-                                        >
-                                          Não
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        onClick={() => setConfirmAdminDeleteId(r.id)}
-                                        title="[ADMIN] Excluir permanentemente este ritual do Grimório Público"
-                                        className="p-1 rounded bg-red-950/70 hover:bg-red-900 border border-red-800 text-red-400 hover:text-red-200 transition-colors cursor-pointer shadow-xs"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                                      </button>
-                                    )}
-                                  </>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => handleAdminDeletePublicRitual(r.id, e)}
+                                    title="[ADMINISTRADOR] Excluir permanentemente este ritual do Grimório Público"
+                                    className="p-1.5 rounded-lg bg-red-950/80 hover:bg-red-900 border border-red-700/80 text-red-400 hover:text-white transition-all cursor-pointer shadow-xs hover:scale-105 active:scale-95"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                                  </button>
                                 )}
                               </>
                             )}

@@ -35,7 +35,7 @@ export const ELEMENT_SYMBOLS_LIST: OfficialElementSymbolItem[] = [
   {
     element: 'sangue',
     name: 'Sangue',
-    tag: 'SANGUE_SIMBOLO_PADRAO',
+    tag: 'Sentimento & Dor',
     url: SANGUE_SIMBOLO_PADRAO,
     colorName: 'Vermelho Carmesim',
     glowRgba: 'rgba(220, 38, 38, 0.85)',
@@ -44,7 +44,7 @@ export const ELEMENT_SYMBOLS_LIST: OfficialElementSymbolItem[] = [
   {
     element: 'morte',
     name: 'Morte',
-    tag: 'MORTE_SIMBOLO_PADRAO',
+    tag: 'Tempo & Entropia',
     url: MORTE_SIMBOLO_PADRAO,
     colorName: 'Preto Espectral',
     glowRgba: 'rgba(10, 10, 15, 0.95)',
@@ -53,7 +53,7 @@ export const ELEMENT_SYMBOLS_LIST: OfficialElementSymbolItem[] = [
   {
     element: 'energia',
     name: 'Energia',
-    tag: 'ENERGIA_SIMBOLO_PADRAO',
+    tag: 'Caos & Eletricidade',
     url: ENERGIA_SIMBOLO_PADRAO,
     colorName: 'Roxo Elétrico',
     glowRgba: 'rgba(168, 85, 247, 0.85)',
@@ -62,7 +62,7 @@ export const ELEMENT_SYMBOLS_LIST: OfficialElementSymbolItem[] = [
   {
     element: 'conhecimento',
     name: 'Conhecimento',
-    tag: 'CONHECIMENTO_SIMBOLO_PADRAO',
+    tag: 'Razão & Saber',
     url: CONHECIMENTO_SIMBOLO_PADRAO,
     colorName: 'Dourado Radiante',
     glowRgba: 'rgba(234, 179, 8, 0.85)',
@@ -71,7 +71,7 @@ export const ELEMENT_SYMBOLS_LIST: OfficialElementSymbolItem[] = [
   {
     element: 'medo',
     name: 'Medo',
-    tag: 'MEDO_SIMBOLO_PADRAO',
+    tag: 'O Outro Lado',
     url: MEDO_SIMBOLO_PADRAO,
     colorName: 'Branco / Ciano Espectral',
     glowRgba: 'rgba(164, 242, 244, 0.85)',

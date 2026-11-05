@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { authenticateAdmin, logoutAdmin, ADMIN_CREDENTIALS } from '../utils/adminAuth';
 import { soundEngine } from '../utils/audio';
 import {
@@ -36,6 +36,17 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successAnimation, setSuccessAnimation] = useState(false);
+
+  // Ensure modal inputs always start completely clean on open
+  useEffect(() => {
+    if (isOpen) {
+      setLoginInput('');
+      setPasswordInput('');
+      setErrorMessage(null);
+      setSuccessAnimation(false);
+      setShowPassword(false);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -280,19 +291,20 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                 </div>
               </div>
 
-              {/* Preencher Credenciais Helper */}
+              {/* Informação de Acesso e Atalho Discreto para Testes */}
               <div className="flex items-center justify-between text-[11px] pt-1">
-                <span className={isLight ? 'text-slate-500' : 'text-zinc-500'}>
-                  Credencial designada: <code className="font-bold">Gauss0413</code>
+                <span className={`text-[11px] ${isLight ? 'text-slate-500' : 'text-zinc-500'}`}>
+                  Insira o usuário e a chave de acesso
                 </span>
                 <button
                   type="button"
                   onClick={handleFillDemoAdmin}
-                  className={`hover:underline cursor-pointer ${
-                    isLight ? 'text-red-700' : 'text-red-400'
+                  title="Atalho de teste de administrador"
+                  className={`opacity-30 hover:opacity-90 text-[10px] font-mono transition-opacity cursor-pointer ${
+                    isLight ? 'text-slate-600 hover:text-red-700' : 'text-zinc-500 hover:text-red-400'
                   }`}
                 >
-                  Preencher dados
+                  [Preencher Teste]
                 </button>
               </div>
 

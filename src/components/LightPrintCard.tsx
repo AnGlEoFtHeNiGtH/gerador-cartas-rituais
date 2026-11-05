@@ -1,8 +1,29 @@
 import React from 'react';
-import { Ritual, ELEMENT_CONFIGS, ElementConfig } from '../types';
+import {
+  Ritual,
+  ELEMENT_CONFIGS,
+  ElementConfig,
+  MUNDANE_SUBCATEGORIES,
+  MundaneSubcategory,
+} from '../types';
 import { OccultSigil } from './OccultSigil';
 import { formatRitualText, healCorruptedCharacters, sanitizeTextForCustomFont } from '../utils/textFormatter';
-import { Compass, Target, Clock, Zap, ShieldAlert, Sparkles, Feather } from 'lucide-react';
+import {
+  Compass,
+  Target,
+  Clock,
+  Zap,
+  ShieldAlert,
+  Sparkles,
+  Feather,
+  Crosshair,
+  Shield,
+  Boxes,
+  Briefcase,
+  FlaskConical,
+  Skull,
+  CircleDot,
+} from 'lucide-react';
 
 interface LightPrintCardProps {
   ritual: Ritual;
@@ -37,6 +58,13 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
       : ELEMENT_CONFIGS[ritual.element];
 
   const elementConfig: ElementConfig = baseConfig;
+  const isMundane = ritual.cardCategory === 'mundano';
+  const isCursed = ritual.cardCategory === 'amaldicoado';
+  const isRitual = !isMundane && !isCursed;
+  const mundaneConfig = ritual.mundaneSubcategory
+    ? MUNDANE_SUBCATEGORIES[ritual.mundaneSubcategory]
+    : MUNDANE_SUBCATEGORIES.arma;
+
   const basePdValue =
     ritual.basePd || (ritual as unknown as { basePe?: string }).basePe || '1 PD';
 
@@ -110,21 +138,31 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
           {/* ======================================================== */}
           {viewSide === 'front' ? (
             <div className="flex flex-col h-full justify-between relative z-10">
-              {/* TOP HEADER: LEFT-ALIGNED HIGHLIGHTED TITLE + TOP-RIGHT PD BADGE */}
+              {/* TOP HEADER: LEFT-ALIGNED HIGHLIGHTED TITLE + TOP-RIGHT BADGE */}
               <div className="pb-2.5 border-b-2 border-slate-900">
                 <div className="flex items-start justify-between gap-3">
-                  {/* Left: Left-aligned Ritual Title Banner */}
+                  {/* Left: Left-aligned Item / Ritual Title Banner */}
                   <div className="flex-1 min-w-0">
                     {/* Category Kicker */}
                     <div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider uppercase text-slate-600 mb-0.5">
                       <span className="font-bold text-slate-900">
-                        {elementConfig.name.toUpperCase()}
+                        {isMundane
+                          ? (mundaneConfig?.name.toUpperCase() || 'ITEM MUNDANO')
+                          : isCursed
+                          ? `MALDIÇÃO: ${(ritual.curseName || 'SANGUINÁRIA').toUpperCase()}`
+                          : elementConfig.name.toUpperCase()}
                       </span>
                       <span>·</span>
-                      <span>{ritual.circle}º CÍRCULO (GRAU {romanNumerals[ritual.circle] || 'I'})</span>
+                      <span>
+                        {isMundane
+                          ? `CAT ${ritual.itemCategory || 'I'} · ${ritual.inventorySlots || 1} ESP`
+                          : isCursed
+                          ? `${elementConfig.name.toUpperCase()} · CAT ${ritual.itemCategory || 'III'}`
+                          : `${ritual.circle}º CÍRCULO (GRAU ${romanNumerals[ritual.circle] || 'I'})`}
+                      </span>
                     </div>
 
-                    {/* Ritual Title in Westsac Font with Highlighted Background and Unicode Fallback */}
+                    {/* Title in Westsac Font with Highlighted Background and Unicode Fallback */}
                     <div className="bg-slate-900 text-white px-2.5 py-1 rounded-sm shadow-xs inline-block max-w-full">
                       <h2
                         className={`font-title ${titleFontSizeClass} font-bold tracking-wider uppercase line-clamp-2 break-words leading-snug`}
@@ -139,89 +177,215 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
                     </div>
                   </div>
 
-                  {/* Top-Right: PD Cost Badge */}
+                  {/* Top-Right: Cost or Category Badge */}
                   <div className="shrink-0 flex flex-col items-center justify-center border-2 border-slate-900 bg-slate-100 px-3 py-1.5 rounded-lg shadow-xs min-w-[72px]">
                     <span className="text-[9px] font-mono uppercase tracking-widest text-slate-600 font-semibold leading-none">
-                      CUSTO
+                      {isMundane ? 'CATEGORIA' : isCursed ? 'TRIBUTO' : 'CUSTO'}
                     </span>
                     <span className="font-title text-base md:text-lg font-bold text-slate-950 mt-0.5 leading-none">
-                      {basePdValue}
+                      {isMundane
+                        ? `CAT ${ritual.itemCategory || 'I'}`
+                        : isCursed
+                        ? (ritual.curseCost || '1 San')
+                        : basePdValue}
                     </span>
                   </div>
                 </div>
 
-                {/* SIMPLIFIED & CLEAN ATTRIBUTES BAR */}
-                <div className="mt-2.5 pt-2 border-t border-slate-200 grid grid-cols-5 gap-1 text-center bg-slate-50/80 rounded-md p-1.5 border border-slate-200">
-                  {/* Execução */}
-                  <div className="flex flex-col items-center justify-center min-w-0 overflow-hidden">
-                    <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
-                      <Zap className="w-3 h-3 text-slate-700 shrink-0" />
-                      Exec
-                    </span>
-                    <span
-                      className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
-                      title={healCorruptedCharacters(ritual.execution || '')}
-                    >
-                      {healCorruptedCharacters(ritual.execution || 'Padrão')}
-                    </span>
+                {/* DYNAMIC ATTRIBUTES BAR (ADAPTS TO CATEGORY & SUBCATEGORY) */}
+                {isMundane && (ritual.mundaneSubcategory || 'arma') === 'arma' ? (
+                  <div className="mt-2.5 pt-2 border-t border-slate-200 grid grid-cols-5 gap-1 text-center bg-slate-50/80 rounded-md p-1.5 border border-slate-200">
+                    <div className="flex flex-col items-center justify-center min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Dano</span>
+                      <span className="text-[11.5px] font-mono font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.weaponDamage || '1d8'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Crítico</span>
+                      <span className="text-[11.5px] font-mono font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.weaponCritical || '20/x2'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Alcance</span>
+                      <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.weaponRange || ritual.range || 'Curto'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Tipo</span>
+                      <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.weaponDamageType || 'Balístico'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Empunhadura</span>
+                      <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.weaponGrip || '1 Mão'}
+                      </span>
+                    </div>
                   </div>
+                ) : isMundane && ritual.mundaneSubcategory === 'protecao' ? (
+                  <div className="mt-2.5 pt-2 border-t border-slate-200 grid grid-cols-4 gap-1 text-center bg-slate-50/80 rounded-md p-1.5 border border-slate-200">
+                    <div className="flex flex-col items-center justify-center min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Defesa</span>
+                      <span className="text-[12px] font-mono font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.protectionDefense || '+5'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Penalidade</span>
+                      <span className="text-[12px] font-mono font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.protectionPenalty || '0'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Tipo</span>
+                      <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.protectionType || 'Leve'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Espaços</span>
+                      <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.inventorySlots || 2} Esp
+                      </span>
+                    </div>
+                  </div>
+                ) : isCursed ? (
+                  <div className="mt-2.5 pt-2 border-t border-slate-200 grid grid-cols-4 gap-1 text-center bg-slate-50/80 rounded-md p-1.5 border border-slate-200">
+                    <div className="flex flex-col items-center justify-center min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Dano</span>
+                      <span className="text-[11.5px] font-mono font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.weaponDamage || '1d10+2'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Crítico</span>
+                      <span className="text-[11.5px] font-mono font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.weaponCritical || '19/x3'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Elemento</span>
+                      <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
+                        {elementConfig.name}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="text-[9px] font-mono uppercase font-semibold text-slate-500">Espaços</span>
+                      <span className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5">
+                        {ritual.inventorySlots || 2} Esp
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* Standard Ritual Attribute Bar */
+                  <div className="mt-2.5 pt-2 border-t border-slate-200 grid grid-cols-5 gap-1 text-center bg-slate-50/80 rounded-md p-1.5 border border-slate-200">
+                    <div className="flex flex-col items-center justify-center min-w-0 overflow-hidden">
+                      <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
+                        <Zap className="w-3 h-3 text-slate-700 shrink-0" />
+                        Exec
+                      </span>
+                      <span
+                        className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
+                        title={healCorruptedCharacters(ritual.execution || '')}
+                      >
+                        {healCorruptedCharacters(ritual.execution || 'Padrão')}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
+                        <Compass className="w-3 h-3 text-slate-700 shrink-0" />
+                        Alc
+                      </span>
+                      <span
+                        className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
+                        title={healCorruptedCharacters(ritual.range || '')}
+                      >
+                        {healCorruptedCharacters(ritual.range || 'Toque')}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
+                        <Target className="w-3 h-3 text-slate-700 shrink-0" />
+                        Alvo
+                      </span>
+                      <span
+                        className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
+                        title={healCorruptedCharacters(ritual.target || '')}
+                      >
+                        {healCorruptedCharacters(ritual.target || '1 criatura')}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
+                        <Clock className="w-3 h-3 text-slate-700 shrink-0" />
+                        Dur
+                      </span>
+                      <span
+                        className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
+                        title={healCorruptedCharacters(ritual.duration || '')}
+                      >
+                        {healCorruptedCharacters(ritual.duration || 'Instantânea')}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
+                      <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
+                        <ShieldAlert className="w-3 h-3 text-slate-700 shrink-0" />
+                        Resist
+                      </span>
+                      <span
+                        className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
+                        title={healCorruptedCharacters(ritual.resistance || '')}
+                      >
+                        {healCorruptedCharacters(ritual.resistance || 'Nenhuma')}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
-                  {/* Alcance */}
-                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
-                    <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
-                      <Compass className="w-3 h-3 text-slate-700 shrink-0" />
-                      Alc
-                    </span>
-                    <span
-                      className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
-                      title={healCorruptedCharacters(ritual.range || '')}
-                    >
-                      {healCorruptedCharacters(ritual.range || 'Toque')}
+                {/* PRINTABLE USAGE TRACKER (BOLINHAS DE USOS PARA PREENCHIMENTO À CANETA) */}
+                {(ritual.showUseTracker || (isMundane && Boolean(ritual.maxUses && ritual.maxUses > 0))) && (
+                  <div className="mt-2 px-2.5 py-1.5 rounded-md flex items-center justify-between gap-2 border border-slate-400 bg-slate-50">
+                    <div className="flex items-center gap-1 text-[9.5px] font-mono font-bold tracking-wider uppercase text-slate-700">
+                      <CircleDot className="w-3.5 h-3.5 text-slate-900 shrink-0" />
+                      <span>RASTREADOR DE CARGAS / USOS:</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {[...Array(Math.min(ritual.maxUses || 6, 12))].map((_, i) => {
+                        const total = ritual.maxUses || 6;
+                        const available = ritual.currentUses !== undefined ? ritual.currentUses : total;
+                        const isFilled = i < available;
+                        return (
+                          <div
+                            key={i}
+                            className={`w-3.5 h-3.5 rounded-full border-2 border-slate-900 flex items-center justify-center ${
+                              isFilled ? 'bg-slate-900' : 'bg-white'
+                            }`}
+                            title={`Carga ${i + 1}`}
+                          >
+                            {isFilled && <div className="w-1 h-1 rounded-full bg-white" />}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-slate-700">
+                      {(ritual.currentUses !== undefined ? ritual.currentUses : (ritual.maxUses || 6))}/{(ritual.maxUses || 6)}
                     </span>
                   </div>
+                )}
 
-                  {/* Alvo / Área */}
-                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
-                    <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
-                      <Target className="w-3 h-3 text-slate-700 shrink-0" />
-                      Alvo
+                {/* Efeito Passivo da Maldição em Destaque no Draft */}
+                {isCursed && ritual.cursePassiveEffect && (
+                  <div className="mt-2 p-2 rounded-md border border-slate-300 bg-slate-100 text-[11px] leading-snug">
+                    <span className="font-bold font-mono uppercase text-[9.5px] block text-slate-800 mb-0.5">
+                      Efeito Passivo da Maldição:
                     </span>
-                    <span
-                      className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
-                      title={healCorruptedCharacters(ritual.target || '')}
-                    >
-                      {healCorruptedCharacters(ritual.target || '1 criatura')}
-                    </span>
+                    <span>{ritual.cursePassiveEffect}</span>
                   </div>
-
-                  {/* Duração */}
-                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
-                    <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
-                      <Clock className="w-3 h-3 text-slate-700 shrink-0" />
-                      Dur
-                    </span>
-                    <span
-                      className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
-                      title={healCorruptedCharacters(ritual.duration || '')}
-                    >
-                      {healCorruptedCharacters(ritual.duration || 'Instantânea')}
-                    </span>
-                  </div>
-
-                  {/* Resistência */}
-                  <div className="flex flex-col items-center justify-center border-l border-slate-300 pl-1 min-w-0 overflow-hidden">
-                    <span className="flex items-center gap-1 text-[9.5px] font-mono uppercase font-semibold text-slate-500">
-                      <ShieldAlert className="w-3 h-3 text-slate-700 shrink-0" />
-                      Resist
-                    </span>
-                    <span
-                      className="text-[11.5px] font-bold text-slate-900 truncate w-full mt-0.5"
-                      title={healCorruptedCharacters(ritual.resistance || '')}
-                    >
-                      {healCorruptedCharacters(ritual.resistance || 'Nenhuma')}
-                    </span>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* MAIN BODY: SOBRE / EFEITO COM BORDAS ARREDONDADAS SUAVES */}
@@ -229,7 +393,7 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
                 <div className="border border-slate-300 rounded-xl p-3 bg-white flex-1 flex flex-col overflow-hidden shadow-2xs">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-1 mb-2">
                     <span className="text-[10px] font-mono uppercase font-bold text-slate-700 tracking-wider">
-                      ✦ SOBRE O EFEITO DO RITUAL
+                      ✦ {isMundane ? 'DADOS & OPERAÇÃO DO ITEM' : isCursed ? 'HISTÓRIA & MALDIÇÃO DO ITEM' : 'SOBRE O EFEITO DO RITUAL'}
                     </span>
                     <span className="text-[9px] font-mono text-slate-400">
                       REF: {ritual.id.slice(-6).toUpperCase()}
@@ -259,7 +423,13 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
                   <span className="font-bold text-slate-900 uppercase tracking-wider">
                     ORDEM PARANORMAL · FICHA DE CAMPO
                   </span>
-                  <span>ARQUIVO INVESTIGATIVO · ELEMENTO {elementConfig.name.toUpperCase()}</span>
+                  <span>
+                    {isMundane
+                      ? `ARQUIVO TÁTICO · ${mundaneConfig?.name.toUpperCase() || 'ITEM MUNDANO'}`
+                      : isCursed
+                      ? `ARQUIVO DE RELÍQUIA · ELEMENTO ${elementConfig.name.toUpperCase()}`
+                      : `ARQUIVO INVESTIGATIVO · ELEMENTO ${elementConfig.name.toUpperCase()}`}
+                  </span>
                   <span className="text-slate-400 mt-0.5">VERSÃO DE IMPRESSÃO LEVE (ECONOMIA DE TINTA)</span>
                 </div>
 
@@ -286,7 +456,7 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
                 {/* Left: Section Header & Ritual Context */}
                 <div className="flex-1 min-w-0">
                   <div className="text-[10px] font-mono tracking-wider uppercase text-slate-600 mb-0.5">
-                    VERSO · APRIMORAMENTOS & GRAUS
+                    {isMundane ? 'VERSO · ACESSÓRIOS & ADAPTAÇÕES' : isCursed ? 'VERSO · PODERES DA MALDIÇÃO' : 'VERSO · APRIMORAMENTOS & GRAUS'}
                   </div>
                   <div className="bg-slate-900 text-white px-2.5 py-1 rounded-sm shadow-xs inline-block max-w-full">
                     <h2
@@ -297,7 +467,11 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
                     </h2>
                   </div>
                   <div className="text-[11px] font-mono text-slate-600 font-semibold mt-1">
-                    MODIFICAÇÕES DE PODER ({basePdValue} BASE)
+                    {isMundane
+                      ? `MODIFICAÇÕES TÁTICAS (CAT ${ritual.itemCategory || 'I'})`
+                      : isCursed
+                      ? `TRIBUTO DA RELÍQUIA (${ritual.curseCost || '1 Sanidade'})`
+                      : `MODIFICAÇÕES DE PODER (${basePdValue} BASE)`}
                   </div>
                 </div>
 

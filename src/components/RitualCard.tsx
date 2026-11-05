@@ -1,5 +1,11 @@
 import React from 'react';
-import { Ritual, ELEMENT_CONFIGS, ElementConfig, getOfficialBackArtGlow } from '../types';
+import {
+  Ritual,
+  ELEMENT_CONFIGS,
+  ElementConfig,
+  getOfficialBackArtGlow,
+  getElementDefaultSymbol,
+} from '../types';
 import { OccultSigil, GrandOccultSeal } from './OccultSigil';
 import { formatRitualText, healCorruptedCharacters, sanitizeTextForCustomFont } from '../utils/textFormatter';
 import { Compass, Target, Hourglass, Zap, ShieldAlert, Sparkles } from 'lucide-react';
@@ -11,6 +17,7 @@ interface RitualCardProps {
   scale?: number;
   id?: string;
   className?: string;
+  onUpdateUses?: (newUses: number) => void;
 }
 
 export const RitualCard: React.FC<RitualCardProps> = ({
@@ -20,6 +27,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
   scale = 1,
   id = 'ritual-card-canvas',
   className = '',
+  onUpdateUses,
 }) => {
   const isLight = ritual.theme.cardMode === 'light';
 
@@ -52,6 +60,9 @@ export const RitualCard: React.FC<RitualCardProps> = ({
 
   const currentSide = isFlipped ? (viewSide === 'front' ? 'back' : 'front') : viewSide;
   const isBack = currentSide === 'back';
+  const defaultElementSymbol = getElementDefaultSymbol(ritual.element);
+  // Auto-loads official element standard symbol unless card has user-uploaded custom icon
+  const effectiveElementIcon = ritual.customElementIcon || defaultElementSymbol;
   const backArtGlowStyle = getOfficialBackArtGlow(ritual.element, ritual.customElementColor);
   const basePdValue =
     ritual.basePd || (ritual as unknown as { basePe?: string }).basePe || '1 PD';
@@ -239,7 +250,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                 <OccultSigil
                   element={ritual.element}
                   symbolPreset={ritual.symbolPreset}
-                  customIconUrl={ritual.customElementIcon}
+                  customIconUrl={effectiveElementIcon}
                   customIconFilter={ritual.theme.customIconFilter}
                   customIconInvert={ritual.theme.customIconInvert}
                   cardMode={ritual.theme.cardMode}
@@ -318,11 +329,14 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                               ? 'border-zinc-300 bg-zinc-50'
                               : 'border-zinc-700 bg-black/80'
                           }`}
+                          style={{
+                            borderColor: activeAccentColor,
+                          }}
                         >
                           <OccultSigil
                             element={ritual.element}
                             symbolPreset={ritual.symbolPreset}
-                            customIconUrl={ritual.customElementIcon}
+                            customIconUrl={effectiveElementIcon}
                             customIconFilter={ritual.theme.customIconFilter}
                             customIconInvert={ritual.theme.customIconInvert}
                             cardMode={ritual.theme.cardMode}
@@ -769,7 +783,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       <OccultSigil
                         element={ritual.element}
                         symbolPreset={ritual.symbolPreset}
-                        customIconUrl={ritual.customElementIcon}
+                        customIconUrl={effectiveElementIcon}
                         customIconFilter={ritual.theme.customIconFilter}
                         customIconInvert={ritual.theme.customIconInvert}
                         cardMode={ritual.theme.cardMode}
@@ -783,7 +797,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       <OccultSigil
                         element={ritual.element}
                         symbolPreset={ritual.symbolPreset}
-                        customIconUrl={ritual.customElementIcon}
+                        customIconUrl={effectiveElementIcon}
                         customIconFilter={ritual.theme.customIconFilter}
                         customIconInvert={ritual.theme.customIconInvert}
                         cardMode={ritual.theme.cardMode}

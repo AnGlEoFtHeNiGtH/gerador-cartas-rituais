@@ -97,13 +97,13 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
         break;
       case 'auto':
       default:
-        // Automatically harmonize white/black backgrounds
+        // Automatically harmonize official symbols and white/black backgrounds
         if (cardMode === 'light') {
-          // On light mode cards, multiply blending cleanly drops white backgrounds!
+          // In light mode, inverting white runes turns them into crisp dark runes; multiply drops white backgrounds
+          filterStyle += ' invert(100%) contrast(120%)';
           blendModeStyle = 'multiply';
-          filterStyle += ' contrast(115%)';
         } else {
-          // On dark mode cards, if the image has a white background, invert or screen it
+          // In dark mode, screen blend mode cleanly drops black backgrounds and keeps white/spectral runes shining
           blendModeStyle = 'screen';
           filterStyle += ' contrast(110%)';
         }

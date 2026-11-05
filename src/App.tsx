@@ -727,6 +727,7 @@ export default function App() {
                     ritual={currentRitual}
                     viewSide={activeView}
                     scale={cardScale}
+                    onUpdateUses={(newUses) => handleRitualChange({ ...currentRitual, currentUses: newUses })}
                   />
                 </div>
               </div>
@@ -746,6 +747,7 @@ export default function App() {
                     ritual={currentRitual}
                     viewSide="front"
                     scale={Math.min(0.92, cardScale)}
+                    onUpdateUses={(newUses) => handleRitualChange({ ...currentRitual, currentUses: newUses })}
                   />
                 </div>
 

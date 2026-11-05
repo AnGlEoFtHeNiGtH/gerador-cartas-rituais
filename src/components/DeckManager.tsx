@@ -769,12 +769,23 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                                 />
                               </div>
 
-                              {/* Element Label */}
+                              {/* Category / Element Label */}
                               <span
                                 className="text-[10px] font-mono font-bold uppercase tracking-wider"
-                                style={{ color: elementConfig.primaryColor }}
+                                style={{
+                                  color:
+                                    r.cardCategory === 'mundano'
+                                      ? '#d97706'
+                                      : r.cardCategory === 'amaldicoado'
+                                      ? '#a855f7'
+                                      : elementConfig.primaryColor,
+                                }}
                               >
-                                {elementConfig.name}
+                                {r.cardCategory === 'mundano'
+                                  ? (r.mundaneSubcategory || 'Mundano').replace('_', ' ')
+                                  : r.cardCategory === 'amaldicoado'
+                                  ? (r.curseName || 'Amaldiçoado')
+                                  : elementConfig.name}
                               </span>
                             </div>
 
@@ -791,7 +802,11 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                                     : 'text-zinc-400 bg-black/50 border-zinc-800'
                                 }`}
                               >
-                                {r.circle}º Círculo
+                                {r.cardCategory === 'mundano'
+                                  ? `CAT ${r.itemCategory || 'I'}`
+                                  : r.cardCategory === 'amaldicoado'
+                                  ? `CAT ${r.itemCategory || 'III'}`
+                                  : `${r.circle}º Círculo`}
                               </span>
                             </div>
                           </div>
@@ -837,10 +852,28 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                               isLight ? 'text-slate-500' : 'text-zinc-400'
                             }`}
                           >
-                            {healCorruptedCharacters(r.execution)} •{' '}
-                            <span className={isLight ? 'text-red-700 font-bold' : 'text-red-300'}>
-                              {displayPd}
-                            </span>
+                            {r.cardCategory === 'mundano' ? (
+                              <span>
+                                {r.weaponDamage || r.protectionDefense || healCorruptedCharacters(r.execution || 'Padrão')} •{' '}
+                                <span className={isLight ? 'text-amber-800 font-bold' : 'text-amber-300'}>
+                                  {r.inventorySlots || 1} Esp
+                                </span>
+                              </span>
+                            ) : r.cardCategory === 'amaldicoado' ? (
+                              <span>
+                                {r.weaponDamage || '1d10'} •{' '}
+                                <span className={isLight ? 'text-purple-800 font-bold' : 'text-purple-300'}>
+                                  {r.curseCost || '1 San'}
+                                </span>
+                              </span>
+                            ) : (
+                              <span>
+                                {healCorruptedCharacters(r.execution)} •{' '}
+                                <span className={isLight ? 'text-red-700 font-bold' : 'text-red-300'}>
+                                  {displayPd}
+                                </span>
+                              </span>
+                            )}
                           </span>
 
                           {/* Action buttons based on active tab */}

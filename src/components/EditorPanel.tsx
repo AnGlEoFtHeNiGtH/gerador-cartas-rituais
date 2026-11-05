@@ -10,8 +10,11 @@ import {
   CustomIconFilter,
   ELEMENT_CONFIGS,
   getOfficialBackArtGlow,
+  ELEMENT_SYMBOLS_LIST,
+  getElementDefaultSymbol,
+  OFFICIAL_ELEMENT_SYMBOLS,
 } from '../types';
-import { OccultSigil, SIGIL_PRESETS } from './OccultSigil';
+import { OccultSigil } from './OccultSigil';
 import { soundEngine } from '../utils/audio';
 import {
   Plus,
@@ -32,6 +35,9 @@ import {
   Wand2,
   Feather,
   Share2,
+  Shield,
+  Check,
+  RotateCcw,
 } from 'lucide-react';
 
 interface EditorPanelProps {
@@ -89,6 +95,14 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
   const [activeTab, setActiveTab] = useState<'content' | 'mods' | 'art' | 'style'>('content');
   const [imageInputUrl, setImageInputUrl] = useState('');
   const [iconInputUrl, setIconInputUrl] = useState('');
+
+  const isCustomIconActive = Boolean(
+    ritual.customElementIcon &&
+    !Object.values(OFFICIAL_ELEMENT_SYMBOLS).includes(ritual.customElementIcon)
+  );
+  const [symbolTab, setSymbolTab] = useState<'official' | 'custom'>(() =>
+    isCustomIconActive ? 'custom' : 'official'
+  );
 
   const isLightApp = appMode === 'light';
   const elementGlowConfig = getOfficialBackArtGlow(ritual.element, ritual.customElementColor);
@@ -250,6 +264,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
 
     try {
       const base64 = await processUploadedImage(file, 300);
+      setSymbolTab('custom');
       update({
         customElementIcon: base64,
       });
@@ -472,7 +487,10 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                           type="button"
                           onClick={() => {
                             soundEngine.playSigilChime();
-                            update({ element: elem });
+                            update({
+                              element: elem,
+                              ...(symbolTab === 'official' ? { customElementIcon: undefined } : {}),
+                            });
                           }}
                           className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-xs transition-all ${
                             isSelected
@@ -487,7 +505,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                           <OccultSigil
                             element={elem}
                             symbolPreset={ritual.symbolPreset}
-                            customIconUrl={ritual.customElementIcon}
+                            customIconUrl={getElementDefaultSymbol(elem)}
                             customIconFilter={ritual.theme.customIconFilter}
                             customIconInvert={ritual.theme.customIconInvert}
                             cardMode={ritual.theme.cardMode}
@@ -569,171 +587,361 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
               </div>
             </div>
 
-            {/* Símbolo do Elemento Universal (Pre-configurados ou Qualquer Imagem) */}
+            {/* Símbolo do Elemento: Oficial vs Personalizado */}
             <div
-              className={`p-3.5 rounded-xl border space-y-3 ${
+              className={`p-3.5 rounded-xl border space-y-3.5 transition-colors ${
                 isLightApp ? 'bg-slate-50 border-slate-200' : 'bg-[#181820] border-zinc-800'
               }`}
             >
-              <div className="flex items-center justify-between">
+              {/* Header com indicador do estado atual */}
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <span className="text-xs font-mono uppercase tracking-wider font-bold block">
-                    Símbolo do Elemento
-                  </span>
-                  <span className="text-[11px] opacity-75 block">
-                    Escolha um símbolo temático ou envie qualquer imagem própria
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-mono uppercase tracking-wider font-bold block">
+                      Símbolo do Canto Superior
+                    </span>
+                    <span
+                      className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-semibold border ${
+                        ritual.customElementIcon && !Object.values(OFFICIAL_ELEMENT_SYMBOLS).includes(ritual.customElementIcon)
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                          : 'bg-red-500/10 text-red-400 border-red-500/30'
+                      }`}
+                    >
+                      {ritual.customElementIcon && !Object.values(OFFICIAL_ELEMENT_SYMBOLS).includes(ritual.customElementIcon)
+                        ? '★ Ícone Customizado'
+                        : `✦ Símbolo Oficial (${ELEMENT_CONFIGS[ritual.element]?.name || 'Elemento'})`}
+                    </span>
+                  </div>
+                  <span className="text-[11px] opacity-75 block mt-0.5">
+                    Escolha o símbolo oficial canônico de Ordem Paranormal ou envie um ícone customizado
                   </span>
                 </div>
+
                 {ritual.customElementIcon && (
                   <button
                     type="button"
-                    onClick={() => update({ customElementIcon: undefined })}
-                    className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1 font-semibold"
+                    onClick={() => {
+                      update({ customElementIcon: undefined });
+                      setSymbolTab('official');
+                      soundEngine.playSigilChime(500);
+                    }}
+                    className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1 font-semibold shrink-0 transition-colors"
+                    title="Restaurar o símbolo oficial correspondente ao elemento"
                   >
-                    <X className="w-3.5 h-3.5" />
-                    <span>Restaurar Padrão</span>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Restaurar Oficial</span>
                   </button>
                 )}
               </div>
 
-              {/* Presets Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 max-h-36 overflow-y-auto pr-1">
-                {SIGIL_PRESETS.map((preset) => {
-                  const isSelected =
-                    !ritual.customElementIcon &&
-                    (ritual.symbolPreset || 'default') === preset.id;
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      onClick={() => {
-                        update({
-                          symbolPreset: preset.id,
-                          customElementIcon: undefined,
-                        });
-                        soundEngine.playSigilChime(500);
-                      }}
-                      className={`flex items-center gap-1.5 p-1.5 rounded-lg border text-left text-xs transition-all ${
-                        isSelected
-                          ? isLightApp
-                            ? 'bg-slate-900 border-slate-900 text-white font-bold'
-                            : 'bg-zinc-800 border-zinc-400 text-white font-semibold'
-                          : isLightApp
-                          ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
-                          : 'bg-black/50 border-zinc-800/80 text-zinc-400 hover:text-zinc-200'
-                      }`}
-                    >
-                      <OccultSigil
-                        element={ritual.element}
-                        symbolPreset={preset.id}
-                        cardMode={ritual.theme.cardMode}
-                        size={20}
-                        color={isSelected ? undefined : undefined}
-                      />
-                      <span className="text-[11px] truncate">{preset.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Universal Image Upload & Treatment for Custom Icons */}
+              {/* Seletor de 2 Abas: Símbolo Oficial vs Ícone Personalizado */}
               <div
-                className={`pt-2.5 border-t space-y-2 ${
-                  isLightApp ? 'border-slate-200' : 'border-zinc-800'
+                className={`flex rounded-xl p-1 border gap-1 ${
+                  isLightApp ? 'bg-slate-200/80 border-slate-300' : 'bg-black/60 border-zinc-800'
                 }`}
               >
-                <div className="flex flex-wrap items-center gap-2">
-                  <label className="flex items-center gap-1.5 px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs transition-colors">
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>Upload de Qualquer Imagem (PNG/JPG/SVG)</span>
-                    <input
-                      type="file"
-                      accept="image/*,.svg"
-                      onChange={handleSymbolIconUpload}
-                      className="hidden"
-                    />
-                  </label>
-
-                  {/* Icon URL */}
-                  <div className="flex-1 min-w-[170px] flex items-center gap-1">
-                    <input
-                      type="text"
-                      value={iconInputUrl}
-                      onChange={(e) => setIconInputUrl(e.target.value)}
-                      placeholder="Ou cole URL da imagem..."
-                      className={`w-full rounded-lg px-2.5 py-1 text-xs border ${
-                        isLightApp
-                          ? 'bg-white border-slate-300 text-slate-900'
-                          : 'bg-black/60 border-zinc-800 text-white'
-                      }`}
-                    />
-                    {iconInputUrl && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          update({ customElementIcon: iconInputUrl });
-                          setIconInputUrl('');
-                        }}
-                        className="px-2.5 py-1 bg-zinc-800 hover:bg-zinc-700 text-xs text-white rounded font-medium"
-                      >
-                        Aplicar
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Treatment Controls for Uploaded Custom Icon */}
-                {ritual.customElementIcon && (
-                  <div
-                    className={`p-2.5 rounded-lg border space-y-2 mt-2 ${
-                      isLightApp ? 'bg-white border-slate-300' : 'bg-black/50 border-zinc-800'
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSymbolTab('official');
+                    soundEngine.playSigilChime(520);
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                    symbolTab === 'official'
+                      ? isLightApp
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-300'
+                        : 'bg-zinc-800 text-white shadow-md border border-zinc-600'
+                      : isLightApp
+                      ? 'text-slate-600 hover:text-slate-900'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  <Shield className="w-4 h-4 text-amber-500" />
+                  <span>Símbolo Oficial do Elemento</span>
+                  <span
+                    className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${
+                      symbolTab === 'official'
+                        ? isLightApp
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-amber-500/20 text-amber-300'
+                        : 'opacity-60'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono uppercase tracking-wider font-semibold">
-                        Tratamento Visual da Imagem
-                      </span>
-                      <label className="flex items-center gap-1.5 text-xs cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={ritual.theme.customIconInvert ?? false}
-                          onChange={(e) =>
-                            updateTheme({ customIconInvert: e.target.checked })
-                          }
-                          className="w-3.5 h-3.5 rounded accent-red-600"
-                        />
-                        <span>Inverter Cores</span>
-                      </label>
-                    </div>
+                    5 Oficiais
+                  </span>
+                </button>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                      {[
-                        { id: 'auto', label: 'Auto (Remover Fundo)' },
-                        { id: 'silhouette', label: 'Silhueta do Elemento' },
-                        { id: 'monochrome', label: 'Monocromático' },
-                        { id: 'original', label: 'Original' },
-                      ].map((fil) => (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSymbolTab('custom');
+                    soundEngine.playSigilChime(520);
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all ${
+                    symbolTab === 'custom'
+                      ? isLightApp
+                        ? 'bg-white text-slate-900 shadow-sm border border-slate-300'
+                        : 'bg-zinc-800 text-white shadow-md border border-zinc-600'
+                      : isLightApp
+                      ? 'text-slate-600 hover:text-slate-900'
+                      : 'text-zinc-400 hover:text-zinc-200'
+                  }`}
+                >
+                  <Upload className="w-4 h-4 text-red-500" />
+                  <span>Ícone Personalizado (Upload / URL)</span>
+                  {ritual.customElementIcon && !Object.values(OFFICIAL_ELEMENT_SYMBOLS).includes(ritual.customElementIcon) && (
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  )}
+                </button>
+              </div>
+
+              {/* CONTEÚDO DA ABA 1: Símbolo Oficial do Elemento */}
+              {symbolTab === 'official' && (
+                <div className="space-y-2.5 pt-0.5 animate-fadeIn">
+                  <div className="flex items-center justify-between text-[11px] opacity-75">
+                    <span>
+                      Clique em um dos 5 elementos abaixo para vincular o elemento e seu símbolo oficial à carta:
+                    </span>
+                    <span className="font-mono text-[10px] text-amber-500 font-semibold">
+                      Alta Fidelidade
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                    {ELEMENT_SYMBOLS_LIST.map((item) => {
+                      const isElementSelected = ritual.element === item.element;
+                      const hasNoCustomOrMatchesThis =
+                        !ritual.customElementIcon || ritual.customElementIcon === item.url;
+                      const isActive = isElementSelected && hasNoCustomOrMatchesThis;
+
+                      return (
                         <button
-                          key={fil.id}
+                          key={item.element}
                           type="button"
-                          onClick={() =>
-                            updateTheme({ customIconFilter: fil.id as CustomIconFilter })
-                          }
-                          className={`px-2 py-1 rounded text-xs transition-all font-medium border ${
-                            (ritual.theme.customIconFilter || 'auto') === fil.id
-                              ? 'bg-red-700 border-red-700 text-white font-bold'
+                          onClick={() => {
+                            update({
+                              element: item.element,
+                              customElementIcon: undefined,
+                            });
+                            soundEngine.playSigilChime(560);
+                          }}
+                          className={`group relative flex flex-col items-center justify-between p-2.5 rounded-xl border text-center transition-all ${
+                            isActive
+                              ? isLightApp
+                                ? 'bg-amber-50/90 border-amber-400 shadow-md ring-2 ring-amber-400/70 text-slate-900 font-bold'
+                                : 'bg-zinc-800/90 border-amber-400 shadow-lg ring-2 ring-amber-400/60 text-white font-bold'
                               : isLightApp
-                              ? 'bg-slate-100 border-slate-200 text-slate-700'
-                              : 'bg-zinc-800 border-zinc-700 text-zinc-300'
+                              ? 'bg-white border-slate-200 hover:border-slate-300 text-slate-700 hover:bg-slate-50'
+                              : 'bg-black/50 border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:bg-zinc-900/60'
                           }`}
+                          title={`${item.name} (${item.tag}): ${item.description}`}
                         >
-                          {fil.label}
+                          <div
+                            className="w-12 h-12 rounded-full flex items-center justify-center p-1.5 bg-black/85 border overflow-hidden transition-transform group-hover:scale-105"
+                            style={{
+                              borderColor: item.glowRgba,
+                              boxShadow: isActive ? `0 0 12px ${item.glowRgba}` : undefined,
+                            }}
+                          >
+                            <img
+                              src={item.url}
+                              alt={item.name}
+                              className="w-full h-full object-contain filter drop-shadow"
+                              style={{
+                                mixBlendMode: 'screen',
+                              }}
+                            />
+                          </div>
+
+                          <span className="text-xs font-bold mt-2 leading-tight">
+                            {item.name}
+                          </span>
+
+                          <span className="text-[10px] opacity-75 leading-tight line-clamp-1">
+                            {item.tag}
+                          </span>
+
+                          <div
+                            className={`mt-1.5 text-[9px] font-mono px-1.5 py-0.5 rounded-full font-bold flex items-center gap-1 ${
+                              isActive
+                                ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                                : 'opacity-60'
+                            }`}
+                          >
+                            {isActive ? (
+                              <>
+                                <Check className="w-2.5 h-2.5" />
+                                <span>Ativo no Canto</span>
+                              </>
+                            ) : (
+                              <span>Selecionar</span>
+                            )}
+                          </div>
                         </button>
-                      ))}
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* CONTEÚDO DA ABA 2: Ícone Personalizado (Upload / URL) */}
+              {symbolTab === 'custom' && (
+                <div className="space-y-3 pt-0.5 animate-fadeIn">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-1.5 px-3 py-2 bg-red-700 hover:bg-red-600 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs transition-colors">
+                      <Upload className="w-4 h-4" />
+                      <span>Carregar Arquivo (PNG, JPG, SVG)</span>
+                      <input
+                        type="file"
+                        accept="image/*,.svg"
+                        onChange={handleSymbolIconUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {/* URL Input */}
+                    <div className="flex-1 min-w-[200px] flex items-center gap-1">
+                      <input
+                        type="text"
+                        value={iconInputUrl}
+                        onChange={(e) => setIconInputUrl(e.target.value)}
+                        placeholder="Cole a URL direta da imagem..."
+                        className={`w-full rounded-lg px-2.5 py-2 text-xs border ${
+                          isLightApp
+                            ? 'bg-white border-slate-300 text-slate-900 placeholder:text-slate-400'
+                            : 'bg-black/60 border-zinc-800 text-white placeholder:text-zinc-500'
+                        }`}
+                      />
+                      {iconInputUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            update({ customElementIcon: iconInputUrl });
+                            setSymbolTab('custom');
+                            setIconInputUrl('');
+                            soundEngine.playSigilChime(600);
+                          }}
+                          className="px-3 py-2 bg-red-700 hover:bg-red-600 text-xs text-white rounded-lg font-bold shrink-0 transition-colors"
+                        >
+                          Aplicar URL
+                        </button>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
+
+                  {/* Estado Ativo: Pré-visualização e Tratamentos */}
+                  {ritual.customElementIcon && !Object.values(OFFICIAL_ELEMENT_SYMBOLS).includes(ritual.customElementIcon) ? (
+                    <div
+                      className={`p-3 rounded-xl border space-y-3 ${
+                        isLightApp ? 'bg-white border-slate-300' : 'bg-black/60 border-zinc-800'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-10 h-10 rounded-lg bg-black/80 border border-zinc-700 p-1 flex items-center justify-center overflow-hidden">
+                            <img
+                              src={ritual.customElementIcon}
+                              alt="Ícone Personalizado"
+                              className="w-full h-full object-contain"
+                              style={{
+                                filter: ritual.theme.customIconInvert ? 'invert(1)' : undefined,
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold block">
+                              Ícone Personalizado Ativo
+                            </span>
+                            <span className="text-[11px] opacity-75 block">
+                              Renderizando no canto superior esquerdo da carta
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            update({ customElementIcon: undefined });
+                            setSymbolTab('official');
+                            soundEngine.playSigilChime(500);
+                          }}
+                          className="px-2.5 py-1 text-xs text-red-500 hover:text-red-400 border border-red-500/30 hover:border-red-500/60 rounded-lg font-semibold flex items-center gap-1 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Remover Ícone</span>
+                        </button>
+                      </div>
+
+                      {/* Controles de Tratamento de Imagem */}
+                      <div className="pt-2 border-t border-zinc-800/80 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-mono uppercase tracking-wider font-semibold">
+                            Tratamento Visual da Imagem
+                          </span>
+                          <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none">
+                            <input
+                              type="checkbox"
+                              checked={ritual.theme.customIconInvert ?? false}
+                              onChange={(e) =>
+                                updateTheme({ customIconInvert: e.target.checked })
+                              }
+                              className="w-3.5 h-3.5 rounded accent-red-600"
+                            />
+                            <span>Inverter Cores</span>
+                          </label>
+                        </div>
+
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                          {[
+                            { id: 'auto', label: 'Auto (Remover Fundo)' },
+                            { id: 'silhouette', label: 'Silhueta do Elemento' },
+                            { id: 'monochrome', label: 'Monocromático' },
+                            { id: 'original', label: 'Original' },
+                          ].map((fil) => (
+                            <button
+                              key={fil.id}
+                              type="button"
+                              onClick={() =>
+                                updateTheme({ customIconFilter: fil.id as CustomIconFilter })
+                              }
+                              className={`px-2 py-1.5 rounded-lg text-xs transition-all font-medium border ${
+                                (ritual.theme.customIconFilter || 'auto') === fil.id
+                                  ? 'bg-red-700 border-red-700 text-white font-bold shadow-xs'
+                                  : isLightApp
+                                  ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                                  : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700'
+                              }`}
+                            >
+                              {fil.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Estado vazio: convite para upload */
+                    <div
+                      className={`p-4 rounded-xl border border-dashed text-center space-y-1.5 ${
+                        isLightApp
+                          ? 'border-slate-300 bg-slate-100/50 text-slate-600'
+                          : 'border-zinc-800 bg-black/40 text-zinc-400'
+                      }`}
+                    >
+                      <ImageIcon className="w-6 h-6 mx-auto opacity-50 mb-1" />
+                      <p className="text-xs font-semibold text-zinc-200">
+                        Nenhum ícone personalizado carregado no momento.
+                      </p>
+                      <p className="text-[11px] opacity-75 max-w-sm mx-auto">
+                        A carta está utilizando o símbolo oficial de{' '}
+                        <strong className="text-amber-400">
+                          {ELEMENT_CONFIGS[ritual.element]?.name || 'Elemento'}
+                        </strong>
+                        . Envie uma imagem própria ou cole uma URL para personalizá-lo.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Atributos / Barra de Custos */}

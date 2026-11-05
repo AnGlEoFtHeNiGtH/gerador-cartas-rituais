@@ -1,4 +1,14 @@
 import { Ritual } from '../types';
+export {
+  MORTE_SIMBOLO_PADRAO,
+  SANGUE_SIMBOLO_PADRAO,
+  CONHECIMENTO_SIMBOLO_PADRAO,
+  MEDO_SIMBOLO_PADRAO,
+  ENERGIA_SIMBOLO_PADRAO,
+  OFFICIAL_ELEMENT_SYMBOLS,
+  ELEMENT_SYMBOLS_LIST,
+  getElementDefaultSymbol,
+} from './elementSymbols';
 
 export const PRESET_RITUALS: Ritual[] = [
   {

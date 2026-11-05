@@ -17,6 +17,44 @@ export type SigilSymbolPreset =
   | 'moon'
   | 'ouroboros';
 
+export type CardCategory = 'ritual' | 'mundano' | 'amaldicoado';
+
+export type MundaneSubcategory = 'arma' | 'protecao' | 'acessorio' | 'utilitario' | 'municao';
+
+export interface MundaneSubcategoryConfig {
+  id: MundaneSubcategory;
+  name: string;
+  concept: string;
+}
+
+export const MUNDANE_SUBCATEGORIES: Record<MundaneSubcategory, MundaneSubcategoryConfig> = {
+  arma: {
+    id: 'arma',
+    name: 'Arma',
+    concept: 'Armas de fogo, corpo a corpo e disparo',
+  },
+  protecao: {
+    id: 'protecao',
+    name: 'Proteção',
+    concept: 'Armaduras leves, pesadas e escudos',
+  },
+  acessorio: {
+    id: 'acessorio',
+    name: 'Acessório',
+    concept: 'Vestimentas, mochilas e itens de uso geral',
+  },
+  utilitario: {
+    id: 'utilitario',
+    name: 'Utilitário',
+    concept: 'Ferramentas, kits de perícia e itens táticos',
+  },
+  municao: {
+    id: 'municao',
+    name: 'Munição',
+    concept: 'Balas curtas, longas, cartuchos e flechas',
+  },
+};
+
 export interface Modification {
   id: string;
   name: string; // e.g., "Discente", "Verdadeiro", "Especial"
@@ -67,6 +105,24 @@ export interface Ritual {
   id: string;
   name: string;
   element: ElementId;
+  cardCategory?: CardCategory;
+  mundaneSubcategory?: MundaneSubcategory;
+  curseName?: string;
+  curseCost?: string;
+  cursePassiveEffect?: string;
+  itemCategory?: string;
+  inventorySlots?: number;
+  weaponDamage?: string;
+  weaponCritical?: string;
+  weaponRange?: string;
+  weaponDamageType?: string;
+  weaponGrip?: string;
+  protectionDefense?: string;
+  protectionPenalty?: string;
+  protectionType?: string;
+  showUseTracker?: boolean;
+  maxUses?: number;
+  currentUses?: number;
   customElementName?: string;
   customElementColor?: string;
   symbolPreset?: SigilSymbolPreset;
@@ -250,3 +306,15 @@ export const getOfficialBackArtGlow = (element: ElementId, customColor?: string)
   }
   return OFFICIAL_BACK_ART_GLOW[element] || OFFICIAL_BACK_ART_GLOW.sangue;
 };
+
+export {
+  MORTE_SIMBOLO_PADRAO,
+  SANGUE_SIMBOLO_PADRAO,
+  CONHECIMENTO_SIMBOLO_PADRAO,
+  MEDO_SIMBOLO_PADRAO,
+  ENERGIA_SIMBOLO_PADRAO,
+  OFFICIAL_ELEMENT_SYMBOLS,
+  ELEMENT_SYMBOLS_LIST,
+  getElementDefaultSymbol,
+} from './data/elementSymbols';
+

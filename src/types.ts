@@ -17,9 +17,9 @@ export type SigilSymbolPreset =
   | 'moon'
   | 'ouroboros';
 
-export type CardCategory = 'ritual' | 'mundano' | 'amaldicoado';
+export type CardCategory = 'ritual' | 'mundano' | 'paranormal' | 'amaldicoado';
 
-export type MundaneSubcategory = 'arma' | 'protecao' | 'acessorio' | 'utilitario' | 'municao';
+export type MundaneSubcategory = 'arma' | 'protecao' | 'acessorio' | 'utilitario' | 'municao' | 'paranormal';
 
 export interface MundaneSubcategoryConfig {
   id: MundaneSubcategory;
@@ -53,7 +53,81 @@ export const MUNDANE_SUBCATEGORIES: Record<MundaneSubcategory, MundaneSubcategor
     name: 'Munição',
     concept: 'Balas curtas, longas, cartuchos e flechas',
   },
+  paranormal: {
+    id: 'paranormal',
+    name: 'Item Paranormal',
+    concept: 'Artefatos, componentes de ocultismo e amaldiçoados',
+  },
 };
+
+export type ItemCategoryTier = '0' | 'I' | 'II' | 'III' | 'IV';
+
+export interface ArsenalItemArtwork {
+  url: string;
+  fit?: 'cover' | 'contain';
+  scale?: number;
+  positionY?: number;
+  opacity?: number;
+}
+
+export interface ArsenalItemTheme {
+  borderStyle?: 'rustic-tactical' | 'black-distressed' | 'clean-ordo' | 'worn-investigator';
+  borderVariant?: 'distressed' | 'clean' | 'worn';
+  parchmentTone?: 'classic-aged' | 'off-white' | 'tactical-dark' | 'blood-stained';
+  cardMode?: CardMode;
+  itemCode?: string;
+  backQuoteText?: string;
+}
+
+export interface ArsenalItem {
+  id: string;
+  name: string;
+  itemType?: CardCategory;
+  category?: CardCategory;
+  subcategory: MundaneSubcategory;
+  categoryTier?: ItemCategoryTier;
+  tier?: ItemCategoryTier;
+  inventorySlots?: number;
+  spaces?: number;
+  itemCode?: string;
+  
+  // Weapon specific
+  weaponDamage?: string;
+  weaponCritical?: string;
+  weaponRange?: string;
+  weaponDamageType?: string;
+  weaponGrip?: string;
+
+  // Protection specific
+  protectionDefense?: string;
+  protectionPenalty?: string;
+  protectionType?: string;
+
+  // Curse / Paranormal specific
+  element?: ElementId;
+  curseName?: string;
+  curseCost?: string;
+  cursePassiveEffect?: string;
+
+  // Description & Lore
+  description: string;
+  flavorText?: string;
+
+  // Tracker / Cargas
+  showUseTracker: boolean;
+  maxUses: number;
+  currentUses: number;
+
+  // Artwork & Visuals
+  artwork?: ArsenalItemArtwork;
+  theme?: ArsenalItemTheme;
+
+  // Metadata
+  author?: string;
+  isPublic?: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
 
 export interface Modification {
   id: string;

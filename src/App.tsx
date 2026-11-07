@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Ritual } from './types';
+import { Ritual, ArsenalItem } from './types';
 import { PRESET_RITUALS } from './data/presets';
+import { PRESET_ITEMS } from './data/presetItems';
 import { RitualCard } from './components/RitualCard';
+import { ItemCard } from './components/ItemCard';
 import { EditorPanel } from './components/EditorPanel';
+import { ItemEditorPanel } from './components/ItemEditorPanel';
 import { DeckManager } from './components/DeckManager';
+import { ArsenalManager } from './components/ArsenalManager';
 import { PrintModal } from './components/PrintModal';
 import { LightPrintModal } from './components/LightPrintModal';
 import { MultiCardPrintModal } from './components/MultiCardPrintModal';
@@ -35,6 +39,7 @@ import {
   ShieldCheck,
   Globe,
   Share2,
+  Package,
 } from 'lucide-react';
 
 const STORAGE_KEY = 'grimorio_paranormal_rituals_v3';
@@ -106,6 +111,37 @@ export default function App() {
 
   // Current active ritual
   const [currentRitual, setCurrentRitual] = useState<Ritual>(() => rituals[0] || PRESET_RITUALS[0]);
+
+  // Global Workspace Switcher: 'rituals' (Grimório) vs 'arsenal' (Itens & Equipamentos)
+  const [activeWorkspace, setActiveWorkspace] = useState<'rituals' | 'arsenal'>('rituals');
+
+  // Arsenal Items state (persisted to localStorage)
+  const ARSENAL_STORAGE_KEY = 'grimorio_paranormal_arsenal_v1';
+  const [items, setItems] = useState<ArsenalItem[]>(() => {
+    try {
+      const saved = localStorage.getItem(ARSENAL_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((item: ArsenalItem) => ({
+            ...item,
+            name: healCorruptedCharacters(item.name || ''),
+            description: healCorruptedCharacters(item.description || ''),
+            flavorText: healCorruptedCharacters(item.flavorText || ''),
+            theme: {
+              ...item.theme,
+              backQuoteText: healCorruptedCharacters(item.theme?.backQuoteText || ''),
+            },
+          }));
+        }
+      }
+    } catch {}
+    return PRESET_ITEMS;
+  });
+
+  // Current active arsenal item
+  const [currentItem, setCurrentItem] = useState<ArsenalItem>(() => items[0] || PRESET_ITEMS[0]);
+  const [isArsenalOpen, setIsArsenalOpen] = useState(false);
 
   // Card view state
   const [activeView, setActiveView] = useState<'front' | 'back'>('front');
@@ -181,13 +217,21 @@ export default function App() {
     setIsMultiPrintOpen(true);
   };
 
-  // Sync to localStorage safely
+  // Sync rituals to localStorage safely
   useEffect(() => {
     const result = safeSaveToLocalStorage(STORAGE_KEY, rituals);
     if (!result.success) {
-      console.warn('LocalStorage limit reached');
+      console.warn('LocalStorage limit reached for rituals');
     }
   }, [rituals]);
+
+  // Sync arsenal items to localStorage safely
+  useEffect(() => {
+    const result = safeSaveToLocalStorage(ARSENAL_STORAGE_KEY, items);
+    if (!result.success) {
+      console.warn('LocalStorage limit reached for arsenal items');
+    }
+  }, [items]);
 
   // Show temporary toast message
   const showToast = (msg: string) => {
@@ -201,6 +245,12 @@ export default function App() {
   const handleRitualChange = (updated: Ritual) => {
     setCurrentRitual(updated);
     setRituals((prev) => prev.map((r) => (r.id === updated.id ? updated : r)));
+  };
+
+  // Update current arsenal item
+  const handleItemChange = (updated: ArsenalItem) => {
+    setCurrentItem(updated);
+    setItems((prev) => prev.map((it) => (it.id === updated.id ? updated : it)));
   };
 
   // Create new blank ritual (Totalmente em PD)
@@ -251,6 +301,39 @@ export default function App() {
     showToast('Novo ritual criado no Grimório!');
   };
 
+  // Create new blank arsenal item
+  const handleCreateNewItem = () => {
+    const newItem: ArsenalItem = {
+      id: `item-${Date.now()}`,
+      name: 'Novo Equipamento',
+      category: 'mundano',
+      subcategory: 'utilitario',
+      tier: 'I',
+      spaces: 1,
+      itemCode: `ORD-${Math.floor(100 + Math.random() * 900)}`,
+      description:
+        'Descreva o funcionamento tático ou utilitário do item. Você pode usar formatação como **negrito**, dados como 2d8 ou testes de DT 20.',
+      flavorText: 'Equipamento padrão catalogado pelos setores de inteligência da Ordo Realitas.',
+      showUseTracker: true,
+      maxUses: 4,
+      currentUses: 4,
+      theme: {
+        cardMode: 'dark',
+        parchmentTone: 'classic-aged',
+        borderVariant: 'distressed',
+        backQuoteText: 'Apenas os agentes preparados sobrevivem às sombras.',
+      },
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    setItems([newItem, ...items]);
+    setCurrentItem(newItem);
+    setActiveView('front');
+    setIsFlipped3D(false);
+    showToast('✦ Novo item adicionado ao Arsenal!');
+  };
+
   // Duplicate current ritual
   const handleDuplicateRitual = (ritualToDup: Ritual) => {
     const duplicated: Ritual = {
@@ -263,6 +346,21 @@ export default function App() {
     setRituals([duplicated, ...rituals]);
     setCurrentRitual(duplicated);
     showToast(`Ritual "${ritualToDup.name}" duplicado com sucesso!`);
+  };
+
+  // Duplicate current arsenal item
+  const handleDuplicateItem = (itemToDup: ArsenalItem) => {
+    const duplicated: ArsenalItem = {
+      ...itemToDup,
+      id: `item-${Date.now()}`,
+      name: `${itemToDup.name} (Cópia)`,
+      itemCode: `${itemToDup.itemCode || 'ORD'}-CP`,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    setItems([duplicated, ...items]);
+    setCurrentItem(duplicated);
+    showToast(`✦ Item "${itemToDup.name}" duplicado com sucesso!`);
   };
 
   // Delete ritual
@@ -279,11 +377,32 @@ export default function App() {
     showToast('Ritual removido do Grimório.');
   };
 
-  // Reset to default presets
+  // Delete arsenal item
+  const handleDeleteItem = (id: string) => {
+    if (items.length <= 1) {
+      showToast('O Arsenal precisa ter pelo menos um item.');
+      return;
+    }
+    const updated = items.filter((it) => it.id !== id);
+    setItems(updated);
+    if (currentItem.id === id) {
+      setCurrentItem(updated[0]);
+    }
+    showToast('Item removido do Arsenal.');
+  };
+
+  // Reset rituals to default presets
   const handleResetToDefaults = () => {
     setRituals(PRESET_RITUALS);
     setCurrentRitual(PRESET_RITUALS[0]);
     showToast('Rituais clássicos restaurados com sucesso.');
+  };
+
+  // Reset arsenal items to default presets
+  const handleResetItemsToDefaults = () => {
+    setItems(PRESET_ITEMS);
+    setCurrentItem(PRESET_ITEMS[0]);
+    showToast('Itens clássicos do Arsenal restaurados.');
   };
 
   // Import deck from JSON
@@ -291,6 +410,14 @@ export default function App() {
     setRituals(imported);
     if (imported.length > 0) {
       setCurrentRitual(imported[0]);
+    }
+  };
+
+  // Import arsenal items from JSON
+  const handleImportItems = (imported: ArsenalItem[]) => {
+    setItems(imported);
+    if (imported.length > 0) {
+      setCurrentItem(imported[0]);
     }
   };
 
@@ -312,10 +439,12 @@ export default function App() {
     );
   };
 
-  // Export Front or Back PNG
+  // Export Front or Back PNG (Works dynamically for both Rituals and Arsenal Items)
   const handleExportPng = async (side: 'front' | 'back' | 'both') => {
     setIsExporting(true);
     soundEngine.playSigilChime(520);
+
+    const activeCardName = activeWorkspace === 'rituals' ? currentRitual.name : currentItem.name;
 
     try {
       if (side === 'both') {
@@ -325,7 +454,7 @@ export default function App() {
         await new Promise((r) => setTimeout(r, 200));
         await exportCardAsPng(
           'main-preview-card',
-          sanitizeFilename(currentRitual.name, 'frente'),
+          sanitizeFilename(activeCardName, 'frente'),
           2.5
         );
 
@@ -335,7 +464,7 @@ export default function App() {
         await new Promise((r) => setTimeout(r, 300));
         await exportCardAsPng(
           'main-preview-card',
-          sanitizeFilename(currentRitual.name, 'verso'),
+          sanitizeFilename(activeCardName, 'verso'),
           2.5
         );
         showToast('✦ Ambas as faces da carta foram exportadas em alta resolução!');
@@ -349,7 +478,7 @@ export default function App() {
 
         await exportCardAsPng(
           'main-preview-card',
-          sanitizeFilename(currentRitual.name, sideTarget),
+          sanitizeFilename(activeCardName, sideTarget),
           2.5
         );
         showToast(`✦ Carta (${sideTarget.toUpperCase()}) salva em 300 DPI!`);
@@ -382,137 +511,223 @@ export default function App() {
             : 'border-zinc-800/80 bg-[#0d0d12]/95'
         }`}
       >
-        {/* Zone 1: Single text element wordmark */}
-        <div className="flex items-center gap-2.5 whitespace-nowrap shrink-0">
-          <div className="w-8 h-8 rounded-lg bg-red-950/80 border border-red-800/60 flex items-center justify-center text-red-400 shadow-xs">
-            <OccultSigil
-              element={currentRitual.element}
-              symbolPreset={currentRitual.symbolPreset}
-              customIconUrl={currentRitual.customElementIcon}
-              size={20}
-            />
+        {/* Zone 1: Wordmark & Global Workspace Switcher */}
+        <div className="flex items-center gap-4 whitespace-nowrap shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-xs transition-colors ${
+                activeWorkspace === 'rituals'
+                  ? 'bg-red-950/80 border border-red-800/60 text-red-400'
+                  : 'bg-amber-950/80 border border-amber-800/60 text-amber-400'
+              }`}
+            >
+              {activeWorkspace === 'rituals' ? (
+                <OccultSigil
+                  element={currentRitual.element}
+                  symbolPreset={currentRitual.symbolPreset}
+                  customIconUrl={currentRitual.customElementIcon}
+                  size={20}
+                />
+              ) : (
+                <Package className="w-4 h-4 text-amber-400" />
+              )}
+            </div>
+            <span
+              className={`font-title text-base font-bold tracking-wider ${
+                isLightApp ? 'text-slate-900' : 'text-white'
+              }`}
+            >
+              Ordem Paranormal
+            </span>
           </div>
-          <span
-            className={`font-title text-base font-bold tracking-wider ${
-              isLightApp ? 'text-slate-900' : 'text-white'
+
+          {/* Global Workspace Mode Switcher (Grimório vs Arsenal) */}
+          <div
+            className={`flex items-center p-0.5 rounded-lg border text-xs font-semibold ${
+              isLightApp ? 'bg-slate-100 border-slate-300' : 'bg-black/60 border-zinc-800'
             }`}
           >
-            Grimório Paranormal
-          </span>
-          <span
-            className={`hidden sm:inline-block text-[11px] font-mono px-2 py-0.5 rounded border ${
-              isLightApp
-                ? 'text-slate-600 bg-slate-100 border-slate-300'
-                : 'text-zinc-400 bg-zinc-900 border-zinc-800'
-            }`}
-          >
-            PD Edition
-          </span>
+            <button
+              onClick={() => {
+                setActiveWorkspace('rituals');
+                soundEngine.playPageTurn();
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all cursor-pointer ${
+                activeWorkspace === 'rituals'
+                  ? isLightApp
+                    ? 'bg-red-700 text-white shadow-xs'
+                    : 'bg-red-950 border border-red-800/80 text-red-200 shadow-xs'
+                  : isLightApp
+                  ? 'text-slate-600 hover:text-slate-900'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Grimório (Rituais)</span>
+            </button>
+            <button
+              onClick={() => {
+                setActiveWorkspace('arsenal');
+                soundEngine.playPageTurn();
+              }}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all cursor-pointer ${
+                activeWorkspace === 'arsenal'
+                  ? isLightApp
+                    ? 'bg-amber-700 text-white shadow-xs'
+                    : 'bg-amber-950 border border-amber-800/80 text-amber-200 shadow-xs'
+                  : isLightApp
+                  ? 'text-slate-600 hover:text-slate-900'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Package className="w-3.5 h-3.5" />
+              <span>Arsenal (Itens)</span>
+            </button>
+          </div>
         </div>
 
-        {/* Zone 2: Navigation Links & Deck Manager Quick Access */}
+        {/* Zone 2: Navigation Links & Deck / Arsenal Manager Quick Access */}
         <nav
           className={`hidden md:flex items-center gap-4 text-sm font-medium ${
             isLightApp ? 'text-slate-600' : 'text-zinc-300'
           }`}
         >
-          {/* Meu Grimório (Privado) */}
-          <button
-            onClick={() => {
-              setDeckInitialTab('private');
-              setIsDeckOpen(true);
-            }}
-            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-              isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
-            }`}
-          >
-            <BookOpen className="w-4 h-4 text-red-500" />
-            <span>Meu Grimório ({rituals.length})</span>
-          </button>
+          {activeWorkspace === 'rituals' ? (
+            <>
+              {/* Meu Grimório (Privado) */}
+              <button
+                onClick={() => {
+                  setDeckInitialTab('private');
+                  setIsDeckOpen(true);
+                }}
+                className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
+                }`}
+              >
+                <BookOpen className="w-4 h-4 text-red-500" />
+                <span>Meu Grimório ({rituals.length})</span>
+              </button>
 
-          {/* Grimório Público (Comunidade) */}
-          <button
-            onClick={() => {
-              setDeckInitialTab('public');
-              setIsDeckOpen(true);
-            }}
-            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-              isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
-            }`}
-          >
-            <Globe className="w-4 h-4 text-blue-500" />
-            <span>Grimório Público</span>
-          </button>
+              {/* Grimório Público (Comunidade) */}
+              <button
+                onClick={() => {
+                  setDeckInitialTab('public');
+                  setIsDeckOpen(true);
+                }}
+                className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
+                }`}
+              >
+                <Globe className="w-4 h-4 text-blue-500" />
+                <span>Grimório Público</span>
+              </button>
 
-          {/* Acesso Admin Shortcut in Header */}
-          <button
-            onClick={() => setIsAdminModalOpen(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-xs ${
-              isAdminLoggedIn
-                ? 'bg-emerald-950/80 border-emerald-600 text-emerald-300 hover:bg-emerald-900/90'
-                : isLightApp
-                ? 'border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700'
-                : 'border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300'
-            }`}
-            title="Acesso de Administrador (Gauss0413)"
-          >
-            {isAdminLoggedIn ? (
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            ) : (
-              <Shield className="w-3.5 h-3.5 text-amber-400" />
-            )}
-            <span>{isAdminLoggedIn ? 'Admin Ativo' : 'Acesso Admin'}</span>
-          </button>
+              {/* Acesso Admin Shortcut in Header */}
+              <button
+                onClick={() => setIsAdminModalOpen(true)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-xs ${
+                  isAdminLoggedIn
+                    ? 'bg-emerald-950/80 border-emerald-600 text-emerald-300 hover:bg-emerald-900/90'
+                    : isLightApp
+                    ? 'border-slate-300 bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    : 'border-zinc-800 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300'
+                }`}
+                title="Acesso de Administrador (Gauss0413)"
+              >
+                {isAdminLoggedIn ? (
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Shield className="w-3.5 h-3.5 text-amber-400" />
+                )}
+                <span>{isAdminLoggedIn ? 'Admin Ativo' : 'Acesso Admin'}</span>
+              </button>
 
-          <button
-            onClick={handleCreateNewRitual}
-            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-              isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
-            }`}
-          >
-            <Plus className="w-4 h-4 text-zinc-400" />
-            <span>Novo</span>
-          </button>
+              <button
+                onClick={handleCreateNewRitual}
+                className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
+                }`}
+              >
+                <Plus className="w-4 h-4 text-zinc-400" />
+                <span>Novo Ritual</span>
+              </button>
 
-          <button
-            onClick={() => setIsPrintOpen(true)}
-            className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-              isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
-            }`}
-          >
-            <Printer className="w-4 h-4 text-zinc-400" />
-            <span>63×88mm</span>
-          </button>
+              <button
+                onClick={() => setIsPrintOpen(true)}
+                className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
+                }`}
+              >
+                <Printer className="w-4 h-4 text-zinc-400" />
+                <span>63×88mm</span>
+              </button>
 
-          <button
-            onClick={() => setIsLightPrintOpen(true)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap shrink-0 shadow-xs cursor-pointer ${
-              isLightApp
-                ? 'bg-blue-50 border-blue-200 text-blue-900 hover:bg-blue-100 hover:border-blue-300'
-                : 'bg-blue-950/70 border-blue-800/80 text-blue-300 hover:bg-blue-900 hover:text-white'
-            }`}
-            title="Versão de Impressão Leve (A4) - Fundo 100% Branco e Economia de Tinta"
-          >
-            <Feather className="w-3.5 h-3.5 text-blue-400" />
-            <span>Impressão Leve (A4)</span>
-          </button>
+              <button
+                onClick={() => setIsLightPrintOpen(true)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap shrink-0 shadow-xs cursor-pointer ${
+                  isLightApp
+                    ? 'bg-blue-50 border-blue-200 text-blue-900 hover:bg-blue-100 hover:border-blue-300'
+                    : 'bg-blue-950/70 border-blue-800/80 text-blue-300 hover:bg-blue-900 hover:text-white'
+                }`}
+                title="Versão de Impressão Leve (A4) - Fundo 100% Branco e Economia de Tinta"
+              >
+                <Feather className="w-3.5 h-3.5 text-blue-400" />
+                <span>Impressão Leve (A4)</span>
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Meu Arsenal de Itens */}
+              <button
+                onClick={() => setIsArsenalOpen(true)}
+                className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
+                }`}
+              >
+                <Package className="w-4 h-4 text-amber-500" />
+                <span>Meu Arsenal ({items.length})</span>
+              </button>
+
+              <button
+                onClick={handleCreateNewItem}
+                className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
+                }`}
+              >
+                <Plus className="w-4 h-4 text-zinc-400" />
+                <span>Novo Equipamento</span>
+              </button>
+
+              <button
+                onClick={() => setIsPrintOpen(true)}
+                className={`flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                  isLightApp ? 'hover:text-slate-950' : 'hover:text-white'
+                }`}
+              >
+                <Printer className="w-4 h-4 text-zinc-400" />
+                <span>63×88mm</span>
+              </button>
+            </>
+          )}
         </nav>
 
         {/* Zone 3: Primary Actions (Light/Dark Toggle, Atmosphere, Publicar, Quick Export) */}
         <div className="flex items-center gap-2.5 shrink-0">
-          {/* Publicar Carta no Deck Público */}
-          <button
-            onClick={handlePublishCurrentRitual}
-            title="Publicar esta carta no Grimório Público da Comunidade"
-            className={`hidden lg:flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-              isLightApp
-                ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 shadow-2xs'
-                : 'bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border-blue-800/60 shadow-2xs'
-            }`}
-          >
-            <Share2 className="w-3.5 h-3.5 text-blue-400" />
-            <span>Publicar Carta</span>
-          </button>
+          {/* Publicar Carta no Deck Público (Rituais) */}
+          {activeWorkspace === 'rituals' && (
+            <button
+              onClick={handlePublishCurrentRitual}
+              title="Publicar esta carta no Grimório Público da Comunidade"
+              className={`hidden lg:flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                isLightApp
+                  ? 'bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200 shadow-2xs'
+                  : 'bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border-blue-800/60 shadow-2xs'
+              }`}
+            >
+              <Share2 className="w-3.5 h-3.5 text-blue-400" />
+              <span>Publicar Carta</span>
+            </button>
+          )}
 
           {/* Light / Dark Mode Toggle Button */}
           <button
@@ -554,17 +769,27 @@ export default function App() {
             )}
           </button>
 
-          {/* Quick Deck Button on mobile */}
+          {/* Quick Deck/Arsenal Button on mobile */}
           <button
-            onClick={() => setIsDeckOpen(true)}
+            onClick={() => {
+              if (activeWorkspace === 'rituals') {
+                setIsDeckOpen(true);
+              } else {
+                setIsArsenalOpen(true);
+              }
+            }}
             className={`md:hidden p-2 rounded-lg border cursor-pointer ${
               isLightApp
                 ? 'bg-slate-100 border-slate-300 text-slate-700'
                 : 'bg-zinc-900 border-zinc-800 text-zinc-300'
             }`}
-            title="Abrir Grimório"
+            title={activeWorkspace === 'rituals' ? 'Abrir Grimório' : 'Abrir Arsenal'}
           >
-            <BookOpen className="w-4 h-4" />
+            {activeWorkspace === 'rituals' ? (
+              <BookOpen className="w-4 h-4" />
+            ) : (
+              <Package className="w-4 h-4" />
+            )}
           </button>
 
           {/* Primary Action Button: Export PNG */}
@@ -572,7 +797,11 @@ export default function App() {
             <button
               onClick={() => handleExportPng(activeView)}
               disabled={isExporting}
-              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-red-700 hover:bg-red-600 rounded-lg shadow-lg shadow-red-950/40 transition-all whitespace-nowrap shrink-0 disabled:opacity-50 cursor-pointer"
+              className={`flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white rounded-lg shadow-lg transition-all whitespace-nowrap shrink-0 disabled:opacity-50 cursor-pointer ${
+                activeWorkspace === 'rituals'
+                  ? 'bg-red-700 hover:bg-red-600 shadow-red-950/40'
+                  : 'bg-amber-700 hover:bg-amber-600 shadow-amber-950/40'
+              }`}
             >
               <Download className="w-3.5 h-3.5" />
               <span>{isExporting ? 'Renderizando...' : 'Exportar Carta (PNG)'}</span>
@@ -587,18 +816,31 @@ export default function App() {
       <main className="flex-1 max-w-[1700px] w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* LEFT COLUMN: Comprehensive Live Editor Panel */}
         <section className="lg:col-span-6 xl:col-span-5 h-[calc(100vh-120px)] min-h-[640px] sticky top-20">
-          <EditorPanel
-            ritual={currentRitual}
-            onChange={handleRitualChange}
-            activeView={activeView}
-            setActiveView={(v) => {
-              setActiveView(v);
-              setIsFlipped3D(v === 'back');
-            }}
-            appMode={appMode}
-            onOpenLightPrint={() => setIsLightPrintOpen(true)}
-            onPublishToPublic={handlePublishCurrentRitual}
-          />
+          {activeWorkspace === 'rituals' ? (
+            <EditorPanel
+              ritual={currentRitual}
+              onChange={handleRitualChange}
+              activeView={activeView}
+              setActiveView={(v) => {
+                setActiveView(v);
+                setIsFlipped3D(v === 'back');
+              }}
+              appMode={appMode}
+              onOpenLightPrint={() => setIsLightPrintOpen(true)}
+              onPublishToPublic={handlePublishCurrentRitual}
+            />
+          ) : (
+            <ItemEditorPanel
+              item={currentItem}
+              onChange={handleItemChange}
+              activeView={activeView}
+              setActiveView={(v) => {
+                setActiveView(v);
+                setIsFlipped3D(v === 'back');
+              }}
+              appMode={appMode}
+            />
+          )}
         </section>
 
         {/* RIGHT COLUMN: Live Card Preview & Controls */}
@@ -722,13 +964,23 @@ export default function App() {
                     isFlipped3D ? 'rotate-y-180' : ''
                   }`}
                 >
-                  <RitualCard
-                    id="main-preview-card"
-                    ritual={currentRitual}
-                    viewSide={activeView}
-                    scale={cardScale}
-                    onUpdateUses={(newUses) => handleRitualChange({ ...currentRitual, currentUses: newUses })}
-                  />
+                  {activeWorkspace === 'rituals' ? (
+                    <RitualCard
+                      id="main-preview-card"
+                      ritual={currentRitual}
+                      viewSide={activeView}
+                      scale={cardScale}
+                      onUpdateUses={(newUses) => handleRitualChange({ ...currentRitual, currentUses: newUses })}
+                    />
+                  ) : (
+                    <ItemCard
+                      id="main-preview-card"
+                      item={currentItem}
+                      viewSide={activeView}
+                      scale={cardScale}
+                      onUpdateUses={(newUses) => handleItemChange({ ...currentItem, currentUses: newUses })}
+                    />
+                  )}
                 </div>
               </div>
             ) : (
@@ -742,13 +994,23 @@ export default function App() {
                   >
                     ✦ FACE PRINCIPAL (FRENTE)
                   </span>
-                  <RitualCard
-                    id="main-preview-card-front"
-                    ritual={currentRitual}
-                    viewSide="front"
-                    scale={Math.min(0.92, cardScale)}
-                    onUpdateUses={(newUses) => handleRitualChange({ ...currentRitual, currentUses: newUses })}
-                  />
+                  {activeWorkspace === 'rituals' ? (
+                    <RitualCard
+                      id="main-preview-card-front"
+                      ritual={currentRitual}
+                      viewSide="front"
+                      scale={Math.min(0.92, cardScale)}
+                      onUpdateUses={(newUses) => handleRitualChange({ ...currentRitual, currentUses: newUses })}
+                    />
+                  ) : (
+                    <ItemCard
+                      id="main-preview-card-front"
+                      item={currentItem}
+                      viewSide="front"
+                      scale={Math.min(0.92, cardScale)}
+                      onUpdateUses={(newUses) => handleItemChange({ ...currentItem, currentUses: newUses })}
+                    />
+                  )}
                 </div>
 
                 <div className="flex flex-col items-center">
@@ -759,12 +1021,21 @@ export default function App() {
                   >
                     ✦ FACE OCULTA (VERSO)
                   </span>
-                  <RitualCard
-                    id="main-preview-card-back"
-                    ritual={currentRitual}
-                    viewSide="back"
-                    scale={Math.min(0.92, cardScale)}
-                  />
+                  {activeWorkspace === 'rituals' ? (
+                    <RitualCard
+                      id="main-preview-card-back"
+                      ritual={currentRitual}
+                      viewSide="back"
+                      scale={Math.min(0.92, cardScale)}
+                    />
+                  ) : (
+                    <ItemCard
+                      id="main-preview-card-back"
+                      item={currentItem}
+                      viewSide="back"
+                      scale={Math.min(0.92, cardScale)}
+                    />
+                  )}
                 </div>
               </div>
             )}
@@ -810,46 +1081,50 @@ export default function App() {
                 <span>Exportar Ambas (Bundle)</span>
               </button>
 
-              <button
-                onClick={() => setIsPrintOpen(true)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors shadow-xs ${
-                  isLightApp
-                    ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-700'
-                    : 'bg-zinc-900 border-zinc-700/80 hover:bg-zinc-800 text-zinc-200'
-                }`}
-              >
-                <Printer className="w-3.5 h-3.5 text-zinc-400" />
-                <span>Imprimir Padrão (63×88mm)</span>
-              </button>
+              {activeWorkspace === 'rituals' && (
+                <>
+                  <button
+                    onClick={() => setIsPrintOpen(true)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors shadow-xs ${
+                      isLightApp
+                        ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-700'
+                        : 'bg-zinc-900 border-zinc-700/80 hover:bg-zinc-800 text-zinc-200'
+                    }`}
+                  >
+                    <Printer className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Imprimir Padrão (63×88mm)</span>
+                  </button>
 
-              <button
-                onClick={() => setIsLightPrintOpen(true)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors shadow-xs ${
-                  isLightApp
-                    ? 'bg-blue-50 border-blue-300 hover:bg-blue-100 text-blue-900'
-                    : 'bg-blue-950/70 border-blue-800/80 hover:bg-blue-900 text-blue-200'
-                }`}
-                title="Versão de Impressão Leve (A4) - Fundo 100% Branco e Economia de Tinta"
-              >
-                <Feather className="w-3.5 h-3.5 text-blue-400" />
-                <span>Impressão Leve (A4)</span>
-              </button>
+                  <button
+                    onClick={() => setIsLightPrintOpen(true)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors shadow-xs ${
+                      isLightApp
+                        ? 'bg-blue-50 border-blue-300 hover:bg-blue-100 text-blue-900'
+                        : 'bg-blue-950/70 border-blue-800/80 hover:bg-blue-900 text-blue-200'
+                    }`}
+                    title="Versão de Impressão Leve (A4) - Fundo 100% Branco e Economia de Tinta"
+                  >
+                    <Feather className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Impressão Leve (A4)</span>
+                  </button>
 
-              <button
-                onClick={() => {
-                  setMultiPrintRituals([currentRitual]);
-                  setIsMultiPrintOpen(true);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors shadow-xs ${
-                  isLightApp
-                    ? 'bg-amber-50 border-amber-300 hover:bg-amber-100 text-amber-900'
-                    : 'bg-amber-950/70 border-amber-800/80 hover:bg-amber-900 text-amber-200'
-                }`}
-                title="Imprimir até 4 cartas em uma folha A4 em formato Grid 2×2 com alinhamento duplex"
-              >
-                <Grid2X2 className="w-3.5 h-3.5 text-amber-400" />
-                <span>Grade 2×2 (A4)</span>
-              </button>
+                  <button
+                    onClick={() => {
+                      setMultiPrintRituals([currentRitual]);
+                      setIsMultiPrintOpen(true);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors shadow-xs ${
+                      isLightApp
+                        ? 'bg-amber-50 border-amber-300 hover:bg-amber-100 text-amber-900'
+                        : 'bg-amber-950/70 border-amber-800/80 hover:bg-amber-900 text-amber-200'
+                    }`}
+                    title="Imprimir até 4 cartas em uma folha A4 em formato Grid 2×2 com alinhamento duplex"
+                  >
+                    <Grid2X2 className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Grade 2×2 (A4)</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -886,6 +1161,25 @@ export default function App() {
         onOpenAdminModal={handleOpenAdminModal}
         onLogoutAdmin={handleLogoutAdmin}
         initialTab={deckInitialTab}
+      />
+
+      {/* Arsenal Equipment Manager Modal */}
+      <ArsenalManager
+        isOpen={isArsenalOpen}
+        onClose={() => setIsArsenalOpen(false)}
+        items={items}
+        currentItemId={currentItem.id}
+        onSelectItem={(it) => {
+          setCurrentItem(it);
+          setActiveView('front');
+          setIsFlipped3D(false);
+        }}
+        onCreateNewItem={handleCreateNewItem}
+        onDuplicateItem={handleDuplicateItem}
+        onDeleteItem={handleDeleteItem}
+        onResetToDefaults={handleResetItemsToDefaults}
+        onImportItems={handleImportItems}
+        appMode={appMode}
       />
 
       {/* Admin Login & Moderation Modal */}

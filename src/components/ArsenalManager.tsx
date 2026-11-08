@@ -18,6 +18,7 @@ import {
   Upload,
   RefreshCw,
   Sparkles,
+  Grid2X2,
 } from 'lucide-react';
 
 interface ArsenalManagerProps {
@@ -29,6 +30,7 @@ interface ArsenalManagerProps {
   onDeleteItem: (id: string) => void;
   onResetToDefaults: () => void;
   onImportItems: (imported: ArsenalItem[]) => void;
+  onOpenMultiPrint?: (selected: ArsenalItem[]) => void;
   isOpen: boolean;
   onClose: () => void;
   appMode?: 'dark' | 'light';
@@ -43,6 +45,7 @@ export const ArsenalManager: React.FC<ArsenalManagerProps> = ({
   onDeleteItem,
   onResetToDefaults,
   onImportItems,
+  onOpenMultiPrint,
   isOpen,
   onClose,
   appMode = 'dark',
@@ -53,10 +56,41 @@ export const ArsenalManager: React.FC<ArsenalManagerProps> = ({
   const [tierFilter, setTierFilter] = useState<ItemCategoryTier | 'all'>('all');
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handleToggleSelectItem = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (selectedItemIds.includes(id)) {
+      setSelectedItemIds((prev) => prev.filter((item) => item !== id));
+      soundEngine.playCardFlip();
+    } else {
+      if (selectedItemIds.length >= 4) {
+        showToast('⚠️ Limite de 4 itens por folha A4 atingido!');
+        soundEngine.playSigilChime(320);
+        return;
+      }
+      setSelectedItemIds((prev) => [...prev, id]);
+      soundEngine.playCardFlip();
+    }
+  };
+
+  const handleTriggerMultiPrint = () => {
+    if (!onOpenMultiPrint) return;
+    const selected = selectedItemIds.length > 0
+      ? items.filter((it) => selectedItemIds.includes(it.id))
+      : filteredItems.slice(0, 4);
+
+    if (selected.length === 0) {
+      showToast('Nenhum equipamento para imprimir.');
+      return;
+    }
+    soundEngine.playSigilChime(500);
+    onOpenMultiPrint(selected);
   };
 
   if (!isOpen) return null;
@@ -144,6 +178,29 @@ export const ArsenalManager: React.FC<ArsenalManagerProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            {onOpenMultiPrint && (
+              <button
+                type="button"
+                onClick={handleTriggerMultiPrint}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-xs ${
+                  selectedItemIds.length > 0
+                    ? 'bg-amber-600 hover:bg-amber-500 text-white border-amber-500'
+                    : isLight
+                    ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+                    : 'bg-amber-950/80 hover:bg-amber-900 text-amber-300 border-amber-700/80'
+                }`}
+                title="Imprimir até 4 equipamentos selecionados em grade 2×2 A4 com alinhamento duplex"
+              >
+                <Grid2X2 className="w-3.5 h-3.5" />
+                <span>Grade 2×2 (A4)</span>
+                {selectedItemIds.length > 0 && (
+                  <span className="ml-1 px-1.5 py-0.2 bg-black/60 text-amber-300 rounded-full text-[10px] font-bold">
+                    {selectedItemIds.length}/4
+                  </span>
+                )}
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onCreateNewItem}
@@ -284,9 +341,26 @@ export const ArsenalManager: React.FC<ArsenalManagerProps> = ({
                           </span>
                         </div>
 
-                        <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-bold border border-zinc-700">
-                          {itm.inventorySlots === 0 ? '0 Espaço' : `${itm.inventorySlots} Esp`}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 font-bold border border-zinc-700">
+                            {itm.inventorySlots === 0 ? '0 Espaço' : `${itm.inventorySlots} Esp`}
+                          </span>
+
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleSelectItem(itm.id, e)}
+                            className={`w-5 h-5 rounded flex items-center justify-center border transition-all cursor-pointer ${
+                              selectedItemIds.includes(itm.id)
+                                ? 'bg-amber-600 border-amber-500 text-white shadow-xs'
+                                : isLight
+                                ? 'border-slate-300 bg-slate-100 hover:border-amber-400 text-transparent hover:text-slate-400'
+                                : 'border-zinc-700 bg-zinc-800/80 hover:border-amber-500 text-transparent hover:text-zinc-500'
+                            }`}
+                            title={selectedItemIds.includes(itm.id) ? 'Remover da Grade 2×2' : 'Selecionar para Grade 2×2 (máx 4)'}
+                          >
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Item Name */}

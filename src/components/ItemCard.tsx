@@ -1,5 +1,6 @@
 import React from 'react';
 import { ArsenalItem, CardMode, ElementId, ELEMENT_CONFIGS } from '../types';
+import { ORDO_REALITAS_LOGO } from '../data/elementSymbols';
 import { formatRitualText, healCorruptedCharacters, sanitizeTextForCustomFont } from '../utils/textFormatter';
 import { soundEngine } from '../utils/audio';
 import {
@@ -157,6 +158,11 @@ export const ItemCard: React.FC<ItemCardProps> = ({
           <div className="relative flex flex-col h-full justify-between z-10">
             {/* 1. TOP HEADER: SOLID BLACK BAR WITH CENTERED TITLE */}
             <div className="shrink-0 mb-1.5">
+              {item.theme?.topHeaderLabel && (
+                <div className="text-[8.5px] font-mono tracking-widest uppercase text-center py-0.5 px-2 mb-1 border border-zinc-800 bg-black/80 rounded text-red-300 font-bold truncate shadow-xs">
+                  {item.theme.topHeaderLabel}
+                </div>
+              )}
               <div className="bg-black border-2 border-zinc-800 rounded-lg p-2 shadow-md relative overflow-hidden text-center">
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-zinc-500 to-transparent opacity-60" />
 
@@ -371,20 +377,23 @@ export const ItemCard: React.FC<ItemCardProps> = ({
           <div className="relative flex flex-col h-full justify-between items-center text-center p-6 bg-[#0a0a0e] border-2 border-zinc-800 rounded-lg overflow-hidden z-10">
             {/* Top Classified Header */}
             <div className="w-full border-b border-zinc-800 pb-2">
-              <div className="inline-block px-3 py-1 bg-red-950/80 border border-red-700/60 rounded text-[10px] font-mono uppercase tracking-widest text-red-300 font-bold">
-                MATERIAL CLASSIFICADO • ORDO REALITAS
+              <div className="inline-block px-3 py-1 bg-red-950/80 border border-red-700/60 rounded text-[10px] font-mono uppercase tracking-widest text-red-300 font-bold shadow-xs">
+                {item.theme?.topHeaderLabel || 'MATERIAL CLASSIFICADO • ORDO REALITAS'}
               </div>
             </div>
 
-            {/* Center Official Emblem & Stamp */}
+            {/* Center Official Emblem & Stamp (Official ORDO_REALITAS_LOGO or Custom Upload) */}
             <div className="my-auto flex flex-col items-center justify-center relative">
-              <div className="w-36 h-36 rounded-full border-2 border-dashed border-zinc-700 flex items-center justify-center p-2 mb-3 bg-black/60 shadow-2xl relative">
-                <div className="w-28 h-28 rounded-full border border-zinc-600 flex items-center justify-center text-zinc-400">
-                  <Shield className="w-14 h-14 text-amber-500/80" />
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-32 h-32 rounded-full border border-red-900/40" />
-                </div>
+              <div className="w-38 h-38 rounded-full border-2 border-dashed border-zinc-700 flex items-center justify-center p-3 mb-3 bg-black/60 shadow-2xl relative overflow-hidden">
+                <img
+                  src={item.theme?.customBackLogoUrl || ORDO_REALITAS_LOGO}
+                  alt="Ordo Realitas Logo"
+                  className="w-full h-full object-contain p-1 select-none pointer-events-none"
+                  style={{
+                    filter: isLightMode ? 'contrast(130%)' : 'invert(1) contrast(120%)',
+                    mixBlendMode: isLightMode ? 'multiply' : 'screen',
+                  }}
+                />
               </div>
 
               <h2
@@ -394,7 +403,8 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                 EQUIPAMENTO DA ORDEM
               </h2>
               <p className="text-[10px] font-mono uppercase text-zinc-400 mt-1 max-w-[260px] tracking-wider">
-                Propriedade intransferível da Ordo Realitas. O uso indevido por civis está sujeito a intervenção imediata.
+                {item.theme?.backQuoteText ||
+                  'Propriedade intransferível da Ordo Realitas. O uso indevido por civis está sujeito a intervenção imediata.'}
               </p>
             </div>
 

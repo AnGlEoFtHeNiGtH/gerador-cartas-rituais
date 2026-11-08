@@ -6,6 +6,7 @@ import {
   getOfficialBackArtGlow,
   getElementDefaultSymbol,
 } from '../types';
+import { ORDO_REALITAS_LOGO } from '../data/elementSymbols';
 import { OccultSigil, GrandOccultSeal } from './OccultSigil';
 import { formatRitualText, healCorruptedCharacters, sanitizeTextForCustomFont } from '../utils/textFormatter';
 import { Compass, Target, Hourglass, Zap, ShieldAlert, Sparkles } from 'lucide-react';
@@ -30,6 +31,8 @@ export const RitualCard: React.FC<RitualCardProps> = ({
   onUpdateUses,
 }) => {
   const isLight = ritual.theme.cardMode === 'light';
+  const isDossierStyle = ritual.theme.borderStyle === 'dossier-thick-black';
+  const isEffectivelyLight = isLight || isDossierStyle;
 
   const baseConfig =
     ritual.element === 'custom'
@@ -49,7 +52,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
       : ELEMENT_CONFIGS[ritual.element];
 
   const elementConfig: ElementConfig = baseConfig;
-  const activeAccentColor = isLight ? elementConfig.lightPrimaryColor : elementConfig.primaryColor;
+  const activeAccentColor = isEffectivelyLight ? elementConfig.lightPrimaryColor : elementConfig.primaryColor;
 
   const romanNumerals: Record<number, string> = {
     1: 'I',
@@ -67,8 +70,12 @@ export const RitualCard: React.FC<RitualCardProps> = ({
   const basePdValue =
     ritual.basePd || (ritual as unknown as { basePe?: string }).basePe || '1 PD';
 
-  // Background styling based on theme & cardMode
+  // Background styling based on theme, cardMode and dossier style
   const getBgClass = () => {
+    if (isDossierStyle) {
+      return 'bg-white text-zinc-950';
+    }
+
     if (isLight) {
       switch (ritual.theme.bgTone) {
         case 'light-parchment':
@@ -92,6 +99,10 @@ export const RitualCard: React.FC<RitualCardProps> = ({
 
   // Border style classes
   const getOuterBorderClass = () => {
+    if (isDossierStyle) {
+      return 'border-[10px] sm:border-[12px] border-black shadow-[0_16px_36px_rgba(0,0,0,0.9)]';
+    }
+
     if (isLight) {
       switch (ritual.theme.borderStyle) {
         case 'gold-accent':
@@ -216,12 +227,14 @@ export const RitualCard: React.FC<RitualCardProps> = ({
         {/* Inner Hairline Double Border Box */}
         <div
           className={`w-full h-full p-3.5 flex flex-col justify-between relative border ${getInnerCornerClass()} overflow-hidden ${
-            isLight
-              ? 'border-zinc-400/70 bg-white/70 shadow-inner'
+            isEffectivelyLight
+              ? 'border-zinc-800/60 bg-white/80 shadow-inner'
               : 'border-zinc-400/40 bg-black/40'
           }`}
           style={{
-            borderColor: isLight
+            borderColor: isDossierStyle
+              ? 'rgba(0, 0, 0, 0.65)'
+              : isLight
               ? ritual.theme.borderStyle === 'gold-accent'
                 ? 'rgba(180, 83, 9, 0.45)'
                 : 'rgba(82, 82, 91, 0.45)'
@@ -235,7 +248,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
             <div
               className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden transition-opacity z-0"
               style={{
-                opacity: isLight
+                opacity: isEffectivelyLight
                   ? ritual.theme.watermarkOpacity * 0.7
                   : ritual.theme.watermarkOpacity,
               }}
@@ -254,6 +267,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                   customIconFilter={ritual.theme.customIconFilter}
                   customIconInvert={ritual.theme.customIconInvert}
                   cardMode={ritual.theme.cardMode}
+                  isLightBackground={isEffectivelyLight}
                   size={290}
                   color={activeAccentColor}
                 />
@@ -267,7 +281,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
               className="absolute inset-0 pointer-events-none overflow-hidden z-0"
               style={{
                 opacity: ritual.artwork.opacity ?? 0.3,
-                mixBlendMode: isLight
+                mixBlendMode: isEffectivelyLight
                   ? ritual.artwork.blendMode === 'normal'
                     ? 'multiply'
                     : ritual.artwork.blendMode
@@ -286,7 +300,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
               />
               <div
                 className={`absolute inset-0 ${
-                  isLight ? 'bg-white/50 backdrop-blur-[0.5px]' : 'bg-black/55 backdrop-blur-[0.5px]'
+                  isEffectivelyLight ? 'bg-white/50 backdrop-blur-[0.5px]' : 'bg-black/55 backdrop-blur-[0.5px]'
                 }`}
               />
             </div>
@@ -297,10 +311,23 @@ export const RitualCard: React.FC<RitualCardProps> = ({
           {/* ======================================================== */}
           {currentSide === 'front' ? (
             <div className="relative z-10 flex flex-col h-full justify-between">
+              {/* Optional Top Classified Tape / Header Label */}
+              {ritual.theme.topHeaderLabel && (
+                <div
+                  className={`text-[8.5px] font-mono tracking-widest uppercase text-center py-0.5 px-2 mb-1.5 border rounded font-bold shrink-0 ${
+                    isEffectivelyLight
+                      ? 'text-red-800 border-red-300 bg-red-50/90 shadow-2xs'
+                      : 'text-red-300 border-red-800/80 bg-red-950/60 shadow-2xs'
+                  }`}
+                >
+                  {ritual.theme.topHeaderLabel}
+                </div>
+              )}
+
               {/* TOP HEADER: LARGER ICONS & TITLES */}
               <div
                 className={`border-b pb-3 shrink-0 ${
-                  isLight ? 'border-zinc-300' : 'border-zinc-700/60'
+                  isEffectivelyLight ? 'border-zinc-300' : 'border-zinc-700/60'
                 }`}
               >
                 {/* TOP HEADER: DYNAMIC FONT SIZING & PROTECTED BADGE SPACE */}
@@ -325,8 +352,8 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       {!hideSymbol && (
                         <div
                           className={`shrink-0 w-12 h-12 min-w-[48px] flex items-center justify-center rounded-full border shadow-inner ${
-                            isLight
-                              ? 'border-zinc-300 bg-zinc-50'
+                            isEffectivelyLight
+                              ? 'border-zinc-800 bg-zinc-100'
                               : 'border-zinc-700 bg-black/80'
                           }`}
                           style={{
@@ -340,6 +367,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                             customIconFilter={ritual.theme.customIconFilter}
                             customIconInvert={ritual.theme.customIconInvert}
                             cardMode={ritual.theme.cardMode}
+                            isLightBackground={isEffectivelyLight}
                             size={36}
                             color={activeAccentColor}
                             glow={ritual.theme.accentGlow}
@@ -355,7 +383,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       >
                         <h2
                           className={`font-title ${titleFontSizeClass} font-bold tracking-wider uppercase line-clamp-2 break-words ${
-                            isLight ? 'text-zinc-900 drop-shadow-xs' : 'text-white drop-shadow-md'
+                            isEffectivelyLight ? 'text-zinc-950 drop-shadow-xs' : 'text-white drop-shadow-md'
                           }`}
                           style={{
                             fontFamily: "'Westsac', 'Cinzel', 'Times New Roman', Georgia, serif",
@@ -713,7 +741,20 @@ export const RitualCard: React.FC<RitualCardProps> = ({
             /* ======================================================== */
             /* BACK VIEW (VERSO) - CLEANED OF UNWANTED DECORATIVE TEXTS */
             /* ======================================================== */
-            <div className="relative z-10 flex flex-col h-full items-center justify-center text-center p-4 overflow-hidden">
+            <div className="relative z-10 flex flex-col h-full items-center justify-between text-center p-3.5 overflow-hidden">
+              {/* Top Classified Header Banner */}
+              <div className={`w-full border-b pb-2 mb-1 z-10 shrink-0 ${
+                isEffectivelyLight ? 'border-zinc-300' : 'border-zinc-800'
+              }`}>
+                <div className={`inline-block px-3 py-1 rounded text-[9.5px] font-mono uppercase tracking-widest font-bold shadow-xs border ${
+                  isEffectivelyLight
+                    ? 'bg-red-100 text-red-950 border-red-300'
+                    : 'bg-red-950/80 text-red-200 border-red-700/60'
+                }`}>
+                  {ritual.theme.topHeaderLabel || 'MATERIAL CLASSIFICADO • ORDO REALITAS'}
+                </div>
+              </div>
+
               {/* Back Artwork Layer with Exclusive Paranormal Glow Effect */}
               {showArtworkOnBack && ritual.artwork && (
                 <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
@@ -721,7 +762,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                     className="w-full h-full relative transition-all duration-300"
                     style={{
                       opacity: ritual.artwork.opacity ?? (ritual.theme.backArtGlow ? 0.8 : 0.45),
-                      mixBlendMode: isLight
+                      mixBlendMode: isEffectivelyLight
                         ? ritual.artwork.blendMode === 'normal'
                           ? 'multiply'
                           : ritual.artwork.blendMode
@@ -741,7 +782,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                     />
                     <div
                       className={`absolute inset-0 transition-opacity duration-300 ${
-                        isLight
+                        isEffectivelyLight
                           ? 'bg-white/30'
                           : isBack && ritual.theme.backArtGlow
                           ? 'bg-black/30'
@@ -777,7 +818,22 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       : undefined,
                   }}
                 >
-                  {ritual.theme.cleanBackSymbolOnly ? (
+                  {ritual.theme.customBackLogoUrl || ritual.theme.backSigilStyle === 'ordo-realitas' ? (
+                    /* Ordo Realitas Official / Custom User Logo with Dynamic Contrast */
+                    <div className="relative p-2 flex flex-col items-center justify-center">
+                      <div className="w-38 h-38 rounded-full border-2 border-dashed border-zinc-700/80 flex items-center justify-center p-3 mb-2 bg-black/40 shadow-2xl relative overflow-hidden">
+                        <img
+                          src={ritual.theme.customBackLogoUrl || ORDO_REALITAS_LOGO}
+                          alt="Ordo Realitas Logo"
+                          className="w-full h-full object-contain p-1 select-none pointer-events-none"
+                          style={{
+                            filter: isEffectivelyLight ? 'contrast(130%)' : 'invert(1) contrast(120%)',
+                            mixBlendMode: isEffectivelyLight ? 'multiply' : 'screen',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : ritual.theme.cleanBackSymbolOnly ? (
                     /* Clean Symbol Only - No concentric rings, no complex runes */
                     <div className="relative p-2 flex items-center justify-center">
                       <OccultSigil
@@ -787,6 +843,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                         customIconFilter={ritual.theme.customIconFilter}
                         customIconInvert={ritual.theme.customIconInvert}
                         cardMode={ritual.theme.cardMode}
+                        isLightBackground={isEffectivelyLight}
                         size={200}
                         color={activeAccentColor}
                         glow={ritual.theme.backSigilGlow || ritual.theme.accentGlow}
@@ -801,6 +858,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                         customIconFilter={ritual.theme.customIconFilter}
                         customIconInvert={ritual.theme.customIconInvert}
                         cardMode={ritual.theme.cardMode}
+                        isLightBackground={isEffectivelyLight}
                         size={210}
                         color={activeAccentColor}
                         glow={ritual.theme.backSigilGlow || ritual.theme.accentGlow}
@@ -808,7 +866,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div
                           className={`w-40 h-40 rounded-full border border-dashed ${
-                            isLight ? 'border-zinc-300' : 'border-zinc-700/60'
+                            isEffectivelyLight ? 'border-zinc-300' : 'border-zinc-700/60'
                           }`}
                           style={
                             ritual.theme.backSigilGlow
@@ -831,14 +889,14 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                 </div>
 
                 {/* Custom Occult Center Inscription (Westsac font) */}
-                <div className="mt-5 max-w-[300px]">
+                <div className="mt-4 max-w-[300px]">
                   <p
                     className={`font-title text-xs md:text-sm tracking-widest uppercase leading-relaxed font-semibold drop-shadow ${
-                      isLight ? 'text-zinc-900' : 'text-zinc-200'
+                      isEffectivelyLight ? 'text-zinc-950 font-bold' : 'text-zinc-200'
                     }`}
                     style={{
                       textShadow:
-                        ritual.theme.accentGlow && !isLight
+                        ritual.theme.accentGlow && !isEffectivelyLight
                           ? `0 0 8px ${elementConfig.glowColor}`
                           : undefined,
                     }}
@@ -849,6 +907,15 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                     )}
                   </p>
                 </div>
+              </div>
+
+              {/* Bottom Classification Stamp */}
+              <div className={`w-full pt-2 border-t flex items-center justify-between text-[9px] font-mono tracking-widest uppercase shrink-0 ${
+                isEffectivelyLight ? 'text-zinc-600 border-zinc-300' : 'text-zinc-500 border-zinc-800'
+              }`}>
+                <span>ARQUIVO DA ORDEM</span>
+                <span className="font-bold text-red-500">CONFIDENCIAL</span>
+                <span>SETOR OCULTO</span>
               </div>
             </div>
           )}

@@ -155,6 +155,8 @@ export default function App() {
   const [isLightPrintOpen, setIsLightPrintOpen] = useState(false);
   const [isMultiPrintOpen, setIsMultiPrintOpen] = useState(false);
   const [multiPrintRituals, setMultiPrintRituals] = useState<Ritual[]>([]);
+  const [isItemMultiPrintOpen, setIsItemMultiPrintOpen] = useState(false);
+  const [multiPrintItems, setMultiPrintItems] = useState<ArsenalItem[]>([]);
   const [isExporting, setIsExporting] = useState(false);
   const [isAmbientPlaying, setIsAmbientPlaying] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -707,6 +709,22 @@ export default function App() {
                 <Printer className="w-4 h-4 text-zinc-400" />
                 <span>63×88mm</span>
               </button>
+
+              <button
+                onClick={() => {
+                  setMultiPrintItems([currentItem]);
+                  setIsItemMultiPrintOpen(true);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all whitespace-nowrap shrink-0 shadow-xs cursor-pointer ${
+                  isLightApp
+                    ? 'bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100 hover:border-amber-400'
+                    : 'bg-amber-950/70 border-amber-800/80 text-amber-300 hover:bg-amber-900 hover:text-white'
+                }`}
+                title="Imprimir até 4 equipamentos em uma folha A4 em formato Grid 2×2 com alinhamento duplex"
+              >
+                <Grid2X2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Grade 2×2 (A4)</span>
+              </button>
             </>
           )}
         </nav>
@@ -1081,7 +1099,7 @@ export default function App() {
                 <span>Exportar Ambas (Bundle)</span>
               </button>
 
-              {activeWorkspace === 'rituals' && (
+              {activeWorkspace === 'rituals' ? (
                 <>
                   <button
                     onClick={() => setIsPrintOpen(true)}
@@ -1119,6 +1137,36 @@ export default function App() {
                         : 'bg-amber-950/70 border-amber-800/80 hover:bg-amber-900 text-amber-200'
                     }`}
                     title="Imprimir até 4 cartas em uma folha A4 em formato Grid 2×2 com alinhamento duplex"
+                  >
+                    <Grid2X2 className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Grade 2×2 (A4)</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setIsPrintOpen(true)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs transition-colors shadow-xs ${
+                      isLightApp
+                        ? 'bg-white border-slate-300 hover:bg-slate-100 text-slate-700'
+                        : 'bg-zinc-900 border-zinc-700/80 hover:bg-zinc-800 text-zinc-200'
+                    }`}
+                  >
+                    <Printer className="w-3.5 h-3.5 text-zinc-400" />
+                    <span>Imprimir Padrão (63×88mm)</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setMultiPrintItems([currentItem]);
+                      setIsItemMultiPrintOpen(true);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors shadow-xs ${
+                      isLightApp
+                        ? 'bg-amber-50 border-amber-300 hover:bg-amber-100 text-amber-900'
+                        : 'bg-amber-950/70 border-amber-800/80 hover:bg-amber-900 text-amber-200'
+                    }`}
+                    title="Imprimir até 4 equipamentos em uma folha A4 em formato Grid 2×2 com alinhamento duplex"
                   >
                     <Grid2X2 className="w-3.5 h-3.5 text-amber-400" />
                     <span>Grade 2×2 (A4)</span>
@@ -1179,6 +1227,10 @@ export default function App() {
         onDeleteItem={handleDeleteItem}
         onResetToDefaults={handleResetItemsToDefaults}
         onImportItems={handleImportItems}
+        onOpenMultiPrint={(selected) => {
+          setMultiPrintItems(selected);
+          setIsItemMultiPrintOpen(true);
+        }}
         appMode={appMode}
       />
 
@@ -1207,11 +1259,21 @@ export default function App() {
         appMode={appMode}
       />
 
-      {/* Multi-Card Batch Print Modal (Grid 2x2 A4 com Alinhamento Duplex) */}
+      {/* Multi-Card Batch Print Modal for Rituals (Grid 2x2 A4 com Alinhamento Duplex) */}
       <MultiCardPrintModal
         isOpen={isMultiPrintOpen}
         onClose={() => setIsMultiPrintOpen(false)}
         rituals={multiPrintRituals.length > 0 ? multiPrintRituals : [currentRitual]}
+        mode="rituals"
+        appMode={appMode}
+      />
+
+      {/* Multi-Card Batch Print Modal for Arsenal (Grid 2x2 A4 com Alinhamento Duplex) */}
+      <MultiCardPrintModal
+        isOpen={isItemMultiPrintOpen}
+        onClose={() => setIsItemMultiPrintOpen(false)}
+        items={multiPrintItems.length > 0 ? multiPrintItems : [currentItem]}
+        mode="arsenal"
         appMode={appMode}
       />
     </div>

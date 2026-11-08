@@ -1,5 +1,6 @@
 import React from 'react';
 import { ElementId, SigilSymbolPreset, CustomIconFilter, CardMode } from '../types';
+import { OFFICIAL_ELEMENT_SYMBOLS } from '../data/elementSymbols';
 
 export interface SigilPresetInfo {
   id: SigilSymbolPreset;
@@ -8,19 +9,7 @@ export interface SigilPresetInfo {
 }
 
 export const SIGIL_PRESETS: SigilPresetInfo[] = [
-  { id: 'default', name: 'Sigilo Primordial', category: 'Padrão' },
-  { id: 'skull', name: 'Crânio Cadavérico', category: 'Morte' },
-  { id: 'eye', name: 'Olho da Verdade', category: 'Conhecimento' },
-  { id: 'spiral', name: 'Espiral do Tempo', category: 'Morte' },
-  { id: 'biohazard', name: 'Vísceras & Espinhos', category: 'Sangue' },
-  { id: 'flame', name: 'Chama Oculta', category: 'Energia' },
-  { id: 'lightning', name: 'Fenda de Choque', category: 'Energia' },
-  { id: 'pentagram', name: 'Estrela Rúnica', category: 'Ocultismo' },
-  { id: 'hourglass', name: 'Ampulheta', category: 'Morte' },
-  { id: 'rift', name: 'Abismo / Ruptura', category: 'Medo' },
-  { id: 'dagger', name: 'Adaga de Sangue', category: 'Sangue' },
-  { id: 'moon', name: 'Eclipse Sombrio', category: 'Medo' },
-  { id: 'ouroboros', name: 'Serpente Ouroboros', category: 'Eternidade' },
+  { id: 'default', name: 'Símbolo Oficial do Elemento', category: 'Padrão' },
 ];
 
 interface OccultSigilProps {
@@ -30,6 +19,7 @@ interface OccultSigilProps {
   customIconFilter?: CustomIconFilter;
   customIconInvert?: boolean;
   cardMode?: CardMode;
+  isLightBackground?: boolean; // Adaptação dinâmica de contraste inteligente
   className?: string;
   size?: number;
   color?: string;
@@ -43,12 +33,20 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
   customIconFilter = 'auto',
   customIconInvert = false,
   cardMode = 'dark',
+  isLightBackground,
   className = '',
   size = 48,
   color,
   glow = false,
 }) => {
-  const filterId = `sigil-glow-${element}-${Math.random().toString(36).substr(2, 6)}`;
+  // Resolução inteligente: se não houver ícone customizado, utiliza SEMPRE o Símbolo Oficial do Elemento
+  const officialSymbol = OFFICIAL_ELEMENT_SYMBOLS[element];
+  const effectiveIconUrl = customIconUrl || officialSymbol;
+
+  // Adaptação Dinâmica de Contraste Inteligente:
+  // Se o fundo for claro -> Símbolo em PRETO / cor escura de alto contraste
+  // Se o fundo for escuro -> Símbolo em BRANCO / cor clara de alto contraste
+  const isLight = isLightBackground !== undefined ? isLightBackground : cardMode === 'light';
 
   // Default color based on element and mode
   const defaultDarkColors: Record<ElementId, string> = {
@@ -61,22 +59,23 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
   };
 
   const defaultLightColors: Record<ElementId, string> = {
-    sangue: '#be123c',
-    morte: '#1e293b',
-    energia: '#7e22ce',
-    conhecimento: '#b45309',
-    medo: '#0369a1',
-    custom: '#047857',
+    sangue: '#991b1b',
+    morte: '#0f172a',
+    energia: '#6b21a8',
+    conhecimento: '#92400e',
+    medo: '#075985',
+    custom: '#065f46',
   };
 
   const activeColor =
     color ||
-    (cardMode === 'light' ? defaultLightColors[element] : defaultDarkColors[element]) ||
-    (cardMode === 'light' ? '#000000' : '#ffffff');
+    (isLight ? defaultLightColors[element] : defaultDarkColors[element]) ||
+    (isLight ? '#000000' : '#ffffff');
 
-  // Handle Universal Custom Image Icon Upload
-  if (customIconUrl) {
-    // Generate CSS filters and blend modes based on filter selection & light/dark card mode
+  const filterId = `sigil-glow-${element}-${size}`;
+
+  // Renderização através do ativo oficial ou upload do usuário
+  if (effectiveIconUrl) {
     let filterStyle = '';
     let blendModeStyle: React.CSSProperties['mixBlendMode'] = 'normal';
 
@@ -86,30 +85,29 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
 
     switch (customIconFilter) {
       case 'silhouette':
-        // Mask with element color silhouette
-        filterStyle += ' brightness(0) saturate(100%)';
+        filterStyle += isLight ? ' brightness(0)' : ' brightness(0) invert(1)';
         break;
       case 'monochrome':
-        filterStyle += ' grayscale(100%) contrast(120%)';
+        filterStyle += isLight ? ' brightness(0)' : ' grayscale(100%) contrast(120%)';
         break;
       case 'invert':
         filterStyle += ' invert(100%)';
         break;
+      case 'original':
+        // Sem filtro extra
+        break;
       case 'auto':
       default:
-        // Automatically harmonize official symbols and white/black backgrounds
-        if (cardMode === 'light') {
-          // In light mode, inverting white runes turns them into crisp dark runes; multiply drops white backgrounds
-          filterStyle += ' invert(100%) contrast(120%)';
+        // Contraste Inteligente Dinâmico Oficial:
+        if (isLight) {
+          // Fundo Claro: renderiza o símbolo em preto absoluto de altíssimo contraste
+          filterStyle += ' brightness(0) contrast(200%)';
           blendModeStyle = 'multiply';
         } else {
-          // In dark mode, screen blend mode cleanly drops black backgrounds and keeps white/spectral runes shining
+          // Fundo Escuro: renderiza em branco brilhante / spectral contrast
+          filterStyle += ' brightness(1) contrast(115%)';
           blendModeStyle = 'screen';
-          filterStyle += ' contrast(110%)';
         }
-        break;
-      case 'original':
-        // No extra filtering
         break;
     }
 
@@ -119,13 +117,17 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
         style={{
           width: `${size}px`,
           height: `${size}px`,
-          filter: glow ? `drop-shadow(0 0 6px ${activeColor}88)` : undefined,
+          filter: glow
+            ? isLight
+              ? 'drop-shadow(0 0 3px rgba(0,0,0,0.4))'
+              : `drop-shadow(0 0 8px ${activeColor}bb)`
+            : undefined,
         }}
       >
         <img
-          src={customIconUrl}
-          alt="Símbolo Personalizado"
-          className="w-full h-full object-contain p-0.5"
+          src={effectiveIconUrl}
+          alt={`Símbolo ${element}`}
+          className="w-full h-full object-contain p-0.5 select-none pointer-events-none"
           style={{
             filter: filterStyle.trim() || undefined,
             mixBlendMode: blendModeStyle,

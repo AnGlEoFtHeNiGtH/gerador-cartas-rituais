@@ -9,6 +9,7 @@ export const SANGUE_SIMBOLO_PADRAO = '/assets/aistudio/SANGUE_SIMBOLO_PADRAO_f98
 export const CONHECIMENTO_SIMBOLO_PADRAO = '/assets/aistudio/CONHECIMENTO_SIMBOLO_PADRAO_8a91af26.png';
 export const MEDO_SIMBOLO_PADRAO = '/assets/aistudio/MEDO_SIMBOLO_PADRAO_b65a2d47.png';
 export const ENERGIA_SIMBOLO_PADRAO = '/assets/aistudio/ENERGIA_SIMBOLO_PADRAO_b56fb228.png';
+export const ORDO_REALITAS_LOGO = '/assets/aistudio/ORDO_REALITAS_LOGO_f422caca.png';
 
 export interface OfficialElementSymbolItem {
   element: ElementId;

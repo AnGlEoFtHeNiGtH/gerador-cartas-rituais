@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Ritual } from '../types';
+import { Ritual, ArsenalItem } from '../types';
 import { RitualCard } from './RitualCard';
 import { LightPrintCard } from './LightPrintCard';
+import { ItemCard } from './ItemCard';
 import { exportCardAsPng, sanitizeFilename } from '../utils/exportCard';
 import { soundEngine } from '../utils/audio';
 import {
@@ -21,19 +22,24 @@ import {
 } from 'lucide-react';
 
 interface MultiCardPrintModalProps {
-  rituals: Ritual[];
+  rituals?: Ritual[];
+  items?: ArsenalItem[];
+  mode?: 'rituals' | 'arsenal';
   isOpen: boolean;
   onClose: () => void;
   appMode?: 'dark' | 'light';
 }
 
 export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
-  rituals,
+  rituals = [],
+  items = [],
+  mode = 'rituals',
   isOpen,
   onClose,
   appMode = 'dark',
 }) => {
   const isLight = appMode === 'light';
+  const isArsenal = mode === 'arsenal';
 
   // Config state
   const [printStyle, setPrintStyle] = useState<'original' | 'light'>('original');
@@ -52,12 +58,9 @@ export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
   };
 
   // Ensure exactly 4 slots (fill empty slots with null)
-  const slots: (Ritual | null)[] = [
-    rituals[0] || null,
-    rituals[1] || null,
-    rituals[2] || null,
-    rituals[3] || null,
-  ];
+  const slots: (Ritual | ArsenalItem | null)[] = isArsenal
+    ? [items[0] || null, items[1] || null, items[2] || null, items[3] || null]
+    : [rituals[0] || null, rituals[1] || null, rituals[2] || null, rituals[3] || null];
 
   // Source slot index helper for duplex alignment:
   // When flipping along Long Edge (standard 2-sided portrait print):
@@ -74,7 +77,7 @@ export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
     return index;
   };
 
-  const getBackSlotRitual = (index: number): Ritual | null => {
+  const getBackSlotCard = (index: number): Ritual | ArsenalItem | null => {
     const src = getSourceIndex(index);
     return slots[src] || null;
   };
@@ -89,10 +92,11 @@ export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
     setIsExporting(true);
     soundEngine.playSigilChime(600);
     const elementId = page === 'front' ? 'multi-print-preview-front' : 'multi-print-preview-back';
-    const filename = sanitizeFilename(
-      rituals.map((r) => r.name).join('-').slice(0, 35) || 'grade-4-cartas',
-      `lote-a4-${page}`
-    );
+    const cardNames = isArsenal
+      ? items.map((it) => it.name).join('-').slice(0, 35) || 'arsenal-grade-4'
+      : rituals.map((r) => r.name).join('-').slice(0, 35) || 'grade-4-cartas';
+    const prefix = isArsenal ? 'arsenal-lote-a4' : 'lote-a4';
+    const filename = sanitizeFilename(cardNames, `${prefix}-${page}`);
 
     try {
       const success = await exportCardAsPng(elementId, filename, 2.5);
@@ -111,7 +115,7 @@ export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
 
   // Render a single cell in the 2x2 grid (scale 0.54 corresponds exactly to physical ~63mm x 88mm Poker Size)
   const renderCardSlot = (
-    ritual: Ritual | null,
+    cardData: Ritual | ArsenalItem | null,
     viewSide: 'front' | 'back',
     slotNumber: number,
     cardScale: number = 0.54,
@@ -120,7 +124,7 @@ export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
     const cardWidth = Math.round(440 * cardScale);
     const cardHeight = Math.round(615 * cardScale);
 
-    if (!ritual) {
+    if (!cardData) {
       return (
         <div
           className="relative flex items-center justify-center border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/70 isolate"
@@ -184,15 +188,32 @@ export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
             boxSizing: 'border-box',
           }}
         >
-          {printStyle === 'light' ? (
+          {isArsenal ? (
+            <ItemCard
+              item={
+                printStyle === 'light'
+                  ? {
+                      ...(cardData as ArsenalItem),
+                      theme: {
+                        ...(cardData as ArsenalItem).theme,
+                        cardMode: 'light',
+                        borderVariant: 'clean',
+                      },
+                    }
+                  : (cardData as ArsenalItem)
+              }
+              viewSide={viewSide}
+              scale={cardScale}
+            />
+          ) : printStyle === 'light' ? (
             <LightPrintCard
-              ritual={ritual}
+              ritual={cardData as Ritual}
               viewSide={viewSide}
               scale={cardScale}
             />
           ) : (
             <RitualCard
-              ritual={ritual}
+              ritual={cardData as Ritual}
               viewSide={viewSide}
               scale={cardScale}
             />
@@ -222,7 +243,11 @@ export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
             }`}
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-red-950/80 border border-red-700/60 flex items-center justify-center text-red-400 shadow-xs">
+              <div className={`w-9 h-9 rounded-lg border flex items-center justify-center shadow-xs ${
+                isArsenal
+                  ? 'bg-amber-950/80 border-amber-700/60 text-amber-400'
+                  : 'bg-red-950/80 border-red-700/60 text-red-400'
+              }`}>
                 <Grid2X2 className="w-5 h-5" />
               </div>
               <div>
@@ -232,10 +257,14 @@ export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
                       isLight ? 'text-slate-900' : 'text-white'
                     }`}
                   >
-                    Impressão em Lote (Grid 2×2 A4)
+                    {isArsenal ? 'Arsenal em Lote (Grid 2×2 A4)' : 'Impressão em Lote (Grid 2×2 A4)'}
                   </h2>
-                  <span className="text-[10px] font-mono uppercase bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 px-2 py-0.5 rounded border border-red-300 dark:border-red-800 font-semibold">
-                    {rituals.length} / 4 Cartas
+                  <span className={`text-[10px] font-mono uppercase px-2 py-0.5 rounded border font-semibold ${
+                    isArsenal
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300 dark:border-amber-800'
+                      : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border-red-300 dark:border-red-800'
+                  }`}>
+                    {isArsenal ? items.length : rituals.length} / 4 Cartas
                   </span>
                 </div>
                 <p className={`text-xs ${isLight ? 'text-slate-500' : 'text-zinc-400'}`}>
@@ -506,12 +535,12 @@ export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
                       {/* 2x2 Grid with duplex mapping */}
                       <div className="grid grid-cols-2 gap-x-8 gap-y-6 my-auto items-center justify-center">
                         {slots.map((_, idx) => {
-                          const backRitual = getBackSlotRitual(idx);
+                          const backCard = getBackSlotCard(idx);
                           const sourceIndex = getSourceIndex(idx);
                           return (
                             <div key={`back-preview-${idx}`}>
                               {renderCardSlot(
-                                backRitual,
+                                backCard,
                                 'back',
                                 idx,
                                 0.54,
@@ -645,12 +674,12 @@ export const MultiCardPrintModal: React.FC<MultiCardPrintModalProps> = ({
             {/* 2x2 Grid of Backs (with duplex mirrored placement) */}
             <div className="grid grid-cols-2 gap-x-8 gap-y-6 my-auto items-center justify-center">
               {slots.map((_, idx) => {
-                const backRitual = getBackSlotRitual(idx);
+                const backCard = getBackSlotCard(idx);
                 const sourceIndex = getSourceIndex(idx);
                 return (
                   <div key={`back-sheet-slot-${idx}`}>
                     {renderCardSlot(
-                      backRitual,
+                      backCard,
                       'back',
                       idx,
                       0.54,

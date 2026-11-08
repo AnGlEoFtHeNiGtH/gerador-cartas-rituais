@@ -1766,6 +1766,31 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
               </div>
             </label>
 
+            {/* Texto Superior da Carta / Rótulo de Confidencialidade */}
+            <div>
+              <label
+                className={`block text-xs font-mono uppercase tracking-wider mb-1 font-semibold ${
+                  isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                }`}
+              >
+                Texto Superior da Carta (Rótulo do Dossiê)
+              </label>
+              <input
+                type="text"
+                value={ritual.theme.topHeaderLabel ?? ''}
+                onChange={(e) => updateTheme({ topHeaderLabel: e.target.value })}
+                placeholder="Ex: MATERIAL CLASSIFICADO • ORDO REALITAS"
+                className={`w-full rounded-xl px-3 py-2 text-xs border ${
+                  isLightApp
+                    ? 'bg-white border-slate-300 text-slate-900'
+                    : 'bg-[#181820] border-zinc-700/80 text-white'
+                }`}
+              />
+              <span className="text-[10px] opacity-75 block mt-1">
+                Personalize o rótulo de confidencialidade exibido no topo da frente e do verso da carta.
+              </span>
+            </div>
+
             {/* Formato dos Cantos */}
             <div>
               <label
@@ -1809,12 +1834,13 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                   isLightApp ? 'text-slate-600' : 'text-zinc-400'
                 }`}
               >
-                Estilo da Borda Dupla
+                Estilo da Moldura / Borda
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {[
-                  { id: 'double-silver', label: 'Dupla Clássica', desc: 'Borda dupla fina' },
-                  { id: 'runic', label: 'Ocultista Marcada', desc: 'Contornos nítidos' },
+                  { id: 'dossier-thick-black', label: '✦ Estilo Dossier (Borda Grossa Preta & Meio Branco)', desc: 'Moldura preta espessa e centro claro de altíssimo contraste' },
+                  { id: 'double-silver', label: 'Dupla Clássica', desc: 'Borda dupla fina prateada' },
+                  { id: 'runic', label: 'Ocultista Marcada', desc: 'Contornos nítidos e firmes' },
                   { id: 'gold-accent', label: 'Dourada Alquímica', desc: 'Dourado de Conhecimento' },
                   { id: 'pure-minimal', label: 'Minimalista Fina', desc: 'Traço sutil e discreto' },
                 ].map((opt) => (
@@ -1825,12 +1851,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                     className={`p-2.5 rounded-xl border text-left transition-all ${
                       ritual.theme.borderStyle === opt.id
                         ? isLightApp
-                          ? 'bg-slate-900 border-slate-900 text-white font-bold'
-                          : 'bg-zinc-800 border-zinc-400 text-white font-bold'
+                          ? 'bg-slate-900 border-slate-900 text-white font-bold ring-1 ring-slate-900'
+                          : 'bg-zinc-800 border-zinc-400 text-white font-bold ring-1 ring-zinc-400'
                         : isLightApp
-                        ? 'bg-white border-slate-200 text-slate-700'
-                        : 'bg-[#181820] border-zinc-800 text-zinc-400'
-                    }`}
+                        ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                        : 'bg-[#181820] border-zinc-800 text-zinc-400 hover:bg-zinc-800'
+                    } ${opt.id === 'dossier-thick-black' ? 'sm:col-span-2 border-amber-600/50' : ''}`}
                   >
                     <span className="text-xs font-bold block">{opt.label}</span>
                     <span className="text-[10px] opacity-75 block mt-0.5">{opt.desc}</span>
@@ -1929,8 +1955,107 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                     Selo e Simbologia do Verso
                   </span>
                   <span className="text-[11px] opacity-75 block">
-                    Personalize a aparência das marcas ocultas na face traseira da carta
+                    Personalize a aparência das marcas ocultas ou o logotipo da Ordo Realitas no verso
                   </span>
+                </div>
+              </div>
+
+              {/* Botões de Seleção do Estilo do Verso */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => updateTheme({ backSigilStyle: 'ordo-realitas', cleanBackSymbolOnly: false })}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    ritual.theme.backSigilStyle === 'ordo-realitas' || ritual.theme.customBackLogoUrl
+                      ? 'bg-red-950/80 border-red-600 text-white font-bold ring-1 ring-red-500'
+                      : isLightApp
+                      ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      : 'bg-[#181820] border-zinc-800 text-zinc-400 hover:bg-zinc-800'
+                  }`}
+                >
+                  <span className="text-xs font-bold block">Ordo Realitas (Oficial)</span>
+                  <span className="text-[10px] opacity-75 block mt-0.5">Emblema dos agentes</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateTheme({ backSigilStyle: 'grand-seal', customBackLogoUrl: undefined })}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    ritual.theme.backSigilStyle === 'grand-seal' && !ritual.theme.customBackLogoUrl
+                      ? 'bg-zinc-800 border-zinc-400 text-white font-bold ring-1 ring-zinc-400'
+                      : isLightApp
+                      ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      : 'bg-[#181820] border-zinc-800 text-zinc-400 hover:bg-zinc-800'
+                  }`}
+                >
+                  <span className="text-xs font-bold block">Grande Selo Completo</span>
+                  <span className="text-[10px] opacity-75 block mt-0.5">Anéis rúnicos</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => updateTheme({ backSigilStyle: 'element', customBackLogoUrl: undefined })}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    ritual.theme.backSigilStyle === 'element' && !ritual.theme.customBackLogoUrl
+                      ? 'bg-zinc-800 border-zinc-400 text-white font-bold ring-1 ring-zinc-400'
+                      : isLightApp
+                      ? 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      : 'bg-[#181820] border-zinc-800 text-zinc-400 hover:bg-zinc-800'
+                  }`}
+                >
+                  <span className="text-xs font-bold block">Sigilo do Elemento</span>
+                  <span className="text-[10px] opacity-75 block mt-0.5">Glifo temático</span>
+                </button>
+              </div>
+
+              {/* Upload de Logo Personalizada para o Verso */}
+              <div
+                className={`p-3 rounded-xl border space-y-2 ${
+                  isLightApp ? 'bg-white border-slate-200' : 'bg-black/50 border-zinc-700/60'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold flex items-center gap-1.5">
+                    <Upload className="w-3.5 h-3.5 text-amber-500" />
+                    Logo / Emblema Personalizado do Verso
+                  </span>
+                  {ritual.theme.customBackLogoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => updateTheme({ customBackLogoUrl: undefined })}
+                      className="text-[10px] text-red-400 hover:text-red-300 underline cursor-pointer"
+                    >
+                      Restaurar Padrão
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold cursor-pointer border border-zinc-600 shrink-0">
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Enviar Arquivo</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const base64 = await processUploadedImage(file, 600);
+                          updateTheme({ customBackLogoUrl: base64, backSigilStyle: 'ordo-realitas' });
+                          soundEngine.playSigilChime(560);
+                        }
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  <input
+                    type="text"
+                    value={ritual.theme.customBackLogoUrl || ''}
+                    onChange={(e) => updateTheme({ customBackLogoUrl: e.target.value, backSigilStyle: 'ordo-realitas' })}
+                    placeholder="Ou cole a URL da imagem da logo..."
+                    className={`flex-1 rounded-lg px-2.5 py-1.5 text-xs border ${
+                      isLightApp ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/60 border-zinc-700 text-white'
+                    }`}
+                  />
                 </div>
               </div>
 

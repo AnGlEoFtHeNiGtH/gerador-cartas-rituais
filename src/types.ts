@@ -71,12 +71,14 @@ export interface ArsenalItemArtwork {
 }
 
 export interface ArsenalItemTheme {
-  borderStyle?: 'rustic-tactical' | 'black-distressed' | 'clean-ordo' | 'worn-investigator';
+  borderStyle?: 'rustic-tactical' | 'black-distressed' | 'clean-ordo' | 'worn-investigator' | 'dossier-thick-black';
   borderVariant?: 'distressed' | 'clean' | 'worn';
   parchmentTone?: 'classic-aged' | 'off-white' | 'tactical-dark' | 'blood-stained';
   cardMode?: CardMode;
   itemCode?: string;
   backQuoteText?: string;
+  topHeaderLabel?: string; // Texto superior livremente editável
+  customBackLogoUrl?: string; // Logo personalizada no verso
 }
 
 export interface ArsenalItem {
@@ -138,7 +140,7 @@ export interface Modification {
 }
 
 export type CornerStyle = 'chamfer' | 'sharp' | 'rounded';
-export type BorderStyle = 'double-silver' | 'runic' | 'gold-accent' | 'pure-minimal';
+export type BorderStyle = 'double-silver' | 'runic' | 'gold-accent' | 'pure-minimal' | 'dossier-thick-black';
 export type BgTone = 'black' | 'charcoal' | 'parchment' | 'light-pure' | 'light-parchment';
 export type CardMode = 'dark' | 'light';
 export type CustomIconFilter = 'auto' | 'silhouette' | 'monochrome' | 'invert' | 'original';
@@ -165,7 +167,7 @@ export interface CardThemeOptions {
   showFlavorText: boolean;
   accentGlow: boolean;
   backQuoteText: string;
-  backSigilStyle: 'element' | 'grand-seal';
+  backSigilStyle: 'element' | 'grand-seal' | 'ordo-realitas';
   cleanBackSymbolOnly?: boolean; // Oculta anéis rúnicos e padrões complexos no verso da carta
   hideElementSymbol?: boolean; // Oculta o ícone circular do elemento no topo da frente da carta (foco total na arte)
   backSigilGlow?: boolean; // Ativa brilho luminoso/aura na cor do elemento no símbolo do verso
@@ -173,6 +175,8 @@ export interface CardThemeOptions {
   backArtGlow?: boolean; // Efeito de brilho (glow) exclusivo na Arte & Ilustração do verso da carta com cores oficiais do elemento
   customIconFilter?: CustomIconFilter;
   customIconInvert?: boolean;
+  topHeaderLabel?: string; // Texto superior da carta customizável
+  customBackLogoUrl?: string; // Logo personalizada no verso
 }
 
 export interface Ritual {

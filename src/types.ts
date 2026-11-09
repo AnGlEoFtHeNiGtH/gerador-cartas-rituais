@@ -79,6 +79,11 @@ export interface ArsenalItemTheme {
   backQuoteText?: string;
   topHeaderLabel?: string; // Texto superior livremente editável
   customBackLogoUrl?: string; // Logo personalizada no verso
+  hideTopHeader?: boolean; // Oculta faixa superior decorativa
+  hideBottomFooter?: boolean; // Oculta faixa inferior do rodapé
+  bottomFooterLeft?: string; // Texto do rodapé à esquerda
+  bottomFooterCenter?: string; // Texto do rodapé ao centro
+  bottomFooterRight?: string; // Texto do rodapé à direita
 }
 
 export interface ArsenalItem {
@@ -177,6 +182,11 @@ export interface CardThemeOptions {
   customIconInvert?: boolean;
   topHeaderLabel?: string; // Texto superior da carta customizável
   customBackLogoUrl?: string; // Logo personalizada no verso
+  hideTopHeader?: boolean; // Oculta faixa superior do cabeçalho
+  hideBottomFooter?: boolean; // Oculta dados/faixa do rodapé
+  bottomFooterLeft?: string; // Texto do rodapé à esquerda
+  bottomFooterCenter?: string; // Texto do rodapé ao centro
+  bottomFooterRight?: string; // Texto do rodapé à direita
 }
 
 export interface Ritual {

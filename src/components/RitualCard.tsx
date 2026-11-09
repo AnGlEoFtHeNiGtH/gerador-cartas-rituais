@@ -34,6 +34,10 @@ export const RitualCard: React.FC<RitualCardProps> = ({
   const isDossierStyle = ritual.theme.borderStyle === 'dossier-thick-black';
   const isEffectivelyLight = isLight || isDossierStyle;
 
+  const defaultHeaderLabel = 'MATERIAL CLASSIFICADO • ORDO REALITAS';
+  const rawHeaderLabel = ritual.theme.topHeaderLabel !== undefined ? ritual.theme.topHeaderLabel : defaultHeaderLabel;
+  const showTopHeader = !ritual.theme.hideTopHeader && rawHeaderLabel.trim().length > 0;
+
   const baseConfig =
     ritual.element === 'custom'
       ? {
@@ -312,7 +316,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
           {currentSide === 'front' ? (
             <div className="relative z-10 flex flex-col h-full justify-between">
               {/* Optional Top Classified Tape / Header Label */}
-              {ritual.theme.topHeaderLabel && (
+              {showTopHeader && (
                 <div
                   className={`text-[8.5px] font-mono tracking-widest uppercase text-center py-0.5 px-2 mb-1.5 border rounded font-bold shrink-0 ${
                     isEffectivelyLight
@@ -320,7 +324,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       : 'text-red-300 border-red-800/80 bg-red-950/60 shadow-2xs'
                   }`}
                 >
-                  {ritual.theme.topHeaderLabel}
+                  {rawHeaderLabel}
                 </div>
               )}
 
@@ -718,23 +722,29 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                   </p>
                 )}
 
-                <div
-                  className={`flex items-center justify-between text-[9px] font-mono tracking-widest uppercase px-1 ${
-                    isLight ? 'text-zinc-500' : 'text-zinc-400'
-                  }`}
-                >
-                  <span className="font-semibold">ORDEM PARANORMAL</span>
-                  <span className="flex items-center gap-1.5">
-                    <span
-                      className="w-2 h-2 rounded-full inline-block"
-                      style={{ backgroundColor: activeAccentColor }}
-                    />
-                    <span className="font-bold" style={{ color: activeAccentColor }}>
-                      {elementConfig.name.toUpperCase()}
+                {!ritual.theme.hideBottomFooter && (
+                  <div
+                    className={`flex items-center justify-between text-[9px] font-mono tracking-widest uppercase px-1 ${
+                      isLight ? 'text-zinc-500' : 'text-zinc-400'
+                    }`}
+                  >
+                    <span className="font-semibold">
+                      {ritual.theme.bottomFooterLeft !== undefined ? ritual.theme.bottomFooterLeft : 'ORDEM PARANORMAL'}
                     </span>
-                  </span>
-                  <span>CARD {romanNumerals[ritual.circle]}</span>
-                </div>
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className="w-2 h-2 rounded-full inline-block"
+                        style={{ backgroundColor: activeAccentColor }}
+                      />
+                      <span className="font-bold" style={{ color: activeAccentColor }}>
+                        {ritual.theme.bottomFooterCenter !== undefined ? ritual.theme.bottomFooterCenter : elementConfig.name.toUpperCase()}
+                      </span>
+                    </span>
+                    <span>
+                      {ritual.theme.bottomFooterRight !== undefined ? ritual.theme.bottomFooterRight : `CARD ${romanNumerals[ritual.circle]}`}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
@@ -742,18 +752,20 @@ export const RitualCard: React.FC<RitualCardProps> = ({
             /* BACK VIEW (VERSO) - CLEANED OF UNWANTED DECORATIVE TEXTS */
             /* ======================================================== */
             <div className="relative z-10 flex flex-col h-full items-center justify-between text-center p-3.5 overflow-hidden">
-              {/* Top Classified Header Banner */}
-              <div className={`w-full border-b pb-2 mb-1 z-10 shrink-0 ${
-                isEffectivelyLight ? 'border-zinc-300' : 'border-zinc-800'
-              }`}>
-                <div className={`inline-block px-3 py-1 rounded text-[9.5px] font-mono uppercase tracking-widest font-bold shadow-xs border ${
-                  isEffectivelyLight
-                    ? 'bg-red-100 text-red-950 border-red-300'
-                    : 'bg-red-950/80 text-red-200 border-red-700/60'
+              {/* Top Classified Header Banner (CUSTOMIZÁVEL / REMOVÍVEL) */}
+              {showTopHeader && (
+                <div className={`w-full border-b pb-2 mb-1 z-10 shrink-0 ${
+                  isEffectivelyLight ? 'border-zinc-300' : 'border-zinc-800'
                 }`}>
-                  {ritual.theme.topHeaderLabel || 'MATERIAL CLASSIFICADO • ORDO REALITAS'}
+                  <div className={`inline-block px-3 py-1 rounded text-[9.5px] font-mono uppercase tracking-widest font-bold shadow-xs border ${
+                    isEffectivelyLight
+                      ? 'bg-red-100 text-red-950 border-red-300'
+                      : 'bg-red-950/80 text-red-200 border-red-700/60'
+                  }`}>
+                    {rawHeaderLabel}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Back Artwork Layer with Exclusive Paranormal Glow Effect */}
               {showArtworkOnBack && ritual.artwork && (
@@ -909,14 +921,16 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                 </div>
               </div>
 
-              {/* Bottom Classification Stamp */}
-              <div className={`w-full pt-2 border-t flex items-center justify-between text-[9px] font-mono tracking-widest uppercase shrink-0 ${
-                isEffectivelyLight ? 'text-zinc-600 border-zinc-300' : 'text-zinc-500 border-zinc-800'
-              }`}>
-                <span>ARQUIVO DA ORDEM</span>
-                <span className="font-bold text-red-500">CONFIDENCIAL</span>
-                <span>SETOR OCULTO</span>
-              </div>
+              {/* Bottom Classification Stamp (CUSTOMIZÁVEL / REMOVÍVEL) */}
+              {!ritual.theme.hideBottomFooter && (
+                <div className={`w-full pt-2 border-t flex items-center justify-between text-[9px] font-mono tracking-widest uppercase shrink-0 ${
+                  isEffectivelyLight ? 'text-zinc-600 border-zinc-300' : 'text-zinc-500 border-zinc-800'
+                }`}>
+                  <span>{ritual.theme.bottomFooterLeft !== undefined ? ritual.theme.bottomFooterLeft : 'ARQUIVO DA ORDEM'}</span>
+                  <span className="font-bold text-red-500">{ritual.theme.bottomFooterCenter !== undefined ? ritual.theme.bottomFooterCenter : 'CONFIDENCIAL'}</span>
+                  <span>{ritual.theme.bottomFooterRight !== undefined ? ritual.theme.bottomFooterRight : 'SETOR OCULTO'}</span>
+                </div>
+              )}
             </div>
           )}
         </div>

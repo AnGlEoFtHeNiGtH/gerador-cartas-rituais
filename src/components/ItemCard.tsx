@@ -44,13 +44,16 @@ export const ItemCard: React.FC<ItemCardProps> = ({
   const baseHeight = 615;
 
   const cardMode: CardMode = item.theme?.cardMode || 'dark';
-  const isLightMode = cardMode === 'light';
+  const isDossierStyle = item.theme?.borderStyle === 'dossier-thick-black';
+  const isLightMode = cardMode === 'light' || isDossierStyle;
 
   // Parchment background tone for the description box
   const getParchmentClass = () => {
     switch (item.theme?.parchmentTone) {
       case 'tactical-dark':
-        return 'bg-[#1c1c24] text-zinc-100 border-zinc-700';
+        return isLightMode
+          ? 'bg-zinc-200 text-zinc-950 border-zinc-400'
+          : 'bg-[#1c1c24] text-zinc-100 border-zinc-700';
       case 'blood-stained':
         return 'bg-[#f4dede] text-zinc-900 border-[#b91c1c]/40';
       case 'off-white':
@@ -63,7 +66,9 @@ export const ItemCard: React.FC<ItemCardProps> = ({
 
   const itemType = item.itemType || item.category || 'mundano';
   const effectiveTier = item.categoryTier || item.tier || 'I';
-  const effectiveSlots = item.inventorySlots !== undefined ? item.inventorySlots : (item.spaces !== undefined ? item.spaces : 1);
+  const rawSlots = item.inventorySlots !== undefined ? item.inventorySlots : (item.spaces !== undefined ? item.spaces : 1);
+  const formattedSlots = Number.isInteger(rawSlots) ? rawSlots : Number(rawSlots.toFixed(2));
+  const slotLabel = formattedSlots === 1 ? 'Espaço' : 'Espaços';
 
   // Accent color by item type or element
   const getAccentColor = () => {
@@ -111,6 +116,11 @@ export const ItemCard: React.FC<ItemCardProps> = ({
     }
   };
 
+  // Top header text logic (respecting user customization and hide flag)
+  const defaultHeaderLabel = 'MATERIAL CLASSIFICADO • ORDO REALITAS';
+  const rawHeaderLabel = item.theme?.topHeaderLabel !== undefined ? item.theme.topHeaderLabel : defaultHeaderLabel;
+  const showTopHeader = !item.theme?.hideTopHeader && rawHeaderLabel.trim().length > 0;
+
   // Handle pip click
   const handlePipClick = (index: number) => {
     if (!interactivePips || !onUpdateUses) return;
@@ -133,8 +143,12 @@ export const ItemCard: React.FC<ItemCardProps> = ({
     >
       <div
         className={`w-[440px] h-[615px] p-2.5 transition-all relative overflow-hidden flex flex-col justify-between ${
-          isLightMode ? 'bg-zinc-100 text-zinc-900' : 'bg-[#0b0b0f] text-zinc-100'
-        } border-[3px] border-black shadow-[0_12px_32px_rgba(0,0,0,0.85)] rounded-xl`}
+          isDossierStyle
+            ? 'border-[12px] border-black bg-white text-zinc-950 rounded-lg shadow-2xl'
+            : isLightMode
+            ? 'border-[3px] border-zinc-900 bg-[#f8fafc] text-zinc-950 shadow-xl rounded-xl'
+            : 'border-[3px] border-black bg-[#0b0b0f] text-zinc-100 shadow-[0_12px_32px_rgba(0,0,0,0.85)] rounded-xl'
+        }`}
         style={{
           width: `${baseWidth}px`,
           height: `${baseHeight}px`,
@@ -158,12 +172,18 @@ export const ItemCard: React.FC<ItemCardProps> = ({
           <div className="relative flex flex-col h-full justify-between z-10">
             {/* 1. TOP HEADER: SOLID BLACK BAR WITH CENTERED TITLE */}
             <div className="shrink-0 mb-1.5">
-              {item.theme?.topHeaderLabel && (
-                <div className="text-[8.5px] font-mono tracking-widest uppercase text-center py-0.5 px-2 mb-1 border border-zinc-800 bg-black/80 rounded text-red-300 font-bold truncate shadow-xs">
-                  {item.theme.topHeaderLabel}
+              {showTopHeader && (
+                <div
+                  className={`text-[8.5px] font-mono tracking-widest uppercase text-center py-0.5 px-2 mb-1 border rounded font-bold truncate shadow-xs ${
+                    isLightMode
+                      ? 'border-red-300 bg-red-100 text-red-950'
+                      : 'border-zinc-800 bg-black/80 text-red-300'
+                  }`}
+                >
+                  {rawHeaderLabel}
                 </div>
               )}
-              <div className="bg-black border-2 border-zinc-800 rounded-lg p-2 shadow-md relative overflow-hidden text-center">
+              <div className="bg-black border-2 border-zinc-900 rounded-lg p-2 shadow-md relative overflow-hidden text-center">
                 <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-zinc-500 to-transparent opacity-60" />
 
                 <h1
@@ -191,30 +211,38 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                   >
                     CAT {effectiveTier}
                   </span>
-                  <span className="text-zinc-400 font-semibold">
+                  <span className={`font-semibold ${isLightMode ? 'text-zinc-700' : 'text-zinc-400'}`}>
                     {getSubcategoryLabel()}
                   </span>
                   {itemType === 'amaldicoado' && (
-                    <span className="text-purple-400 font-bold flex items-center gap-0.5">
+                    <span className="text-purple-600 dark:text-purple-400 font-bold flex items-center gap-0.5">
                       <Skull className="w-2.5 h-2.5" />
                       Amaldiçoado
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1 text-zinc-300 font-bold bg-zinc-900/90 border border-zinc-800 px-2 py-0.5 rounded">
-                  <Package className="w-3 h-3 text-amber-400" />
+                <div
+                  className={`flex items-center gap-1 font-bold px-2 py-0.5 rounded border ${
+                    isLightMode
+                      ? 'bg-zinc-200 border-zinc-300 text-zinc-900 shadow-2xs'
+                      : 'bg-zinc-900/90 border-zinc-800 text-zinc-300'
+                  }`}
+                >
+                  <Package className="w-3 h-3 text-amber-500" />
                   <span>
-                    {effectiveSlots === 0
-                      ? '0 Espaço'
-                      : `${effectiveSlots} ${effectiveSlots === 1 ? 'Espaço' : 'Espaços'}`}
+                    {formattedSlots === 0 ? '0 Espaço' : `${formattedSlots} ${slotLabel}`}
                   </span>
                 </div>
               </div>
             </div>
 
             {/* 2. ARTWORK / EQUIPMENT ILLUSTRATION CONTAINER */}
-            <div className="relative flex-1 min-h-[175px] max-h-[205px] my-1 rounded-lg overflow-hidden border-2 border-zinc-800 bg-[#0f0f15] flex items-center justify-center shadow-inner group">
+            <div
+              className={`relative flex-1 min-h-[175px] max-h-[205px] my-1 rounded-lg overflow-hidden border-2 flex items-center justify-center shadow-inner group ${
+                isLightMode ? 'border-zinc-300 bg-zinc-100/90' : 'border-zinc-800 bg-[#0f0f15]'
+              }`}
+            >
               {item.artwork?.url ? (
                 <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
                   <img
@@ -234,31 +262,45 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               ) : (
                 /* Blueprint / Technical Placeholder */
                 <div className="flex flex-col items-center justify-center text-center p-4">
-                  <div className="w-14 h-14 rounded-full bg-zinc-900 border border-zinc-700/80 flex items-center justify-center mb-2 shadow-inner">
+                  <div
+                    className={`w-14 h-14 rounded-full border flex items-center justify-center mb-2 shadow-inner ${
+                      isLightMode
+                        ? 'bg-zinc-200 border-zinc-300 text-zinc-700'
+                        : 'bg-zinc-900 border-zinc-700/80'
+                    }`}
+                  >
                     {item.subcategory === 'arma' ? (
-                      <Crosshair className="w-7 h-7 text-red-500/70" />
+                      <Crosshair className="w-7 h-7 text-red-600" />
                     ) : item.subcategory === 'protecao' ? (
-                      <Shield className="w-7 h-7 text-blue-500/70" />
+                      <Shield className="w-7 h-7 text-blue-600" />
                     ) : item.subcategory === 'municao' ? (
-                      <Disc className="w-7 h-7 text-amber-500/70" />
+                      <Disc className="w-7 h-7 text-amber-600" />
                     ) : (
-                      <Wrench className="w-7 h-7 text-zinc-400/70" />
+                      <Wrench className="w-7 h-7 text-zinc-500" />
                     )}
                   </div>
-                  <span className="text-[11px] font-mono text-zinc-400 tracking-wider uppercase font-semibold">
+                  <span
+                    className={`text-[11px] font-mono tracking-wider uppercase font-semibold ${
+                      isLightMode ? 'text-zinc-700' : 'text-zinc-400'
+                    }`}
+                  >
                     [Registro Técnico de Equipamento]
                   </span>
-                  <span className="text-[9px] font-mono text-zinc-600 mt-0.5">
+                  <span
+                    className={`text-[9px] font-mono mt-0.5 ${
+                      isLightMode ? 'text-zinc-500' : 'text-zinc-600'
+                    }`}
+                  >
                     {item.theme?.itemCode || 'ORD-EQP-REF'}
                   </span>
                 </div>
               )}
 
               {/* Technical corner alignment marks */}
-              <div className="absolute top-1 left-1 text-[8px] font-mono text-zinc-500 pointer-events-none">┌</div>
-              <div className="absolute top-1 right-1 text-[8px] font-mono text-zinc-500 pointer-events-none">┐</div>
-              <div className="absolute bottom-1 left-1 text-[8px] font-mono text-zinc-500 pointer-events-none">└</div>
-              <div className="absolute bottom-1 right-1 text-[8px] font-mono text-zinc-500 pointer-events-none">┘</div>
+              <div className="absolute top-1 left-1 text-[8px] font-mono text-zinc-400 pointer-events-none">┌</div>
+              <div className="absolute top-1 right-1 text-[8px] font-mono text-zinc-400 pointer-events-none">┐</div>
+              <div className="absolute bottom-1 left-1 text-[8px] font-mono text-zinc-400 pointer-events-none">└</div>
+              <div className="absolute bottom-1 right-1 text-[8px] font-mono text-zinc-400 pointer-events-none">┘</div>
             </div>
 
             {/* 3. DESCRIPTION BOX (AUTHENTIC AGED PARCHMENT PANEL) */}
@@ -361,30 +403,62 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               )}
             </div>
 
-            {/* 5. CARD FOOTER: ORDO REALITAS ARSENAL IDENTIFICATION */}
-            <div className="shrink-0 mt-1.5 pt-1 border-t border-zinc-800 flex items-center justify-between text-[9px] font-mono text-zinc-400 px-1">
-              <span className="font-semibold text-zinc-300">ORDEM PARANORMAL</span>
-              <span className="tracking-widest uppercase text-amber-500/90 font-bold">
-                ARSENAL OPERACIONAL
-              </span>
-              <span>{item.theme?.itemCode || 'CONFIDENCIAL'}</span>
-            </div>
+            {/* 5. CARD FOOTER: ORDO REALITAS ARSENAL IDENTIFICATION (CUSTOMIZÁVEL / REMOVÍVEL) */}
+            {!item.theme?.hideBottomFooter && (
+              <div
+                className={`shrink-0 mt-1.5 pt-1 border-t flex items-center justify-between text-[9px] font-mono px-1 ${
+                  isLightMode ? 'border-zinc-300 text-zinc-600' : 'border-zinc-800 text-zinc-400'
+                }`}
+              >
+                <span className={`font-semibold ${isLightMode ? 'text-zinc-800' : 'text-zinc-300'}`}>
+                  {item.theme?.bottomFooterLeft !== undefined ? item.theme.bottomFooterLeft : 'ORDEM PARANORMAL'}
+                </span>
+                <span className={`tracking-widest uppercase font-bold ${isLightMode ? 'text-amber-700' : 'text-amber-500/90'}`}>
+                  {item.theme?.bottomFooterCenter !== undefined ? item.theme.bottomFooterCenter : 'ARSENAL OPERACIONAL'}
+                </span>
+                <span>
+                  {item.theme?.bottomFooterRight !== undefined
+                    ? item.theme.bottomFooterRight
+                    : (item.theme?.itemCode || 'CONFIDENCIAL')}
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           /* ============================================================== */
           /* CARD BACK SIDE (CONFIDENTIAL ORDO REALITAS DOSSIER BACK) */
           /* ============================================================== */
-          <div className="relative flex flex-col h-full justify-between items-center text-center p-6 bg-[#0a0a0e] border-2 border-zinc-800 rounded-lg overflow-hidden z-10">
-            {/* Top Classified Header */}
-            <div className="w-full border-b border-zinc-800 pb-2">
-              <div className="inline-block px-3 py-1 bg-red-950/80 border border-red-700/60 rounded text-[10px] font-mono uppercase tracking-widest text-red-300 font-bold shadow-xs">
-                {item.theme?.topHeaderLabel || 'MATERIAL CLASSIFICADO • ORDO REALITAS'}
+          <div
+            className={`relative flex flex-col h-full justify-between items-center text-center p-6 rounded-lg overflow-hidden z-10 border-2 ${
+              isLightMode
+                ? 'bg-[#f8fafc] border-zinc-400 text-zinc-950'
+                : 'bg-[#0a0a0e] border-zinc-800 text-zinc-100'
+            }`}
+          >
+            {/* Top Classified Header (CUSTOMIZÁVEL / REMOVÍVEL) */}
+            {showTopHeader && (
+              <div className={`w-full border-b pb-2 ${isLightMode ? 'border-zinc-300' : 'border-zinc-800'}`}>
+                <div
+                  className={`inline-block px-3 py-1 rounded text-[10px] font-mono uppercase tracking-widest font-bold shadow-xs border ${
+                    isLightMode
+                      ? 'bg-red-100 border-red-300 text-red-950'
+                      : 'bg-red-950/80 border-red-700/60 text-red-300'
+                  }`}
+                >
+                  {rawHeaderLabel}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Center Official Emblem & Stamp (Official ORDO_REALITAS_LOGO or Custom Upload) */}
             <div className="my-auto flex flex-col items-center justify-center relative">
-              <div className="w-38 h-38 rounded-full border-2 border-dashed border-zinc-700 flex items-center justify-center p-3 mb-3 bg-black/60 shadow-2xl relative overflow-hidden">
+              <div
+                className={`w-38 h-38 rounded-full border-2 border-dashed flex items-center justify-center p-3 mb-3 relative overflow-hidden ${
+                  isLightMode
+                    ? 'border-zinc-400 bg-white/90 shadow-xl'
+                    : 'border-zinc-700 bg-black/60 shadow-2xl'
+                }`}
+              >
                 <img
                   src={item.theme?.customBackLogoUrl || ORDO_REALITAS_LOGO}
                   alt="Ordo Realitas Logo"
@@ -397,23 +471,43 @@ export const ItemCard: React.FC<ItemCardProps> = ({
               </div>
 
               <h2
-                className="font-title text-base font-bold tracking-widest uppercase text-white"
+                className={`font-title text-base font-bold tracking-widest uppercase ${
+                  isLightMode ? 'text-zinc-950' : 'text-white'
+                }`}
                 style={{ fontFamily: "'Cinzel', 'Westsac', Georgia, serif" }}
               >
                 EQUIPAMENTO DA ORDEM
               </h2>
-              <p className="text-[10px] font-mono uppercase text-zinc-400 mt-1 max-w-[260px] tracking-wider">
+              <p
+                className={`text-[10px] font-mono uppercase mt-1 max-w-[260px] tracking-wider leading-relaxed ${
+                  isLightMode ? 'text-zinc-700 font-medium' : 'text-zinc-400'
+                }`}
+              >
                 {item.theme?.backQuoteText ||
                   'Propriedade intransferível da Ordo Realitas. O uso indevido por civis está sujeito a intervenção imediata.'}
               </p>
             </div>
 
-            {/* Bottom Barcode & Verification */}
-            <div className="w-full border-t border-zinc-800 pt-3 flex items-center justify-between text-[9px] font-mono text-zinc-500">
-              <span>REF: {item.theme?.itemCode || 'ORD-EQP-413'}</span>
-              <span className="text-red-400 font-bold tracking-widest uppercase">USO RESTRITO</span>
-              <span>SETOR ARSENAL</span>
-            </div>
+            {/* Bottom Barcode & Verification (CUSTOMIZÁVEL / REMOVÍVEL) */}
+            {!item.theme?.hideBottomFooter && (
+              <div
+                className={`w-full border-t pt-3 flex items-center justify-between text-[9px] font-mono ${
+                  isLightMode ? 'border-zinc-300 text-zinc-600' : 'border-zinc-800 text-zinc-500'
+                }`}
+              >
+                <span>
+                  {item.theme?.bottomFooterLeft !== undefined
+                    ? item.theme.bottomFooterLeft
+                    : `REF: ${item.theme?.itemCode || 'ORD-EQP-413'}`}
+                </span>
+                <span className="text-red-600 dark:text-red-400 font-bold tracking-widest uppercase">
+                  {item.theme?.bottomFooterCenter !== undefined ? item.theme.bottomFooterCenter : 'USO RESTRITO'}
+                </span>
+                <span>
+                  {item.theme?.bottomFooterRight !== undefined ? item.theme.bottomFooterRight : 'SETOR ARSENAL'}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -77,9 +77,10 @@ export default function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Normalize legacy PE fields and heal any corrupted accent characters
+          // Normalize legacy PE fields, heal corrupted accent characters and sanitize legacy v1 symbols
           return parsed.map((item) => ({
             ...item,
+            symbolPreset: item.symbolPreset === 'custom' && item.customSymbolUrl ? 'custom' : 'default',
             name: healCorruptedCharacters(item.name || ''),
             description: healCorruptedCharacters(item.description || ''),
             execution: healCorruptedCharacters(item.execution || ''),

@@ -1767,28 +1767,101 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
             </label>
 
             {/* Texto Superior da Carta / Rótulo de Confidencialidade */}
-            <div>
-              <label
-                className={`block text-xs font-mono uppercase tracking-wider mb-1 font-semibold ${
-                  isLightApp ? 'text-slate-600' : 'text-zinc-400'
-                }`}
-              >
-                Texto Superior da Carta (Rótulo do Dossiê)
-              </label>
-              <input
-                type="text"
-                value={ritual.theme.topHeaderLabel ?? ''}
-                onChange={(e) => updateTheme({ topHeaderLabel: e.target.value })}
-                placeholder="Ex: MATERIAL CLASSIFICADO • ORDO REALITAS"
-                className={`w-full rounded-xl px-3 py-2 text-xs border ${
-                  isLightApp
-                    ? 'bg-white border-slate-300 text-slate-900'
-                    : 'bg-[#181820] border-zinc-700/80 text-white'
-                }`}
-              />
-              <span className="text-[10px] opacity-75 block mt-1">
-                Personalize o rótulo de confidencialidade exibido no topo da frente e do verso da carta.
+            {/* Cabeçalho e Faixas de Texto (Personalização & Ocultação) */}
+            <div
+              className={`p-3.5 rounded-xl border space-y-3 ${
+                isLightApp ? 'bg-slate-50 border-slate-300' : 'bg-[#15151c] border-zinc-800'
+              }`}
+            >
+              <span className="text-xs font-mono uppercase font-bold tracking-wider block text-red-500">
+                Cabeçalho & Rodapé (Personalização de Textos)
               </span>
+
+              {/* Ocultar Faixa Superior */}
+              <label className="flex items-center gap-2 cursor-pointer text-xs">
+                <input
+                  type="checkbox"
+                  checked={ritual.theme.hideTopHeader ?? false}
+                  onChange={(e) => updateTheme({ hideTopHeader: e.target.checked })}
+                  className="w-4 h-4 rounded accent-red-600 cursor-pointer"
+                />
+                <span className="font-medium">Ocultar Faixa Superior (Deixar topo 100% limpo)</span>
+              </label>
+
+              {!ritual.theme.hideTopHeader && (
+                <div>
+                  <label
+                    className={`block text-[11px] font-mono uppercase tracking-wider mb-1 font-semibold ${
+                      isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                    }`}
+                  >
+                    Texto Superior (Rótulo do Dossiê)
+                  </label>
+                  <input
+                    type="text"
+                    value={ritual.theme.topHeaderLabel ?? ''}
+                    onChange={(e) => updateTheme({ topHeaderLabel: e.target.value })}
+                    placeholder="MATERIAL CLASSIFICADO • ORDO REALITAS"
+                    className={`w-full rounded-xl px-3 py-2 text-xs font-mono transition-colors focus:outline-hidden focus:ring-2 focus:ring-red-500 border ${
+                      isLightApp
+                        ? 'bg-white border-slate-300 text-slate-900'
+                        : 'bg-[#181820] border-zinc-700/80 text-white'
+                    }`}
+                  />
+                </div>
+              )}
+
+              {/* Ocultar Rodapé */}
+              <label className="flex items-center gap-2 cursor-pointer text-xs pt-2 border-t border-zinc-700/40">
+                <input
+                  type="checkbox"
+                  checked={ritual.theme.hideBottomFooter ?? false}
+                  onChange={(e) => updateTheme({ hideBottomFooter: e.target.checked })}
+                  className="w-4 h-4 rounded accent-red-600 cursor-pointer"
+                />
+                <span className="font-medium">Ocultar Faixa de Rodapé (Deixar base limpa)</span>
+              </label>
+
+              {!ritual.theme.hideBottomFooter && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-mono text-zinc-400 mb-0.5">Rodapé Esquerdo</label>
+                    <input
+                      type="text"
+                      value={ritual.theme.bottomFooterLeft ?? ''}
+                      onChange={(e) => updateTheme({ bottomFooterLeft: e.target.value })}
+                      placeholder="ORDEM PARANORMAL"
+                      className={`w-full rounded-lg px-2 py-1.5 text-[11px] font-mono border ${
+                        isLightApp ? 'bg-white border-slate-300 text-slate-900' : 'bg-[#181820] border-zinc-700 text-white'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-zinc-400 mb-0.5">Rodapé Central</label>
+                    <input
+                      type="text"
+                      value={ritual.theme.bottomFooterCenter ?? ''}
+                      onChange={(e) => updateTheme({ bottomFooterCenter: e.target.value })}
+                      placeholder={ritual.element.toUpperCase()}
+                      className={`w-full rounded-lg px-2 py-1.5 text-[11px] font-mono border ${
+                        isLightApp ? 'bg-white border-slate-300 text-slate-900' : 'bg-[#181820] border-zinc-700 text-white'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-zinc-400 mb-0.5">Rodapé Direito</label>
+                    <input
+                      type="text"
+                      value={ritual.theme.bottomFooterRight ?? ''}
+                      onChange={(e) => updateTheme({ bottomFooterRight: e.target.value })}
+                      placeholder={`CARD ${ritual.circle}`}
+                      className={`w-full rounded-lg px-2 py-1.5 text-[11px] font-mono border ${
+                        isLightApp ? 'bg-white border-slate-300 text-slate-900' : 'bg-[#181820] border-zinc-700 text-white'
+                      }`}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Formato dos Cantos */}

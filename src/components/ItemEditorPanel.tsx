@@ -587,20 +587,27 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
+                    step="0.1"
                     min={0}
-                    max={10}
-                    value={item.inventorySlots}
-                    onChange={(e) => update({ inventorySlots: Math.max(0, parseInt(e.target.value) || 0) })}
-                    className={`w-20 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-center border ${
+                    max={20}
+                    value={item.inventorySlots !== undefined ? item.inventorySlots : ''}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      update({ inventorySlots: isNaN(val) ? 0 : Math.max(0, val) });
+                    }}
+                    placeholder="1"
+                    className={`w-24 rounded-xl px-3 py-1.5 text-xs font-mono font-bold text-center border ${
                       isLightApp
                         ? 'bg-slate-50 border-slate-300 text-slate-900'
                         : 'bg-[#181820] border-zinc-700/80 text-white'
                     }`}
                   />
                   <span className="text-xs text-zinc-400">
-                    {item.inventorySlots === 0
-                      ? 'Não ocupa espaço (0)'
-                      : `${item.inventorySlots} ${item.inventorySlots === 1 ? 'espaço' : 'espaços'}`}
+                    {(() => {
+                      const s = item.inventorySlots !== undefined ? item.inventorySlots : 1;
+                      if (s === 0) return 'Não ocupa espaço (0)';
+                      return `${s} ${s === 1 ? 'espaço' : 'espaços'}`;
+                    })()}
                   </span>
                 </div>
               </div>
@@ -947,29 +954,134 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
         {/* ============================================================== */}
         {activeTab === 'style' && (
           <div className="space-y-4 animate-fadeIn">
-            {/* Texto Superior da Carta / Rótulo de Confidencialidade */}
+            {/* Modo da Carta: Escuro vs Claro */}
             <div>
               <label
                 className={`block text-xs font-mono uppercase tracking-wider mb-1.5 font-semibold ${
                   isLightApp ? 'text-slate-600' : 'text-zinc-400'
                 }`}
               >
-                Texto Superior da Carta (Rótulo de Confidencialidade)
+                Modo da Carta (Tema da Ficha)
               </label>
-              <input
-                type="text"
-                value={item.theme?.topHeaderLabel ?? ''}
-                onChange={(e) => updateTheme({ topHeaderLabel: e.target.value })}
-                placeholder="Ex: MATERIAL CLASSIFICADO • ORDO REALITAS"
-                className={`w-full rounded-xl px-3 py-2 text-xs font-mono transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500 border ${
-                  isLightApp
-                    ? 'bg-slate-50 border-slate-300 text-slate-900'
-                    : 'bg-[#181820] border-zinc-700/80 text-white'
-                }`}
-              />
-              <span className="text-[10px] opacity-75 block mt-1">
-                Personalize o rótulo do dossiê exibido no cabeçalho da frente e do verso da carta de item.
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'dark', label: 'Modo Noturno (Padrão)', desc: 'Fundo escuro tático paranormal' },
+                  { id: 'light', label: 'Modo Claro (Ficha Branca)', desc: 'Fundo branco limpo com texto e símbolos escuros' },
+                ].map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => updateTheme({ cardMode: m.id as CardMode })}
+                    className={`p-2.5 rounded-xl border text-left transition-all ${
+                      (item.theme?.cardMode || 'dark') === m.id
+                        ? 'bg-amber-600 text-white border-amber-600 font-bold shadow-xs'
+                        : isLightApp
+                        ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                        : 'bg-[#181820] border-zinc-800 text-zinc-300 hover:bg-zinc-800'
+                    }`}
+                  >
+                    <span className="text-xs font-bold block">{m.label}</span>
+                    <span className="text-[10px] opacity-75 block mt-0.5">{m.desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Cabeçalho e Faixas de Texto (Personalização & Ocultação) */}
+            <div
+              className={`p-3.5 rounded-xl border space-y-3 ${
+                isLightApp ? 'bg-slate-50 border-slate-300' : 'bg-[#15151c] border-zinc-800'
+              }`}
+            >
+              <span className="text-xs font-mono uppercase font-bold tracking-wider block text-amber-500">
+                Cabeçalho & Rodapé (Personalização de Textos)
               </span>
+
+              {/* Ocultar Faixa Superior */}
+              <label className="flex items-center gap-2 cursor-pointer text-xs">
+                <input
+                  type="checkbox"
+                  checked={item.theme?.hideTopHeader ?? false}
+                  onChange={(e) => updateTheme({ hideTopHeader: e.target.checked })}
+                  className="w-4 h-4 rounded accent-amber-600 cursor-pointer"
+                />
+                <span className="font-medium">Ocultar Faixa Superior (Deixar topo 100% limpo)</span>
+              </label>
+
+              {!item.theme?.hideTopHeader && (
+                <div>
+                  <label
+                    className={`block text-[11px] font-mono uppercase tracking-wider mb-1 font-semibold ${
+                      isLightApp ? 'text-slate-600' : 'text-zinc-400'
+                    }`}
+                  >
+                    Texto Superior (Rótulo do Dossiê)
+                  </label>
+                  <input
+                    type="text"
+                    value={item.theme?.topHeaderLabel ?? ''}
+                    onChange={(e) => updateTheme({ topHeaderLabel: e.target.value })}
+                    placeholder="MATERIAL CLASSIFICADO • ORDO REALITAS"
+                    className={`w-full rounded-xl px-3 py-2 text-xs font-mono transition-colors focus:outline-hidden focus:ring-2 focus:ring-amber-500 border ${
+                      isLightApp
+                        ? 'bg-white border-slate-300 text-slate-900'
+                        : 'bg-[#181820] border-zinc-700/80 text-white'
+                    }`}
+                  />
+                </div>
+              )}
+
+              {/* Ocultar Rodapé */}
+              <label className="flex items-center gap-2 cursor-pointer text-xs pt-2 border-t border-zinc-700/40">
+                <input
+                  type="checkbox"
+                  checked={item.theme?.hideBottomFooter ?? false}
+                  onChange={(e) => updateTheme({ hideBottomFooter: e.target.checked })}
+                  className="w-4 h-4 rounded accent-amber-600 cursor-pointer"
+                />
+                <span className="font-medium">Ocultar Faixa de Rodapé (Deixar base limpa)</span>
+              </label>
+
+              {!item.theme?.hideBottomFooter && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1">
+                  <div>
+                    <label className="block text-[10px] font-mono text-zinc-400 mb-0.5">Rodapé Esquerdo</label>
+                    <input
+                      type="text"
+                      value={item.theme?.bottomFooterLeft ?? ''}
+                      onChange={(e) => updateTheme({ bottomFooterLeft: e.target.value })}
+                      placeholder="ORDEM PARANORMAL"
+                      className={`w-full rounded-lg px-2 py-1.5 text-[11px] font-mono border ${
+                        isLightApp ? 'bg-white border-slate-300 text-slate-900' : 'bg-[#181820] border-zinc-700 text-white'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-zinc-400 mb-0.5">Rodapé Central</label>
+                    <input
+                      type="text"
+                      value={item.theme?.bottomFooterCenter ?? ''}
+                      onChange={(e) => updateTheme({ bottomFooterCenter: e.target.value })}
+                      placeholder="ARSENAL OPERACIONAL"
+                      className={`w-full rounded-lg px-2 py-1.5 text-[11px] font-mono border ${
+                        isLightApp ? 'bg-white border-slate-300 text-slate-900' : 'bg-[#181820] border-zinc-700 text-white'
+                      }`}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono text-zinc-400 mb-0.5">Rodapé Direito</label>
+                    <input
+                      type="text"
+                      value={item.theme?.bottomFooterRight ?? ''}
+                      onChange={(e) => updateTheme({ bottomFooterRight: e.target.value })}
+                      placeholder={item.theme?.itemCode || 'CONFIDENCIAL'}
+                      className={`w-full rounded-lg px-2 py-1.5 text-[11px] font-mono border ${
+                        isLightApp ? 'bg-white border-slate-300 text-slate-900' : 'bg-[#181820] border-zinc-700 text-white'
+                      }`}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Estilo da Borda da Carta de Item */}

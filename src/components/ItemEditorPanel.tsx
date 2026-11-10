@@ -42,31 +42,11 @@ interface ItemEditorPanelProps {
   onPublishToPublic?: () => void;
 }
 
-// Compress uploaded image onto client canvas to prevent exceeding localStorage quota
-const processUploadedImage = (file: File, maxWidth = 800): Promise<string> => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.85));
-      };
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-};
+import {
+  processUploadedImage,
+  removeBlackFromDataUrl,
+  cleanImageTransparency,
+} from '../utils/imageProcessing';
 
 export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
   item,
@@ -158,7 +138,11 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
     if (!file) return;
 
     try {
-      const base64 = await processUploadedImage(file, 850);
+      const base64 = await processUploadedImage(file, {
+        maxWidth: 900,
+        maxHeight: 900,
+        autoDetectBlackBg: true,
+      });
       updateArtwork({
         url: base64,
         fit: 'contain',
@@ -823,14 +807,30 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                   </span>
                 </div>
                 {item.artwork?.url && (
-                  <button
-                    type="button"
-                    onClick={() => update({ artwork: undefined })}
-                    className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1 font-semibold"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>Remover Foto</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!item.artwork?.url) return;
+                        const clean = await cleanImageTransparency(item.artwork.url);
+                        updateArtwork({ url: clean });
+                        soundEngine.playSigilChime(640);
+                      }}
+                      className="px-2.5 py-1 text-xs rounded-lg font-semibold flex items-center gap-1 bg-amber-500/15 border border-amber-500/40 text-amber-500 hover:bg-amber-500/25 transition-colors cursor-pointer"
+                      title="Converter fundo preto em canal alfa transparente"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-400" />
+                      <span>✦ Fundo Transparente</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => update({ artwork: undefined })}
+                      className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1 font-semibold"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remover Foto</span>
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -848,7 +848,7 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                 </label>
 
                 {/* URL Input */}
-                <div className="flex-1 min-w-[200px] flex items-center gap-1">
+                <div className="flex-1 min-w-[200px] flex items-center gap-1.5">
                   <input
                     type="text"
                     value={imageUrlInput}
@@ -861,17 +861,32 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                     }`}
                   />
                   {imageUrlInput && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateArtwork({ url: imageUrlInput });
-                        setImageUrlInput('');
-                        soundEngine.playSigilChime(580);
-                      }}
-                      className="px-3 py-2 bg-amber-600 hover:bg-amber-500 text-xs text-white rounded-lg font-bold shrink-0"
-                    >
-                      Aplicar
-                    </button>
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateArtwork({ url: imageUrlInput });
+                          setImageUrlInput('');
+                          soundEngine.playSigilChime(580);
+                        }}
+                        className="px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-xs text-white rounded-lg font-bold shrink-0"
+                      >
+                        Aplicar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const clean = await cleanImageTransparency(imageUrlInput);
+                          updateArtwork({ url: clean });
+                          setImageUrlInput('');
+                          soundEngine.playSigilChime(640);
+                        }}
+                        className="px-2.5 py-2 bg-amber-600 hover:bg-amber-500 text-xs text-white rounded-lg font-bold shrink-0"
+                        title="Aplicar imagem removendo fundo preto"
+                      >
+                        Limpar Fundo
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -1188,7 +1203,12 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        const base64 = await processUploadedImage(file, 600);
+                        const base64 = await processUploadedImage(file, {
+                          maxWidth: 650,
+                          maxHeight: 650,
+                          removeBlackBg: true,
+                          autoDetectBlackBg: true,
+                        });
                         updateTheme({ customBackLogoUrl: base64 });
                         soundEngine.playSigilChime(560);
                       }
@@ -1205,6 +1225,22 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                     isLightApp ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/60 border-zinc-700 text-white'
                   }`}
                 />
+                {item.theme?.customBackLogoUrl && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!item.theme?.customBackLogoUrl) return;
+                      const clean = await cleanImageTransparency(item.theme.customBackLogoUrl);
+                      updateTheme({ customBackLogoUrl: clean });
+                      soundEngine.playSigilChime(640);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border bg-amber-950/60 border-amber-700/80 text-amber-300 hover:bg-amber-900/60 shrink-0 transition-colors"
+                    title="Garantir fundo transparente convertendo pixels pretos em alfa"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                    <span>✦ Limpar Fundo</span>
+                  </button>
+                )}
               </div>
             </div>
 

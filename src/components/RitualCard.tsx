@@ -76,6 +76,10 @@ export const RitualCard: React.FC<RitualCardProps> = ({
 
   // Background styling based on theme, cardMode and dossier style
   const getBgClass = () => {
+    if (isBack) {
+      return 'bg-white text-zinc-950';
+    }
+
     if (isDossierStyle) {
       return 'bg-white text-zinc-950';
     }
@@ -83,7 +87,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
     if (isLight) {
       switch (ritual.theme.bgTone) {
         case 'light-parchment':
-          return 'bg-[#fbf9f4] bg-[radial-gradient(#e2decb_1px,transparent_1px)] [background-size:16px_16px] text-zinc-900';
+          return 'bg-[#fbf9f4] text-zinc-900';
         case 'light-pure':
         default:
           return 'bg-white text-zinc-950';
@@ -94,7 +98,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
       case 'charcoal':
         return 'bg-[#0d0d12] text-zinc-100';
       case 'parchment':
-        return 'bg-[#08080b] bg-[radial-gradient(#1e1e28_1px,transparent_1px)] [background-size:16px_16px] text-zinc-100';
+        return 'bg-[#08080b] text-zinc-100';
       case 'black':
       default:
         return 'bg-[#030305] text-zinc-100';
@@ -183,13 +187,18 @@ export const RitualCard: React.FC<RitualCardProps> = ({
       }}
     >
       <div
-        className={`w-[440px] h-[615px] p-2.5 transition-all relative overflow-hidden flex flex-col justify-between ${getBgClass()} ${getCornerClass()} border-2 ${getOuterBorderClass()}`}
+        className={`w-[440px] h-[615px] p-2.5 transition-all relative overflow-hidden flex flex-col justify-between ${
+          isBack ? 'bg-white text-zinc-950' : getBgClass()
+        } ${getCornerClass()} border-2 ${getOuterBorderClass()}`}
         style={{
           width: `${baseWidth}px`,
           height: `${baseHeight}px`,
           transform: isScaled ? `scale(${scale})` : undefined,
           transformOrigin: 'top left',
-          boxShadow: isLight
+          backgroundColor: isBack ? '#ffffff' : undefined,
+          boxShadow: isBack
+            ? '0 10px 25px rgba(0,0,0,0.12)'
+            : isLight
             ? ritual.theme.accentGlow
               ? `0 0 20px ${activeAccentColor}44, inset 0 0 20px rgba(0,0,0,0.05)`
               : '0 10px 25px rgba(0,0,0,0.12), inset 0 0 15px rgba(0,0,0,0.03)'
@@ -231,12 +240,17 @@ export const RitualCard: React.FC<RitualCardProps> = ({
         {/* Inner Hairline Double Border Box */}
         <div
           className={`w-full h-full p-3.5 flex flex-col justify-between relative border ${getInnerCornerClass()} overflow-hidden ${
-            isEffectivelyLight
+            isBack
+              ? 'border-zinc-800/60 bg-white shadow-none text-zinc-950'
+              : isEffectivelyLight
               ? 'border-zinc-800/60 bg-white/80 shadow-inner'
               : 'border-zinc-400/40 bg-black/40'
           }`}
           style={{
-            borderColor: isDossierStyle
+            backgroundColor: isBack ? '#ffffff' : undefined,
+            borderColor: isBack
+              ? 'rgba(0, 0, 0, 0.65)'
+              : isDossierStyle
               ? 'rgba(0, 0, 0, 0.65)'
               : isLight
               ? ritual.theme.borderStyle === 'gold-accent'
@@ -247,8 +261,8 @@ export const RitualCard: React.FC<RitualCardProps> = ({
               : 'rgba(212, 212, 216, 0.35)',
           }}
         >
-          {/* Watermark Sigil in the background */}
-          {(!isBackgroundArtMode || (ritual.artwork?.opacity ?? 0) < 0.3) && (
+          {/* Watermark Sigil in the background - strictly for front view */}
+          {!isBack && (!isBackgroundArtMode || (ritual.artwork?.opacity ?? 0) < 0.3) && (
             <div
               className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden transition-opacity z-0"
               style={{
@@ -751,17 +765,14 @@ export const RitualCard: React.FC<RitualCardProps> = ({
             /* ======================================================== */
             /* BACK VIEW (VERSO) - CLEANED OF UNWANTED DECORATIVE TEXTS */
             /* ======================================================== */
-            <div className="relative z-10 flex flex-col h-full items-center justify-between text-center p-3.5 overflow-hidden">
+            <div
+              className="relative z-10 flex flex-col h-full items-center justify-between text-center p-3.5 overflow-hidden bg-white text-zinc-950"
+              style={{ backgroundColor: '#ffffff' }}
+            >
               {/* Top Classified Header Banner (CUSTOMIZÁVEL / REMOVÍVEL) */}
               {showTopHeader && (
-                <div className={`w-full border-b pb-2 mb-1 z-10 shrink-0 ${
-                  isEffectivelyLight ? 'border-zinc-300' : 'border-zinc-800'
-                }`}>
-                  <div className={`inline-block px-3 py-1 rounded text-[9.5px] font-mono uppercase tracking-widest font-bold shadow-xs border ${
-                    isEffectivelyLight
-                      ? 'bg-red-100 text-red-950 border-red-300'
-                      : 'bg-red-950/80 text-red-200 border-red-700/60'
-                  }`}>
+                <div className="w-full border-b border-zinc-300 pb-2 mb-1 z-10 shrink-0">
+                  <div className="inline-block px-3 py-1 rounded text-[9.5px] font-mono uppercase tracking-widest font-bold shadow-xs border bg-red-50 text-red-950 border-red-300">
                     {rawHeaderLabel}
                   </div>
                 </div>
@@ -774,11 +785,9 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                     className="w-full h-full relative transition-all duration-300"
                     style={{
                       opacity: ritual.artwork.opacity ?? (ritual.theme.backArtGlow ? 0.8 : 0.45),
-                      mixBlendMode: isEffectivelyLight
-                        ? ritual.artwork.blendMode === 'normal'
-                          ? 'multiply'
-                          : ritual.artwork.blendMode
-                        : ritual.artwork.blendMode || 'normal',
+                      mixBlendMode: ritual.artwork.blendMode === 'normal'
+                        ? 'multiply'
+                        : ritual.artwork.blendMode,
                     }}
                   >
                     <img
@@ -793,13 +802,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       }}
                     />
                     <div
-                      className={`absolute inset-0 transition-opacity duration-300 ${
-                        isEffectivelyLight
-                          ? 'bg-white/30'
-                          : isBack && ritual.theme.backArtGlow
-                          ? 'bg-black/30'
-                          : 'bg-black/50'
-                      }`}
+                      className="absolute inset-0 transition-opacity duration-300 bg-white/30"
                     />
                   </div>
 
@@ -816,8 +819,8 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                 </div>
               )}
 
-              {/* Center Sigil & Inscriptions in Westsac font */}
-              <div className="my-auto flex flex-col items-center justify-center relative z-10">
+              {/* Center Sigil & Inscriptions */}
+              <div className="my-auto flex flex-col items-center justify-center relative z-10 w-full">
                 <div
                   className="relative flex items-center justify-center transition-all duration-200"
                   style={{
@@ -831,22 +834,22 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                   }}
                 >
                   {ritual.theme.customBackLogoUrl || ritual.theme.backSigilStyle === 'ordo-realitas' ? (
-                    /* Ordo Realitas Official / Custom User Logo with Dynamic Contrast */
-                    <div className="relative p-2 flex flex-col items-center justify-center">
-                      <div className="w-38 h-38 rounded-full border-2 border-dashed border-zinc-700/80 flex items-center justify-center p-3 mb-2 bg-black/40 shadow-2xl relative overflow-hidden">
+                    /* Ordo Realitas Official / Custom User Logo with Imposing Scale & No Dashed Circle */
+                    <div className="relative p-1 flex flex-col items-center justify-center">
+                      <div className="w-48 h-48 sm:w-52 sm:h-52 max-w-[215px] max-h-[215px] flex items-center justify-center mb-2 relative select-none pointer-events-none">
                         <img
                           src={ritual.theme.customBackLogoUrl || ORDO_REALITAS_LOGO}
                           alt="Ordo Realitas Logo"
-                          className="w-full h-full object-contain p-1 select-none pointer-events-none"
+                          className="w-full h-full object-contain select-none pointer-events-none drop-shadow-xs"
                           style={{
-                            filter: isEffectivelyLight ? 'contrast(130%)' : 'invert(1) contrast(120%)',
-                            mixBlendMode: isEffectivelyLight ? 'multiply' : 'screen',
+                            filter: 'contrast(135%) brightness(0.95)',
+                            mixBlendMode: 'multiply',
                           }}
                         />
                       </div>
                     </div>
                   ) : ritual.theme.cleanBackSymbolOnly ? (
-                    /* Clean Symbol Only - No concentric rings, no complex runes */
+                    /* Clean Symbol Only - No concentric rings, no complex runes, no dashed circle */
                     <div className="relative p-2 flex items-center justify-center">
                       <OccultSigil
                         element={ritual.element}
@@ -855,14 +858,15 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                         customIconFilter={ritual.theme.customIconFilter}
                         customIconInvert={ritual.theme.customIconInvert}
                         cardMode={ritual.theme.cardMode}
-                        isLightBackground={isEffectivelyLight}
-                        size={200}
+                        isLightBackground={true}
+                        size={210}
                         color={activeAccentColor}
                         glow={ritual.theme.backSigilGlow || ritual.theme.accentGlow}
                       />
                     </div>
                   ) : ritual.theme.backSigilStyle === 'element' ? (
-                    <div className="relative">
+                    /* Clean Element Sigil - No dashed circle */
+                    <div className="relative p-2 flex items-center justify-center">
                       <OccultSigil
                         element={ritual.element}
                         symbolPreset={ritual.symbolPreset}
@@ -870,23 +874,11 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                         customIconFilter={ritual.theme.customIconFilter}
                         customIconInvert={ritual.theme.customIconInvert}
                         cardMode={ritual.theme.cardMode}
-                        isLightBackground={isEffectivelyLight}
+                        isLightBackground={true}
                         size={210}
                         color={activeAccentColor}
                         glow={ritual.theme.backSigilGlow || ritual.theme.accentGlow}
                       />
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div
-                          className={`w-40 h-40 rounded-full border border-dashed ${
-                            isEffectivelyLight ? 'border-zinc-300' : 'border-zinc-700/60'
-                          }`}
-                          style={
-                            ritual.theme.backSigilGlow
-                              ? { borderColor: activeAccentColor }
-                              : undefined
-                          }
-                        />
-                      </div>
                     </div>
                   ) : (
                     <div className="relative">
@@ -900,19 +892,9 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                   )}
                 </div>
 
-                {/* Custom Occult Center Inscription (Westsac font) */}
+                {/* Custom Occult Center Inscription */}
                 <div className="mt-4 max-w-[300px]">
-                  <p
-                    className={`font-title text-xs md:text-sm tracking-widest uppercase leading-relaxed font-semibold drop-shadow ${
-                      isEffectivelyLight ? 'text-zinc-950 font-bold' : 'text-zinc-200'
-                    }`}
-                    style={{
-                      textShadow:
-                        ritual.theme.accentGlow && !isEffectivelyLight
-                          ? `0 0 8px ${elementConfig.glowColor}`
-                          : undefined,
-                    }}
-                  >
+                  <p className="font-title text-xs md:text-sm tracking-widest uppercase leading-relaxed font-bold text-zinc-950 drop-shadow-xs">
                     {sanitizeTextForCustomFont(
                       ritual.theme.backQuoteText ||
                         'A Realidade é uma membrana frágil diante do Outro Lado.'
@@ -923,11 +905,9 @@ export const RitualCard: React.FC<RitualCardProps> = ({
 
               {/* Bottom Classification Stamp (CUSTOMIZÁVEL / REMOVÍVEL) */}
               {!ritual.theme.hideBottomFooter && (
-                <div className={`w-full pt-2 border-t flex items-center justify-between text-[9px] font-mono tracking-widest uppercase shrink-0 ${
-                  isEffectivelyLight ? 'text-zinc-600 border-zinc-300' : 'text-zinc-500 border-zinc-800'
-                }`}>
+                <div className="w-full pt-2 border-t border-zinc-300 flex items-center justify-between text-[9px] font-mono tracking-widest uppercase shrink-0 text-zinc-600">
                   <span>{ritual.theme.bottomFooterLeft !== undefined ? ritual.theme.bottomFooterLeft : 'ARQUIVO DA ORDEM'}</span>
-                  <span className="font-bold text-red-500">{ritual.theme.bottomFooterCenter !== undefined ? ritual.theme.bottomFooterCenter : 'CONFIDENCIAL'}</span>
+                  <span className="font-bold text-red-700">{ritual.theme.bottomFooterCenter !== undefined ? ritual.theme.bottomFooterCenter : 'CONFIDENCIAL'}</span>
                   <span>{ritual.theme.bottomFooterRight !== undefined ? ritual.theme.bottomFooterRight : 'SETOR OCULTO'}</span>
                 </div>
               )}

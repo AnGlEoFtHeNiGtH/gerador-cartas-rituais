@@ -143,7 +143,11 @@ export const ItemCard: React.FC<ItemCardProps> = ({
     >
       <div
         className={`w-[440px] h-[615px] p-2.5 transition-all relative overflow-hidden flex flex-col justify-between ${
-          isDossierStyle
+          isBack
+            ? isDossierStyle
+              ? 'border-[12px] border-black bg-white text-zinc-950 rounded-lg shadow-2xl'
+              : 'border-[3px] border-black bg-white text-zinc-950 shadow-xl rounded-xl'
+            : isDossierStyle
             ? 'border-[12px] border-black bg-white text-zinc-950 rounded-lg shadow-2xl'
             : isLightMode
             ? 'border-[3px] border-zinc-900 bg-[#f8fafc] text-zinc-950 shadow-xl rounded-xl'
@@ -154,10 +158,14 @@ export const ItemCard: React.FC<ItemCardProps> = ({
           height: `${baseHeight}px`,
           transform: isScaled ? `scale(${scale})` : undefined,
           transformOrigin: 'top left',
+          backgroundColor: isBack ? '#ffffff' : undefined,
+          boxShadow: isBack ? '0 10px 25px rgba(0,0,0,0.12)' : undefined,
         }}
       >
-        {/* Distressed texture overlay */}
-        <div className="absolute inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#000000_1px,transparent_1px)] [background-size:8px_8px] z-1" />
+        {/* Distressed texture overlay - strictly hidden on back to guarantee 100% solid pure white */}
+        {!isBack && (
+          <div className="absolute inset-0 pointer-events-none opacity-20 bg-[radial-gradient(#000000_1px,transparent_1px)] [background-size:8px_8px] z-1" />
+        )}
 
         {/* Outer Corner Rivets / Crosshairs */}
         <div className="absolute top-1.5 left-1.5 text-[10px] font-mono leading-none text-zinc-500 opacity-60 z-20">┼</div>
@@ -429,60 +437,40 @@ export const ItemCard: React.FC<ItemCardProps> = ({
           /* CARD BACK SIDE (CONFIDENTIAL ORDO REALITAS DOSSIER BACK) */
           /* ============================================================== */
           <div
-            className={`relative flex flex-col h-full justify-between items-center text-center p-6 rounded-lg overflow-hidden z-10 border-2 ${
-              isLightMode
-                ? 'bg-[#f8fafc] border-zinc-400 text-zinc-950'
-                : 'bg-[#0a0a0e] border-zinc-800 text-zinc-100'
-            }`}
+            className="relative flex flex-col h-full justify-between items-center text-center p-6 rounded-lg overflow-hidden z-10 border-2 border-zinc-900/60 bg-white text-zinc-950"
+            style={{ backgroundColor: '#ffffff' }}
           >
             {/* Top Classified Header (CUSTOMIZÁVEL / REMOVÍVEL) */}
             {showTopHeader && (
-              <div className={`w-full border-b pb-2 ${isLightMode ? 'border-zinc-300' : 'border-zinc-800'}`}>
-                <div
-                  className={`inline-block px-3 py-1 rounded text-[10px] font-mono uppercase tracking-widest font-bold shadow-xs border ${
-                    isLightMode
-                      ? 'bg-red-100 border-red-300 text-red-950'
-                      : 'bg-red-950/80 border-red-700/60 text-red-300'
-                  }`}
-                >
+              <div className="w-full border-b border-zinc-300 pb-2">
+                <div className="inline-block px-3 py-1 rounded text-[10px] font-mono uppercase tracking-widest font-bold shadow-xs border bg-red-50 border-red-300 text-red-950">
                   {rawHeaderLabel}
                 </div>
               </div>
             )}
 
             {/* Center Official Emblem & Stamp (Official ORDO_REALITAS_LOGO or Custom Upload) */}
-            <div className="my-auto flex flex-col items-center justify-center relative">
-              <div
-                className={`w-38 h-38 rounded-full border-2 border-dashed flex items-center justify-center p-3 mb-3 relative overflow-hidden ${
-                  isLightMode
-                    ? 'border-zinc-400 bg-white/90 shadow-xl'
-                    : 'border-zinc-700 bg-black/60 shadow-2xl'
-                }`}
-              >
+            <div className="my-auto flex flex-col items-center justify-center relative w-full">
+              {/* Clean, imposing logo without dashed circle wrapper */}
+              <div className="w-48 h-48 sm:w-52 sm:h-52 max-w-[215px] max-h-[215px] flex items-center justify-center p-1 mb-3 relative select-none pointer-events-none">
                 <img
                   src={item.theme?.customBackLogoUrl || ORDO_REALITAS_LOGO}
                   alt="Ordo Realitas Logo"
-                  className="w-full h-full object-contain p-1 select-none pointer-events-none"
+                  className="w-full h-full object-contain select-none pointer-events-none drop-shadow-xs"
                   style={{
-                    filter: isLightMode ? 'contrast(130%)' : 'invert(1) contrast(120%)',
-                    mixBlendMode: isLightMode ? 'multiply' : 'screen',
+                    filter: 'contrast(135%) brightness(0.95)',
+                    mixBlendMode: 'multiply',
                   }}
                 />
               </div>
 
               <h2
-                className={`font-title text-base font-bold tracking-widest uppercase ${
-                  isLightMode ? 'text-zinc-950' : 'text-white'
-                }`}
+                className="font-title text-base sm:text-lg font-bold tracking-widest uppercase text-zinc-950"
                 style={{ fontFamily: "'Cinzel', 'Westsac', Georgia, serif" }}
               >
                 EQUIPAMENTO DA ORDEM
               </h2>
-              <p
-                className={`text-[10px] font-mono uppercase mt-1 max-w-[260px] tracking-wider leading-relaxed ${
-                  isLightMode ? 'text-zinc-700 font-medium' : 'text-zinc-400'
-                }`}
-              >
+              <p className="text-[10.5px] font-mono uppercase mt-1.5 max-w-[280px] tracking-wider leading-relaxed text-zinc-700 font-medium">
                 {item.theme?.backQuoteText ||
                   'Propriedade intransferível da Ordo Realitas. O uso indevido por civis está sujeito a intervenção imediata.'}
               </p>
@@ -490,17 +478,13 @@ export const ItemCard: React.FC<ItemCardProps> = ({
 
             {/* Bottom Barcode & Verification (CUSTOMIZÁVEL / REMOVÍVEL) */}
             {!item.theme?.hideBottomFooter && (
-              <div
-                className={`w-full border-t pt-3 flex items-center justify-between text-[9px] font-mono ${
-                  isLightMode ? 'border-zinc-300 text-zinc-600' : 'border-zinc-800 text-zinc-500'
-                }`}
-              >
+              <div className="w-full border-t border-zinc-300 pt-3 flex items-center justify-between text-[9px] font-mono text-zinc-600">
                 <span>
                   {item.theme?.bottomFooterLeft !== undefined
                     ? item.theme.bottomFooterLeft
                     : `REF: ${item.theme?.itemCode || 'ORD-EQP-413'}`}
                 </span>
-                <span className="text-red-600 dark:text-red-400 font-bold tracking-widest uppercase">
+                <span className="text-red-700 font-bold tracking-widest uppercase">
                   {item.theme?.bottomFooterCenter !== undefined ? item.theme.bottomFooterCenter : 'USO RESTRITO'}
                 </span>
                 <span>

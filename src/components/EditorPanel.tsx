@@ -50,38 +50,11 @@ interface EditorPanelProps {
   onPublishToPublic?: () => void;
 }
 
-// Compress uploaded image onto client canvas to prevent exceeding localStorage quota
-const processUploadedImage = (file: File, maxWidth = 850): Promise<string> => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        if (width > maxWidth) {
-          height = Math.round((height * maxWidth) / width);
-          width = maxWidth;
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(e.target?.result as string);
-          return;
-        }
-        ctx.drawImage(img, 0, 0, width, height);
-        const format = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
-        const compressed = canvas.toDataURL(format, 0.85);
-        resolve(compressed);
-      };
-      img.onerror = () => resolve(e.target?.result as string);
-      img.src = e.target?.result as string;
-    };
-    reader.readAsDataURL(file);
-  });
-};
+import {
+  processUploadedImage,
+  removeBlackFromDataUrl,
+  cleanImageTransparency,
+} from '../utils/imageProcessing';
 
 export const EditorPanel: React.FC<EditorPanelProps> = ({
   ritual,
@@ -244,7 +217,11 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     if (!file) return;
 
     try {
-      const base64 = await processUploadedImage(file, 900);
+      const base64 = await processUploadedImage(file, {
+        maxWidth: 950,
+        maxHeight: 950,
+        autoDetectBlackBg: true,
+      });
       updateArtwork({
         url: base64,
         mode: ritual.artwork?.mode || 'illustration',
@@ -263,7 +240,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
     if (!file) return;
 
     try {
-      const base64 = await processUploadedImage(file, 300);
+      const base64 = await processUploadedImage(file, {
+        maxWidth: 350,
+        maxHeight: 350,
+        removeBlackBg: true,
+        autoDetectBlackBg: true,
+      });
       setSymbolTab('custom');
       update({
         customElementIcon: base64,
@@ -866,6 +848,21 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                           <X className="w-3.5 h-3.5" />
                           <span>Remover Ícone</span>
                         </button>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!ritual.customElementIcon) return;
+                            const clean = await cleanImageTransparency(ritual.customElementIcon);
+                            update({ customElementIcon: clean });
+                            soundEngine.playSigilChime(640);
+                          }}
+                          className="px-2.5 py-1 text-xs text-amber-500 hover:text-amber-400 border border-amber-500/30 hover:border-amber-500/60 rounded-lg font-semibold flex items-center gap-1 transition-colors"
+                          title="Garantir fundo 100% transparente convertendo pixels pretos em alfa"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                          <span>✦ Fundo Transparente</span>
+                        </button>
                       </div>
 
                       {/* Controles de Tratamento de Imagem */}
@@ -1365,7 +1362,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                       Modo atual: <strong className="capitalize">{ritual.artwork.mode}</strong>
                     </span>
 
-                    <div className="flex items-center gap-2 mt-2">
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
                       <button
                         type="button"
                         onClick={() => update({ artwork: undefined })}
@@ -1390,6 +1387,25 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                           className="hidden"
                         />
                       </label>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!ritual.artwork?.url) return;
+                          const clean = await cleanImageTransparency(ritual.artwork.url);
+                          updateArtwork({ url: clean });
+                          soundEngine.playSigilChime(640);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 border transition-colors ${
+                          isLightApp
+                            ? 'bg-amber-50 border-amber-300 text-amber-900 hover:bg-amber-100'
+                            : 'bg-amber-950/60 border-amber-700/80 text-amber-300 hover:bg-amber-900/60'
+                        }`}
+                        title="Converter fundo preto em canal alfa transparente"
+                      >
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        <span>✦ Fundo Transparente</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -2102,7 +2118,7 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                     </button>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-semibold cursor-pointer border border-zinc-600 shrink-0">
                     <Upload className="w-3.5 h-3.5" />
                     <span>Enviar Arquivo</span>
@@ -2112,7 +2128,12 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
                         if (file) {
-                          const base64 = await processUploadedImage(file, 600);
+                          const base64 = await processUploadedImage(file, {
+                            maxWidth: 650,
+                            maxHeight: 650,
+                            removeBlackBg: true,
+                            autoDetectBlackBg: true,
+                          });
                           updateTheme({ customBackLogoUrl: base64, backSigilStyle: 'ordo-realitas' });
                           soundEngine.playSigilChime(560);
                         }
@@ -2129,6 +2150,22 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                       isLightApp ? 'bg-slate-50 border-slate-300 text-slate-900' : 'bg-black/60 border-zinc-700 text-white'
                     }`}
                   />
+                  {ritual.theme.customBackLogoUrl && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!ritual.theme.customBackLogoUrl) return;
+                        const clean = await cleanImageTransparency(ritual.theme.customBackLogoUrl);
+                        updateTheme({ customBackLogoUrl: clean });
+                        soundEngine.playSigilChime(640);
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 border bg-amber-950/60 border-amber-700/80 text-amber-300 hover:bg-amber-900/60 shrink-0 transition-colors"
+                      title="Garantir fundo transparente convertendo pixels pretos em alfa"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-400" />
+                      <span>✦ Limpar Fundo</span>
+                    </button>
+                  )}
                 </div>
               </div>
 

@@ -340,7 +340,7 @@ export const ArsenalManager: React.FC<ArsenalManagerProps> = ({
                           <span className="text-zinc-400 uppercase truncate">
                             {MUNDANE_SUBCATEGORIES[itm.subcategory]?.name || itm.subcategory}
                           </span>
-                          {(itm.itemType === 'amaldicoado' || itm.element) && (() => {
+                          {((itm.showElementBadge !== undefined ? itm.showElementBadge : itm.itemType === 'amaldicoado') && (() => {
                             const elem = ((itm.element || 'sangue').toLowerCase().trim() as ElementId);
                             const cfg = elem !== 'custom' ? ELEMENT_CONFIGS[elem] : undefined;
                             if (!cfg) return null;
@@ -362,7 +362,7 @@ export const ArsenalManager: React.FC<ArsenalManagerProps> = ({
                                 <span>{cfg.name}</span>
                               </span>
                             );
-                          })()}
+                          })())}
                         </div>
 
                         <div className="flex items-center gap-1.5">

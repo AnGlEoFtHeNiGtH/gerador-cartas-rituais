@@ -111,6 +111,7 @@ export interface ArsenalItem {
   protectionType?: string;
 
   // Curse / Paranormal specific
+  showElementBadge?: boolean;
   element?: ElementId;
   curseName?: string;
   curseCost?: string;

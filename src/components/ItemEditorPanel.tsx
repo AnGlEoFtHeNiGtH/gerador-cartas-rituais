@@ -318,14 +318,16 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                     key={cat.id}
                     type="button"
                     onClick={() => {
+                      const nextType = cat.id as CardCategory;
                       update({
-                        itemType: cat.id as CardCategory,
-                        ...(cat.id === 'amaldicoado' && !item.element ? { element: 'sangue' } : {}),
+                        itemType: nextType,
+                        showElementBadge: nextType === 'amaldicoado',
+                        ...(nextType === 'amaldicoado' && !item.element ? { element: 'sangue' } : {}),
                       });
                       soundEngine.playSigilChime(500);
                     }}
                     className={`p-2 rounded-xl border text-left transition-all ${
-                      item.itemType === cat.id
+                      (item.itemType || item.category || 'mundano') === cat.id
                         ? 'bg-amber-600 text-white border-amber-600 font-bold shadow-xs'
                         : isLightApp
                         ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
@@ -378,7 +380,111 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
               </div>
             </div>
 
-            {/* Se for Amaldiçoado: Seletor de Elemento Opcional */}
+            {/* Controle Explícito: Exibir Elemento / Aflição na Carta */}
+            {(() => {
+              const effectiveType = item.itemType || item.category || 'mundano';
+              const isElementEnabled =
+                item.showElementBadge !== undefined ? item.showElementBadge : effectiveType === 'amaldicoado';
+              return (
+                <div
+                  className={`p-3 rounded-xl border space-y-3 transition-colors ${
+                    isLightApp ? 'bg-slate-50 border-slate-200' : 'bg-[#181820] border-zinc-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <span
+                        className={`text-xs font-mono uppercase tracking-wider font-bold block ${
+                          isLightApp ? 'text-slate-800' : 'text-zinc-100'
+                        }`}
+                      >
+                        Exibir Elemento / Aflição na Carta
+                      </span>
+                      <span className={`text-[11px] block ${isLightApp ? 'text-slate-500' : 'text-zinc-400'}`}>
+                        {isElementEnabled
+                          ? 'Selo de elemento ativo no cabeçalho do equipamento'
+                          : 'Cabeçalho limpo sem selos paranormais (padrão para itens mundanos)'}
+                      </span>
+                    </div>
+
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={isElementEnabled}
+                        onChange={(e) => {
+                          const enabled = e.target.checked;
+                          update({
+                            showElementBadge: enabled,
+                            ...(enabled && !item.element ? { element: 'sangue' } : {}),
+                          });
+                          soundEngine.playCardFlip();
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-zinc-700 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600" />
+                    </label>
+                  </div>
+
+                  {isElementEnabled && (
+                    <div className={`pt-2.5 border-t ${isLightApp ? 'border-slate-200' : 'border-zinc-800'}`}>
+                      <label
+                        className={`text-[11px] font-mono block mb-1.5 font-semibold ${
+                          isLightApp ? 'text-slate-600' : 'text-zinc-300'
+                        }`}
+                      >
+                        Elemento Associado
+                      </label>
+                      <div className="grid grid-cols-5 gap-1.5">
+                        {(['sangue', 'morte', 'energia', 'conhecimento', 'medo'] as ElementId[]).map((elem) => {
+                          const cfg = ELEMENT_CONFIGS[elem];
+                          const activeElem = item.element || 'sangue';
+                          const isElemActive = activeElem === elem;
+                          return (
+                            <button
+                              key={elem}
+                              type="button"
+                              onClick={() => {
+                                update({ element: elem, showElementBadge: true });
+                                soundEngine.playSigilChime(540);
+                              }}
+                              className={`p-1.5 rounded-lg border text-center text-[10px] font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                                isElemActive
+                                  ? 'bg-zinc-900 border-amber-400 text-white shadow-xs'
+                                  : isLightApp
+                                  ? 'bg-white border-slate-300 text-slate-800 hover:bg-slate-100'
+                                  : 'bg-black/40 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                              }`}
+                              style={{
+                                borderColor: isElemActive
+                                  ? isLightApp && elem === 'morte'
+                                    ? '#334155'
+                                    : cfg.primaryColor
+                                  : undefined,
+                                color: isElemActive
+                                  ? cfg.primaryColor
+                                  : isLightApp
+                                  ? cfg.lightPrimaryColor
+                                  : undefined,
+                              }}
+                            >
+                              <OccultSigil
+                                element={elem}
+                                size={18}
+                                isLightBackground={isLightApp && !isElemActive}
+                                color={isElemActive ? cfg.primaryColor : isLightApp ? cfg.lightPrimaryColor : cfg.primaryColor}
+                              />
+                              <span className="truncate w-full leading-none">{cfg.name}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Se for Amaldiçoado: Detalhes da Maldição */}
             {item.itemType === 'amaldicoado' && (
               <div
                 className={`p-3 rounded-xl border space-y-2.5 ${
@@ -398,7 +504,11 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                       value={item.curseName || ''}
                       onChange={(e) => update({ curseName: e.target.value })}
                       placeholder="Ex: Sede Voraz, Sussurros..."
-                      className="w-full bg-black/40 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs"
+                      className={`w-full rounded-lg px-2.5 py-1.5 text-xs border ${
+                        isLightApp
+                          ? 'bg-white border-purple-200 text-slate-900'
+                          : 'bg-black/40 border-zinc-700 text-white'
+                      }`}
                     />
                   </div>
 
@@ -409,56 +519,12 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                       value={item.curseCost || ''}
                       onChange={(e) => update({ curseCost: e.target.value })}
                       placeholder="Ex: 1 Sanidade por cena..."
-                      className="w-full bg-black/40 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-xs"
+                      className={`w-full rounded-lg px-2.5 py-1.5 text-xs border ${
+                        isLightApp
+                          ? 'bg-white border-purple-200 text-slate-900'
+                          : 'bg-black/40 border-zinc-700 text-white'
+                      }`}
                     />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-mono block mb-1">Elemento Principal da Maldição</label>
-                  <div className="grid grid-cols-5 gap-1.5">
-                    {(['sangue', 'morte', 'energia', 'conhecimento', 'medo'] as ElementId[]).map((elem) => {
-                      const cfg = ELEMENT_CONFIGS[elem];
-                      const activeElem = item.element || 'sangue';
-                      const isElemActive = activeElem === elem;
-                      return (
-                        <button
-                          key={elem}
-                          type="button"
-                          onClick={() => {
-                            update({ element: elem });
-                            soundEngine.playSigilChime(540);
-                          }}
-                          className={`p-1.5 rounded-lg border text-center text-[10px] font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                            isElemActive
-                              ? 'bg-zinc-900 border-amber-400 text-white shadow-xs'
-                              : isLightApp
-                              ? 'bg-white border-slate-300 text-slate-800 hover:bg-slate-100'
-                              : 'bg-black/40 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                          }`}
-                          style={{
-                            borderColor: isElemActive
-                              ? isLightApp && elem === 'morte'
-                                ? '#334155'
-                                : cfg.primaryColor
-                              : undefined,
-                            color: isElemActive
-                              ? cfg.primaryColor
-                              : isLightApp
-                              ? cfg.lightPrimaryColor
-                              : undefined,
-                          }}
-                        >
-                          <OccultSigil
-                            element={elem}
-                            size={18}
-                            isLightBackground={isLightApp && !isElemActive}
-                            color={isElemActive ? cfg.primaryColor : isLightApp ? cfg.lightPrimaryColor : cfg.primaryColor}
-                          />
-                          <span className="truncate w-full leading-none">{cfg.name}</span>
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
               </div>

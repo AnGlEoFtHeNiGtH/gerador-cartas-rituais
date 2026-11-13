@@ -10,7 +10,6 @@ import {
   Crosshair,
   Wrench,
   Disc,
-  Skull,
 } from 'lucide-react';
 
 interface ItemCardProps {
@@ -67,26 +66,24 @@ export const ItemCard: React.FC<ItemCardProps> = ({
   const formattedSlots = Number.isInteger(rawSlots) ? rawSlots : Number(rawSlots.toFixed(2));
   const slotLabel = formattedSlots === 1 ? 'Espaço' : 'Espaços';
 
-  // Resolve element cleanly for Amaldiçoado / Paranormal items
+  // Resolve element cleanly: only show for 'amaldicoado' (unless explicitly disabled) or when showElementBadge is explicitly enabled
+  const isCursed = itemType === 'amaldicoado';
+  const shouldShowElement = item.showElementBadge !== undefined ? item.showElementBadge : isCursed;
   const rawElement =
     typeof item.element === 'string' ? (item.element.toLowerCase().trim() as ElementId) : undefined;
-  const effectiveElement: ElementId | undefined =
-    itemType === 'amaldicoado' ? (rawElement || 'sangue') : rawElement;
+  const effectiveElement: ElementId | undefined = shouldShowElement ? (rawElement || 'sangue') : undefined;
   const elementConfig =
     effectiveElement && effectiveElement !== 'custom' ? ELEMENT_CONFIGS[effectiveElement] : undefined;
 
   // Accent color by item type or element (light/white contrast safe)
   const getAccentColor = () => {
+    if (effectiveElement && elementConfig) {
+      return isLightMode ? elementConfig.lightPrimaryColor : elementConfig.primaryColor;
+    }
     if (itemType === 'amaldicoado') {
-      if (elementConfig) {
-        return isLightMode ? elementConfig.lightPrimaryColor : elementConfig.primaryColor;
-      }
       return isLightMode ? '#7e22ce' : '#a855f7';
     }
     if (itemType === 'paranormal' || itemType === 'ritual') {
-      if (elementConfig) {
-        return isLightMode ? elementConfig.lightPrimaryColor : elementConfig.primaryColor;
-      }
       return '#0284c7';
     }
     switch (item.subcategory) {
@@ -278,7 +275,7 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                   <span className={`font-semibold truncate ${isLightMode ? 'text-zinc-700' : 'text-zinc-400'}`}>
                     {getSubcategoryLabel()}
                   </span>
-                  {(itemType === 'amaldicoado' || effectiveElement) && (
+                  {effectiveElement && (
                     <span
                       className="px-1.5 py-0.5 rounded font-bold flex items-center gap-1 border shrink-0"
                       style={{
@@ -293,16 +290,12 @@ export const ItemCard: React.FC<ItemCardProps> = ({
                           : elementConfig?.primaryColor || '#c084fc',
                       }}
                     >
-                      {effectiveElement ? (
-                        <OccultSigil
-                          element={effectiveElement}
-                          isLightBackground={isLightMode}
-                          size={13}
-                          color={isLightMode ? elementConfig?.lightPrimaryColor : elementConfig?.primaryColor}
-                        />
-                      ) : (
-                        <Skull className="w-2.5 h-2.5" />
-                      )}
+                      <OccultSigil
+                        element={effectiveElement}
+                        isLightBackground={isLightMode}
+                        size={13}
+                        color={isLightMode ? elementConfig?.lightPrimaryColor : elementConfig?.primaryColor}
+                      />
                       <span>{elementConfig ? elementConfig.name : 'Amaldiçoado'}</span>
                     </span>
                   )}

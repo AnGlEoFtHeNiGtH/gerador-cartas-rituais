@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Ritual } from '../types';
+import { Ritual, ArsenalItem } from '../types';
 import { RitualCard } from './RitualCard';
-import { Printer, X, LayoutGrid, Layers, Check } from 'lucide-react';
+import { ItemCard } from './ItemCard';
+import { Printer, X } from 'lucide-react';
 
 interface PrintModalProps {
   ritual: Ritual;
+  item?: ArsenalItem;
+  mode?: 'rituals' | 'arsenal';
   isOpen: boolean;
   onClose: () => void;
   appMode?: 'dark' | 'light';
@@ -13,6 +16,8 @@ interface PrintModalProps {
 
 export const PrintModal: React.FC<PrintModalProps> = ({
   ritual,
+  item,
+  mode = 'rituals',
   isOpen,
   onClose,
   appMode = 'dark',
@@ -22,6 +27,12 @@ export const PrintModal: React.FC<PrintModalProps> = ({
   const [showCropMarks, setShowCropMarks] = useState(true);
 
   if (!isOpen) return null;
+
+  const isArsenal = mode === 'arsenal' && !!item;
+  const cardTitle = isArsenal ? item.name : ritual.name;
+  const cardBadge = isArsenal
+    ? `CAT ${item.categoryTier || item.tier || 'I'}`
+    : ritual.element.toUpperCase();
 
   const handlePrint = () => {
     window.print();
@@ -68,14 +79,14 @@ export const PrintModal: React.FC<PrintModalProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handlePrint}
-              className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-red-950/40 transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-red-950/40 transition-colors cursor-pointer"
             >
               <Printer className="w-4 h-4" />
               <span>Imprimir Agora (Ctrl+P)</span>
             </button>
             <button
               onClick={onClose}
-              className={`p-1.5 rounded-lg transition-colors ${
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                 isLight
                   ? 'text-slate-500 hover:text-slate-900 hover:bg-slate-200'
                   : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
@@ -103,7 +114,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
             >
               <button
                 onClick={() => setPrintLayout('both')}
-                className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                className={`px-3 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
                   printLayout === 'both'
                     ? isLight
                       ? 'bg-slate-800 text-white font-semibold'
@@ -117,7 +128,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
               </button>
               <button
                 onClick={() => setPrintLayout('front-only')}
-                className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                className={`px-3 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
                   printLayout === 'front-only'
                     ? isLight
                       ? 'bg-slate-800 text-white font-semibold'
@@ -131,7 +142,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
               </button>
               <button
                 onClick={() => setPrintLayout('back-only')}
-                className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                className={`px-3 py-1 rounded text-xs font-medium transition-all cursor-pointer ${
                   printLayout === 'back-only'
                     ? isLight
                       ? 'bg-slate-800 text-white font-semibold'
@@ -172,20 +183,20 @@ export const PrintModal: React.FC<PrintModalProps> = ({
               <div className="relative flex flex-col items-center">
                 {showCropMarks && (
                   <>
-                    {/* Top crop mark */}
                     <div className="absolute -top-4 w-px h-3 bg-black/60" />
-                    {/* Bottom crop mark */}
                     <div className="absolute -bottom-4 w-px h-3 bg-black/60" />
-                    {/* Left crop mark */}
                     <div className="absolute -left-4 h-px w-3 bg-black/60" />
-                    {/* Right crop mark */}
                     <div className="absolute -right-4 h-px w-3 bg-black/60" />
                   </>
                 )}
                 <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 mb-1.5 no-print">
-                  [FRENTE] {ritual.name}
+                  [FRENTE] {cardTitle}
                 </span>
-                <RitualCard ritual={ritual} viewSide="front" scale={0.88} />
+                {isArsenal ? (
+                  <ItemCard item={item} viewSide="front" scale={0.88} interactivePips={false} />
+                ) : (
+                  <RitualCard ritual={ritual} viewSide="front" scale={0.88} />
+                )}
               </div>
             )}
 
@@ -201,9 +212,13 @@ export const PrintModal: React.FC<PrintModalProps> = ({
                   </>
                 )}
                 <span className="text-[10px] font-mono uppercase tracking-widest text-zinc-600 mb-1.5 no-print">
-                  [VERSO] {ritual.name}
+                  [VERSO] {cardTitle}
                 </span>
-                <RitualCard ritual={ritual} viewSide="back" scale={0.88} />
+                {isArsenal ? (
+                  <ItemCard item={item} viewSide="back" scale={0.88} interactivePips={false} />
+                ) : (
+                  <RitualCard ritual={ritual} viewSide="back" scale={0.88} />
+                )}
               </div>
             )}
           </div>
@@ -217,7 +232,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({
               : 'border-zinc-800 bg-[#0c0c10] text-zinc-400'
           }`}
         >
-          💡 Para melhor qualidade física, configure sua impressora para &ldquo;Escala: 100%&rdquo; e papel fotográfico ou couchê 250g/m² ou 300g/m².
+          Para melhor qualidade física, configure sua impressora para &ldquo;Escala: 100%&rdquo; e papel fotográfico ou couchê 250g/m² ou 300g/m².
         </div>
       </div>
     </div>
@@ -229,8 +244,8 @@ export const PrintModal: React.FC<PrintModalProps> = ({
           <div className="page-a4-sheet">
             <div className="w-full flex items-center justify-between text-[11px] font-mono tracking-wider text-slate-500 uppercase border-b border-slate-300 pb-2 mb-6">
               <span>ORDEM PARANORMAL · IMPRESSÃO FÍSICA POKER SIZE</span>
-              <span className="font-bold text-slate-800">FACE 1 · FRENTE · {ritual.name}</span>
-              <span>{ritual.element.toUpperCase()}</span>
+              <span className="font-bold text-slate-800">FACE 1 · FRENTE · {cardTitle}</span>
+              <span>{cardBadge}</span>
             </div>
             <div className="relative flex flex-col items-center justify-center my-auto">
               {showCropMarks && (
@@ -245,7 +260,11 @@ export const PrintModal: React.FC<PrintModalProps> = ({
                   <div className="absolute bottom-0 -right-6 h-px w-5 bg-black" />
                 </>
               )}
-              <RitualCard ritual={ritual} viewSide="front" scale={1} />
+              {isArsenal ? (
+                <ItemCard item={item} viewSide="front" scale={1} interactivePips={false} />
+              ) : (
+                <RitualCard ritual={ritual} viewSide="front" scale={1} />
+              )}
             </div>
             <div className="w-full flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-slate-300 pt-2 mt-6">
               <span>FORMATO POKER SIZE (63mm × 88mm)</span>
@@ -259,8 +278,8 @@ export const PrintModal: React.FC<PrintModalProps> = ({
           <div className="page-a4-sheet">
             <div className="w-full flex items-center justify-between text-[11px] font-mono tracking-wider text-slate-500 uppercase border-b border-slate-300 pb-2 mb-6">
               <span>ORDEM PARANORMAL · IMPRESSÃO FÍSICA POKER SIZE</span>
-              <span className="font-bold text-slate-800">FACE 2 · VERSO · {ritual.name}</span>
-              <span>{ritual.element.toUpperCase()}</span>
+              <span className="font-bold text-slate-800">FACE 2 · VERSO · {cardTitle}</span>
+              <span>{cardBadge}</span>
             </div>
             <div className="relative flex flex-col items-center justify-center my-auto">
               {showCropMarks && (
@@ -275,7 +294,11 @@ export const PrintModal: React.FC<PrintModalProps> = ({
                   <div className="absolute bottom-0 -right-6 h-px w-5 bg-black" />
                 </>
               )}
-              <RitualCard ritual={ritual} viewSide="back" scale={1} />
+              {isArsenal ? (
+                <ItemCard item={item} viewSide="back" scale={1} interactivePips={false} />
+              ) : (
+                <RitualCard ritual={ritual} viewSide="back" scale={1} />
+              )}
             </div>
             <div className="w-full flex items-center justify-between text-[10px] font-mono text-slate-400 border-t border-slate-300 pt-2 mt-6">
               <span>FORMATO POKER SIZE (63mm × 88mm)</span>

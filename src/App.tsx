@@ -12,6 +12,7 @@ import { PrintModal } from './components/PrintModal';
 import { LightPrintModal } from './components/LightPrintModal';
 import { MultiCardPrintModal } from './components/MultiCardPrintModal';
 import { AdminLoginModal } from './components/AdminLoginModal';
+import { WelcomeScreen } from './components/WelcomeScreen';
 import { exportCardAsPng, sanitizeFilename, safeSaveToLocalStorage } from './utils/exportCard';
 import { healCorruptedCharacters } from './utils/textFormatter';
 import { soundEngine } from './utils/audio';
@@ -113,7 +114,8 @@ export default function App() {
   // Current active ritual
   const [currentRitual, setCurrentRitual] = useState<Ritual>(() => rituals[0] || PRESET_RITUALS[0]);
 
-  // Global Workspace Switcher: 'rituals' (Grimório) vs 'arsenal' (Itens & Equipamentos)
+  // Global Welcome Screen & Workspace Switcher: 'rituals' (Grimório) vs 'arsenal' (Itens & Equipamentos)
+  const [hasEnteredWorkspace, setHasEnteredWorkspace] = useState<boolean>(false);
   const [activeWorkspace, setActiveWorkspace] = useState<'rituals' | 'arsenal'>('rituals');
 
   // Arsenal Items state (persisted to localStorage)
@@ -129,6 +131,8 @@ export default function App() {
             name: healCorruptedCharacters(item.name || ''),
             description: healCorruptedCharacters(item.description || ''),
             flavorText: healCorruptedCharacters(item.flavorText || ''),
+            curseName: item.curseName ? healCorruptedCharacters(item.curseName) : item.curseName,
+            curseCost: item.curseCost ? healCorruptedCharacters(item.curseCost) : item.curseCost,
             theme: {
               ...item.theme,
               backQuoteText: healCorruptedCharacters(item.theme?.backQuoteText || ''),
@@ -497,6 +501,46 @@ export default function App() {
 
   const isLightApp = appMode === 'light';
 
+  const handleSelectWorkspaceFromWelcome = (workspace: 'rituals' | 'arsenal') => {
+    setActiveWorkspace(workspace);
+    setActiveView('front');
+    setIsFlipped3D(false);
+    setHasEnteredWorkspace(true);
+  };
+
+  if (!hasEnteredWorkspace) {
+    return (
+      <>
+        <WelcomeScreen
+          onSelectWorkspace={handleSelectWorkspaceFromWelcome}
+          ritualCount={rituals.length}
+          itemCount={items.length}
+          appMode={appMode}
+          onToggleAppMode={toggleAppMode}
+          isAmbientPlaying={isAmbientPlaying}
+          onToggleAmbient={handleToggleAmbient}
+          isAdminLoggedIn={isAdminLoggedIn}
+          onOpenAdminModal={handleOpenAdminModal}
+        />
+
+        {toastMessage && (
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#181822] border border-red-600/70 text-white px-4 py-2.5 rounded-xl shadow-2xl animate-fade-in text-xs font-medium">
+            <Check className="w-4 h-4 text-red-400" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+
+        <AdminLoginModal
+          isOpen={isAdminModalOpen}
+          onClose={() => setIsAdminModalOpen(false)}
+          appMode={appMode}
+          isAdminAuthenticated={isAdminLoggedIn}
+          onAuthStateChange={(isAuth) => setIsAdminLoggedIn(isAuth)}
+        />
+      </>
+    );
+  }
+
   return (
     <div
       className={`min-h-screen flex flex-col font-sans transition-colors ${
@@ -517,7 +561,15 @@ export default function App() {
       >
         {/* Zone 1: Wordmark & Global Workspace Switcher */}
         <div className="flex items-center gap-4 whitespace-nowrap shrink-0">
-          <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playPageTurn();
+              setHasEnteredWorkspace(false);
+            }}
+            title="Voltar ao Painel de Acesso Inicial"
+            className="flex items-center gap-2.5 cursor-pointer group focus-visible:outline-hidden"
+          >
             <div
               className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-xs transition-colors ${
                 activeWorkspace === 'rituals'
@@ -537,13 +589,13 @@ export default function App() {
               )}
             </div>
             <span
-              className={`font-title text-base font-bold tracking-wider ${
+              className={`font-title text-base font-bold tracking-wider transition-opacity group-hover:opacity-80 ${
                 isLightApp ? 'text-slate-900' : 'text-white'
               }`}
             >
               Ordem Paranormal
             </span>
-          </div>
+          </button>
 
           {/* Global Workspace Mode Switcher (Grimório vs Arsenal) */}
           <div
@@ -554,6 +606,8 @@ export default function App() {
             <button
               onClick={() => {
                 setActiveWorkspace('rituals');
+                setActiveView('front');
+                setIsFlipped3D(false);
                 soundEngine.playPageTurn();
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all cursor-pointer ${
@@ -572,6 +626,8 @@ export default function App() {
             <button
               onClick={() => {
                 setActiveWorkspace('arsenal');
+                setActiveView('front');
+                setIsFlipped3D(false);
                 soundEngine.playPageTurn();
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all cursor-pointer ${
@@ -1250,6 +1306,8 @@ export default function App() {
         isOpen={isPrintOpen}
         onClose={() => setIsPrintOpen(false)}
         ritual={currentRitual}
+        item={currentItem}
+        mode={activeWorkspace}
         appMode={appMode}
       />
 

@@ -17,7 +17,7 @@ export const PRESET_ITEMS: ArsenalItem[] = [
     theme: {
       borderStyle: 'rustic-tactical',
       parchmentTone: 'classic-aged',
-      cardMode: 'dark',
+      cardMode: 'light',
       itemCode: 'ORD-UTIL-05',
     },
     createdAt: Date.now() - 3600000 * 48,
@@ -39,7 +39,7 @@ export const PRESET_ITEMS: ArsenalItem[] = [
     theme: {
       borderStyle: 'rustic-tactical',
       parchmentTone: 'classic-aged',
-      cardMode: 'dark',
+      cardMode: 'light',
       itemCode: 'ORD-INV-12',
     },
     createdAt: Date.now() - 3600000 * 40,
@@ -66,7 +66,7 @@ export const PRESET_ITEMS: ArsenalItem[] = [
     theme: {
       borderStyle: 'rustic-tactical',
       parchmentTone: 'classic-aged',
-      cardMode: 'dark',
+      cardMode: 'light',
       itemCode: 'ORD-WPN-38',
     },
     createdAt: Date.now() - 3600000 * 32,
@@ -91,7 +91,7 @@ export const PRESET_ITEMS: ArsenalItem[] = [
     theme: {
       borderStyle: 'rustic-tactical',
       parchmentTone: 'classic-aged',
-      cardMode: 'dark',
+      cardMode: 'light',
       itemCode: 'ORD-ARM-02',
     },
     createdAt: Date.now() - 3600000 * 24,
@@ -113,7 +113,7 @@ export const PRESET_ITEMS: ArsenalItem[] = [
     theme: {
       borderStyle: 'rustic-tactical',
       parchmentTone: 'classic-aged',
-      cardMode: 'dark',
+      cardMode: 'light',
       itemCode: 'ORD-MED-01',
     },
     createdAt: Date.now() - 3600000 * 16,
@@ -140,7 +140,7 @@ export const PRESET_ITEMS: ArsenalItem[] = [
     theme: {
       borderStyle: 'rustic-tactical',
       parchmentTone: 'classic-aged',
-      cardMode: 'dark',
+      cardMode: 'light',
       itemCode: 'ORD-EXP-04',
     },
     createdAt: Date.now() - 3600000 * 8,
@@ -170,7 +170,7 @@ export const PRESET_ITEMS: ArsenalItem[] = [
     theme: {
       borderStyle: 'rustic-tactical',
       parchmentTone: 'classic-aged',
-      cardMode: 'dark',
+      cardMode: 'light',
       itemCode: 'ORD-CURSE-01',
     },
     createdAt: Date.now() - 3600000 * 2,

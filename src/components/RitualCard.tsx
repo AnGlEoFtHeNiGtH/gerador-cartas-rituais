@@ -419,12 +419,12 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                         <div
                           className={`flex items-center gap-1.5 text-xs tracking-widest uppercase font-semibold mt-0.5 shrink-0 ${
                             hideSymbol ? 'justify-start' : 'justify-center'
-                          } ${isLight ? 'text-zinc-600' : 'text-zinc-400'}`}
+                          } ${isEffectivelyLight ? 'text-zinc-700' : 'text-zinc-400'}`}
                         >
                           <span style={{ color: activeAccentColor }}>
                             {elementConfig.name}
                           </span>
-                          <span className={isLight ? 'text-zinc-400' : 'text-zinc-600'}>/</span>
+                          <span className={isEffectivelyLight ? 'text-zinc-400' : 'text-zinc-600'}>/</span>
                           <span className="font-bold">{ritual.circle}º Círculo</span>
                         </div>
                       </div>
@@ -432,7 +432,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                       {/* Right: Circle Tier Badge (Protected fixed 48px, never pushed out) */}
                       <div
                         className={`shrink-0 w-12 h-12 min-w-[48px] flex flex-col items-center justify-center rounded-full border shadow-inner ${
-                          isLight
+                          isEffectivelyLight
                             ? 'border-zinc-300 bg-zinc-50'
                             : 'border-zinc-700 bg-black/80'
                         }`}
@@ -448,7 +448,7 @@ export const RitualCard: React.FC<RitualCardProps> = ({
                         </span>
                         <span
                           className={`text-[8.5px] uppercase tracking-tighter font-mono font-semibold mt-0.5 ${
-                            isLight ? 'text-zinc-600' : 'text-zinc-400'
+                            isEffectivelyLight ? 'text-zinc-600' : 'text-zinc-400'
                           }`}
                         >
                           Grau

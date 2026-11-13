@@ -751,6 +751,7 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                       r.element === 'custom'
                         ? {
                             primaryColor: r.customElementColor || '#0ea5e9',
+                            lightPrimaryColor: r.customElementColor || '#0369a1',
                             name: r.customElementName || 'Custom',
                           }
                         : ELEMENT_CONFIGS[r.element];
@@ -806,7 +807,7 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                               </button>
 
                               {/* Element Sigil Preview */}
-                              <div className="w-7 h-7 rounded-full bg-black/40 flex items-center justify-center overflow-hidden shrink-0">
+                              <div className="w-7 h-7 rounded-full bg-black/80 border border-zinc-700/70 flex items-center justify-center overflow-hidden shrink-0">
                                 <OccultSigil
                                   element={r.element}
                                   symbolPreset={r.symbolPreset}
@@ -814,6 +815,7 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                                   customIconFilter={r.theme.customIconFilter}
                                   customIconInvert={r.theme.customIconInvert}
                                   cardMode={r.theme.cardMode}
+                                  isLightBackground={false}
                                   size={20}
                                   color={elementConfig.primaryColor}
                                 />
@@ -827,14 +829,18 @@ export const DeckManager: React.FC<DeckManagerProps> = ({
                                     r.cardCategory === 'mundano'
                                       ? '#d97706'
                                       : r.cardCategory === 'amaldicoado'
-                                      ? '#a855f7'
+                                      ? isLight
+                                        ? elementConfig.lightPrimaryColor || '#7e22ce'
+                                        : elementConfig.primaryColor || '#a855f7'
+                                      : isLight
+                                      ? elementConfig.lightPrimaryColor
                                       : elementConfig.primaryColor,
                                 }}
                               >
                                 {r.cardCategory === 'mundano'
                                   ? (r.mundaneSubcategory || 'Mundano').replace('_', ' ')
                                   : r.cardCategory === 'amaldicoado'
-                                  ? (r.curseName || 'Amaldiçoado')
+                                  ? `${elementConfig.name}${r.curseName ? ` · ${r.curseName}` : ' · Amaldiçoado'}`
                                   : elementConfig.name}
                               </span>
                             </div>

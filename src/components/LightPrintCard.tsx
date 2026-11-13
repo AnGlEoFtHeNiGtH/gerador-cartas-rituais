@@ -354,8 +354,8 @@ export const LightPrintCard: React.FC<LightPrintCardProps> = ({
                       <span>RASTREADOR DE CARGAS / USOS:</span>
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                      {[...Array(Math.min(ritual.maxUses || 6, 12))].map((_, i) => {
-                        const total = ritual.maxUses || 6;
+                      {[...Array(Math.min(ritual.maxUses || 6, 20))].map((_, i) => {
+                        const total = Math.min(20, ritual.maxUses || 6);
                         const available = ritual.currentUses !== undefined ? ritual.currentUses : total;
                         const isFilled = i < available;
                         return (

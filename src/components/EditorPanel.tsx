@@ -491,8 +491,9 @@ export const EditorPanel: React.FC<EditorPanelProps> = ({
                             customIconFilter={ritual.theme.customIconFilter}
                             customIconInvert={ritual.theme.customIconInvert}
                             cardMode={ritual.theme.cardMode}
+                            isLightBackground={isLightApp && !isSelected}
                             size={16}
-                            color={cfg.primaryColor}
+                            color={isLightApp && !isSelected ? cfg.lightPrimaryColor : cfg.primaryColor}
                           />
                           <span className="truncate">{cfg.name}</span>
                         </button>

@@ -42,6 +42,7 @@ interface ItemEditorPanelProps {
   onPublishToPublic?: () => void;
 }
 
+import { OccultSigil } from './OccultSigil';
 import {
   processUploadedImage,
   removeBlackFromDataUrl,
@@ -87,7 +88,7 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
     const current = item.theme || {
       borderStyle: 'rustic-tactical',
       parchmentTone: 'classic-aged',
-      cardMode: 'dark',
+      cardMode: 'light',
       itemCode: 'ORD-EQP-01',
     };
     update({
@@ -317,7 +318,10 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                     key={cat.id}
                     type="button"
                     onClick={() => {
-                      update({ itemType: cat.id as CardCategory });
+                      update({
+                        itemType: cat.id as CardCategory,
+                        ...(cat.id === 'amaldicoado' && !item.element ? { element: 'sangue' } : {}),
+                      });
                       soundEngine.playSigilChime(500);
                     }}
                     className={`p-2 rounded-xl border text-left transition-all ${
@@ -415,23 +419,43 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                   <div className="grid grid-cols-5 gap-1.5">
                     {(['sangue', 'morte', 'energia', 'conhecimento', 'medo'] as ElementId[]).map((elem) => {
                       const cfg = ELEMENT_CONFIGS[elem];
-                      const isElemActive = item.element === elem;
+                      const activeElem = item.element || 'sangue';
+                      const isElemActive = activeElem === elem;
                       return (
                         <button
                           key={elem}
                           type="button"
-                          onClick={() => update({ element: elem })}
-                          className={`p-1.5 rounded-lg border text-center text-[10px] font-bold transition-all ${
+                          onClick={() => {
+                            update({ element: elem });
+                            soundEngine.playSigilChime(540);
+                          }}
+                          className={`p-1.5 rounded-lg border text-center text-[10px] font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
                             isElemActive
-                              ? 'bg-zinc-800 border-amber-400 text-white shadow-xs'
-                              : 'bg-black/30 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                              ? 'bg-zinc-900 border-amber-400 text-white shadow-xs'
+                              : isLightApp
+                              ? 'bg-white border-slate-300 text-slate-800 hover:bg-slate-100'
+                              : 'bg-black/40 border-zinc-800 text-zinc-400 hover:text-zinc-200'
                           }`}
                           style={{
-                            borderColor: isElemActive ? cfg.primaryColor : undefined,
-                            color: isElemActive ? cfg.primaryColor : undefined,
+                            borderColor: isElemActive
+                              ? isLightApp && elem === 'morte'
+                                ? '#334155'
+                                : cfg.primaryColor
+                              : undefined,
+                            color: isElemActive
+                              ? cfg.primaryColor
+                              : isLightApp
+                              ? cfg.lightPrimaryColor
+                              : undefined,
                           }}
                         >
-                          {cfg.name}
+                          <OccultSigil
+                            element={elem}
+                            size={18}
+                            isLightBackground={isLightApp && !isElemActive}
+                            color={isElemActive ? cfg.primaryColor : isLightApp ? cfg.lightPrimaryColor : cfg.primaryColor}
+                          />
+                          <span className="truncate w-full leading-none">{cfg.name}</span>
                         </button>
                       );
                     })}
@@ -728,29 +752,84 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
               {item.showUseTracker && (
                 <div className="pt-2 border-t border-zinc-800/80 space-y-3">
                   <div className="flex items-center justify-between gap-4">
-                    <span className="text-xs">Número Máximo de Cargas / Bolinhas:</span>
+                    <span className="text-xs">Número Máximo de Cargas / Bolinhas (1–20):</span>
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextMax = Math.max(1, (item.maxUses || 5) - 1);
+                          update({
+                            maxUses: nextMax,
+                            currentUses: Math.min(item.currentUses || 0, nextMax),
+                          });
+                        }}
+                        className={`w-6 h-6 rounded border text-xs font-bold flex items-center justify-center cursor-pointer ${
+                          isLightApp
+                            ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                            : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'
+                        }`}
+                        title="Diminuir cargas"
+                      >
+                        -
+                      </button>
                       <input
                         type="range"
                         min={1}
-                        max={10}
-                        value={item.maxUses || 5}
-                        onChange={(e) => update({ maxUses: parseInt(e.target.value) || 1 })}
-                        className="w-28 accent-amber-500"
+                        max={20}
+                        value={Math.min(20, Math.max(1, item.maxUses || 5))}
+                        onChange={(e) => {
+                          const nextMax = Math.min(20, Math.max(1, parseInt(e.target.value, 10) || 1));
+                          update({
+                            maxUses: nextMax,
+                            currentUses: Math.min(item.currentUses || 0, nextMax),
+                          });
+                        }}
+                        className="w-28 accent-amber-500 cursor-pointer"
                       />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextMax = Math.min(20, (item.maxUses || 5) + 1);
+                          update({ maxUses: nextMax });
+                        }}
+                        className={`w-6 h-6 rounded border text-xs font-bold flex items-center justify-center cursor-pointer ${
+                          isLightApp
+                            ? 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
+                            : 'bg-zinc-900 border-zinc-700 text-zinc-300 hover:bg-zinc-800'
+                        }`}
+                        title="Aumentar cargas"
+                      >
+                        +
+                      </button>
                       <span className="text-xs font-mono font-bold w-6 text-center">
-                        {item.maxUses || 5}
+                        {Math.min(20, Math.max(1, item.maxUses || 5))}
                       </span>
                     </div>
                   </div>
 
                   {/* Pré-visualização dos Pips no Painel */}
-                  <div className="p-2.5 rounded-lg bg-black/40 border border-zinc-800 flex items-center justify-between">
-                    <span className="text-[11px] font-mono text-zinc-400">
-                      Cargas Gastas: {item.currentUses || 0} de {item.maxUses}
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {Array.from({ length: item.maxUses || 5 }).map((_, idx) => {
+                  <div
+                    className={`p-2.5 rounded-lg border space-y-2 ${
+                      isLightApp ? 'bg-slate-100 border-slate-300' : 'bg-black/40 border-zinc-800'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[11px] font-mono ${isLightApp ? 'text-slate-600' : 'text-zinc-400'}`}>
+                        Cargas Gastas: {Math.min(item.currentUses || 0, Math.min(20, item.maxUses || 5))} de {Math.min(20, item.maxUses || 5)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => update({ currentUses: 0 })}
+                        className={`text-[10px] flex items-center gap-1 cursor-pointer ${
+                          isLightApp ? 'text-slate-600 hover:text-slate-900' : 'text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        <RotateCcw className="w-3 h-3" />
+                        <span>Zerar</span>
+                      </button>
+                    </div>
+                    <div className="flex items-center flex-wrap gap-1.5">
+                      {Array.from({ length: Math.min(20, Math.max(1, item.maxUses || 5)) }).map((_, idx) => {
                         const isFilled = idx < (item.currentUses || 0);
                         return (
                           <button
@@ -761,7 +840,7 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                               update({ currentUses: next });
                               soundEngine.playCardFlip();
                             }}
-                            className={`w-4 h-4 rounded-full border-2 transition-transform hover:scale-110 ${
+                            className={`w-4 h-4 rounded-full border-2 transition-transform hover:scale-110 cursor-pointer shrink-0 ${
                               isFilled ? 'bg-zinc-900 border-zinc-950 text-white' : 'bg-white border-zinc-600'
                             }`}
                             title={`Clique para marcar/desmarcar pip ${idx + 1}`}
@@ -771,15 +850,6 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                         );
                       })}
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => update({ currentUses: 0 })}
-                      className="text-[10px] text-zinc-400 hover:text-white flex items-center gap-1"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Zerar</span>
-                    </button>
                   </div>
                 </div>
               )}
@@ -988,7 +1058,7 @@ export const ItemEditorPanel: React.FC<ItemEditorPanelProps> = ({
                     type="button"
                     onClick={() => updateTheme({ cardMode: m.id as CardMode })}
                     className={`p-2.5 rounded-xl border text-left transition-all ${
-                      (item.theme?.cardMode || 'dark') === m.id
+                      (item.theme?.cardMode || 'light') === m.id
                         ? 'bg-amber-600 text-white border-amber-600 font-bold shadow-xs'
                         : isLightApp
                         ? 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'

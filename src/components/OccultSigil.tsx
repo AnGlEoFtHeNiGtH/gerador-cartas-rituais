@@ -39,8 +39,20 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
   color,
   glow = false,
 }) => {
+  // Normalização segura para evitar falhas caso o elemento venha com capitalização ou espaço
+  const normalizedRaw = typeof element === 'string' ? element.toLowerCase().trim() : 'sangue';
+  const safeElement: ElementId =
+    normalizedRaw === 'sangue' ||
+    normalizedRaw === 'morte' ||
+    normalizedRaw === 'energia' ||
+    normalizedRaw === 'conhecimento' ||
+    normalizedRaw === 'medo' ||
+    normalizedRaw === 'custom'
+      ? normalizedRaw
+      : 'sangue';
+
   // Resolução inteligente: se não houver ícone customizado, utiliza SEMPRE o Símbolo Oficial do Elemento
-  const officialSymbol = OFFICIAL_ELEMENT_SYMBOLS[element];
+  const officialSymbol = OFFICIAL_ELEMENT_SYMBOLS[safeElement];
   const effectiveIconUrl = customIconUrl || officialSymbol;
 
   // Adaptação Dinâmica de Contraste Inteligente:
@@ -69,10 +81,10 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
 
   const activeColor =
     color ||
-    (isLight ? defaultLightColors[element] : defaultDarkColors[element]) ||
+    (isLight ? defaultLightColors[safeElement] : defaultDarkColors[safeElement]) ||
     (isLight ? '#000000' : '#ffffff');
 
-  const filterId = `sigil-glow-${element}-${size}`;
+  const filterId = `sigil-glow-${safeElement}-${size}`;
 
   // Renderização através do ativo oficial ou upload do usuário
   if (effectiveIconUrl) {
@@ -100,12 +112,12 @@ export const OccultSigil: React.FC<OccultSigilProps> = ({
       default:
         // Contraste Inteligente Dinâmico Oficial:
         if (isLight) {
-          // Fundo Claro: renderiza o símbolo em preto absoluto de altíssimo contraste
-          filterStyle += ' brightness(0) contrast(200%)';
+          // Fundo Claro: inverte traços brancos para preto absoluto e remove fundo preto via multiply
+          filterStyle += ' invert(1) contrast(140%)';
           blendModeStyle = 'multiply';
         } else {
-          // Fundo Escuro: renderiza em branco brilhante / spectral contrast
-          filterStyle += ' brightness(1) contrast(115%)';
+          // Fundo Escuro: renderiza em branco brilhante e remove fundo preto via screen
+          filterStyle += ' brightness(1.08) contrast(120%)';
           blendModeStyle = 'screen';
         }
         break;

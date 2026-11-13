@@ -306,24 +306,25 @@ export default function App() {
 
   // Create new blank arsenal item
   const handleCreateNewItem = () => {
+    const code = `ORD-${Math.floor(100 + Math.random() * 900)}`;
     const newItem: ArsenalItem = {
       id: `item-${Date.now()}`,
       name: 'Novo Equipamento',
-      category: 'mundano',
+      itemType: 'mundano',
       subcategory: 'utilitario',
-      tier: 'I',
-      spaces: 1,
-      itemCode: `ORD-${Math.floor(100 + Math.random() * 900)}`,
+      categoryTier: 'I',
+      inventorySlots: 1,
       description:
         'Descreva o funcionamento tático ou utilitário do item. Você pode usar formatação como **negrito**, dados como 2d8 ou testes de DT 20.',
       flavorText: 'Equipamento padrão catalogado pelos setores de inteligência da Ordo Realitas.',
       showUseTracker: true,
       maxUses: 4,
-      currentUses: 4,
+      currentUses: 0,
       theme: {
-        cardMode: 'dark',
+        cardMode: 'light',
         parchmentTone: 'classic-aged',
-        borderVariant: 'distressed',
+        borderStyle: 'rustic-tactical',
+        itemCode: code,
         backQuoteText: 'Apenas os agentes preparados sobrevivem às sombras.',
       },
       createdAt: Date.now(),

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ArsenalItem, MundaneSubcategory, ItemCategoryTier, MUNDANE_SUBCATEGORIES } from '../types';
+import { ArsenalItem, MundaneSubcategory, ItemCategoryTier, MUNDANE_SUBCATEGORIES, ELEMENT_CONFIGS, ElementId } from '../types';
+import { OccultSigil } from './OccultSigil';
 import { soundEngine } from '../utils/audio';
 import { healCorruptedCharacters } from '../utils/textFormatter';
 import {
@@ -332,13 +333,36 @@ export const ArsenalManager: React.FC<ArsenalManagerProps> = ({
                     <div>
                       {/* Top Badges */}
                       <div className="flex items-center justify-between mb-2 text-[10px] font-mono">
-                        <div className="flex items-center gap-1.5 font-bold">
-                          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/40">
+                        <div className="flex items-center gap-1.5 font-bold min-w-0">
+                          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0">
                             CAT {itm.categoryTier || 'I'}
                           </span>
-                          <span className="text-zinc-400 uppercase">
+                          <span className="text-zinc-400 uppercase truncate">
                             {MUNDANE_SUBCATEGORIES[itm.subcategory]?.name || itm.subcategory}
                           </span>
+                          {(itm.itemType === 'amaldicoado' || itm.element) && (() => {
+                            const elem = ((itm.element || 'sangue').toLowerCase().trim() as ElementId);
+                            const cfg = elem !== 'custom' ? ELEMENT_CONFIGS[elem] : undefined;
+                            if (!cfg) return null;
+                            return (
+                              <span
+                                className="px-1.5 py-0.5 rounded border flex items-center gap-1 shrink-0"
+                                style={{
+                                  borderColor: `${isLight ? cfg.lightPrimaryColor : cfg.primaryColor}55`,
+                                  backgroundColor: `${isLight ? cfg.lightPrimaryColor : cfg.primaryColor}14`,
+                                  color: isLight ? cfg.lightPrimaryColor : cfg.primaryColor,
+                                }}
+                              >
+                                <OccultSigil
+                                  element={elem}
+                                  isLightBackground={isLight}
+                                  size={12}
+                                  color={isLight ? cfg.lightPrimaryColor : cfg.primaryColor}
+                                />
+                                <span>{cfg.name}</span>
+                              </span>
+                            );
+                          })()}
                         </div>
 
                         <div className="flex items-center gap-1.5">
@@ -392,13 +416,15 @@ export const ArsenalManager: React.FC<ArsenalManagerProps> = ({
 
                       {/* Usage Pips Preview */}
                       {itm.showUseTracker && itm.maxUses > 0 && (
-                        <div className="flex items-center gap-1 mt-2 text-[10px] font-mono text-zinc-400">
-                          <span className="font-semibold text-zinc-300">Cargas:</span>
-                          <div className="flex items-center gap-1">
-                            {Array.from({ length: itm.maxUses }).map((_, i) => (
+                        <div className="flex items-start gap-1.5 mt-2 text-[10px] font-mono text-zinc-400">
+                          <span className={`font-semibold shrink-0 ${isLight ? 'text-slate-700' : 'text-zinc-300'}`}>
+                            Cargas:
+                          </span>
+                          <div className="flex items-center flex-wrap gap-1">
+                            {Array.from({ length: Math.min(20, itm.maxUses) }).map((_, i) => (
                               <div
                                 key={i}
-                                className={`w-2.5 h-2.5 rounded-full border ${
+                                className={`w-2.5 h-2.5 rounded-full border shrink-0 ${
                                   i < itm.currentUses ? 'bg-red-500 border-red-600' : 'bg-zinc-800 border-zinc-600'
                                 }`}
                               />
